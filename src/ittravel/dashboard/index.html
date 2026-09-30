@@ -1,378 +1,171 @@
-<!DOCTYPE html>
-<html lang="en">
+﻿<!DOCTYPE html>
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VigilGuard Identity Security — Enterprise ITDR Platform</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/dashboard.css">
-</head>
-<body>
-  <div class="app-shell">
-    <!-- Top Enterprise Navbar -->
-    <header class="navbar">
-      <div class="nav-left">
-        <div class="logo-mark">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-        </div>
-        <div class="logo-text">
-          <span class="logo-title">VigilGuard</span>
-          <span class="logo-badge">ENTERPRISE ITDR</span>
-        </div>
-      </div>
-      <div class="nav-right">
-        <div class="tenant-selector">
-          <span class="dot online"></span>
-          <span class="tenant-name">Prod-US-East (v2.4)</span>
-        </div>
-        <div class="key-pill">
-          <span class="key-tag">API Key:</span>
-          <input type="password" id="global-api-key" value="demo-master-key-9000" readonly>
-          <button id="toggle-key-btn" class="btn-icon" title="Toggle visibility">👁️</button>
-        </div>
-      </div>
-    </header>
-
-    <div class="main-body">
-      <!-- Sidebar Navigation -->
-      <aside class="sidebar">
-        <div class="sidebar-section">
-          <span class="section-title">CORE PLATFORM</span>
-          <button class="nav-btn active" data-tab="overview">
-            <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-            Threat Overview
-          </button>
-          <button class="nav-btn" data-tab="sandbox">
-            <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-            Interactive Sandbox
-          </button>
-          <button class="nav-btn" data-tab="logs">
-            <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-            Audit Logs
-          </button>
-        </div>
-
-        <div class="sidebar-section">
-          <span class="section-title">DEVELOPER & DOCS</span>
-          <button class="nav-btn" data-tab="tutorials">
-            <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
-            Setup Guide & Tutorials
-          </button>
-          <button class="nav-btn" data-tab="apikeys">
-            <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.778-7.778zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
-            API Key Management
-          </button>
-        </div>
-
-        <div class="engine-badge-box">
-          <div class="engine-title">AI ENGINE STATUS</div>
-          <div class="engine-val">IsolationForest v2.4 (Active)</div>
-          <div class="engine-sub">Latency: &lt; 8ms avg</div>
-        </div>
-      </aside>
-
-      <!-- Content Area -->
-      <main class="content-area">
-        <!-- TAB 1: THREAT OVERVIEW -->
-        <section id="tab-overview" class="tab-page active">
-          <div class="page-header">
-            <div>
-              <h1>Identity Threat Intelligence</h1>
-              <p>Real-time authentication risk scoring and geographic velocity telemetry</p>
-            </div>
-            <button id="refresh-overview-btn" class="btn btn-secondary btn-sm">🔄 Sync Data</button>
-          </div>
-
-          <div class="stats-grid">
-            <div class="stat-card">
-              <span class="stat-title">MONITORED IDENTITIES</span>
-              <span class="stat-val" id="stat-users">0</span>
-              <span class="stat-foot">Active user profiles in state</span>
-            </div>
-            <div class="stat-card warning">
-              <span class="stat-title">FLAGGED ANOMALIES</span>
-              <span class="stat-val" id="stat-anomalies">0</span>
-              <span class="stat-foot">High & Critical risk triggers</span>
-            </div>
-            <div class="stat-card danger">
-              <span class="stat-title">IMPOSSIBLE TRAVEL JUMPS</span>
-              <span class="stat-val" id="stat-critical">0</span>
-              <span class="stat-foot">Velocity &gt; 900 km/h detected</span>
-            </div>
-            <div class="stat-card success">
-              <span class="stat-title">SYSTEM UPTIME</span>
-              <span class="stat-val">99.99%</span>
-              <span class="stat-foot">Zero-downtime stream processor</span>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header">
-              <h2>Recent Threat Detections</h2>
-              <span class="sub-text">Live stream of identity anomaly evaluations</span>
-            </div>
-            <div class="table-wrap">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th>TIMESTAMP</th>
-                    <th>USER ID</th>
-                    <th>RISK SCORE</th>
-                    <th>TIER</th>
-                    <th>CALCULATED VELOCITY</th>
-                    <th>DISTANCE</th>
-                    <th>RISK FACTOR RATIONALE</th>
-                  </tr>
-                </thead>
-                <tbody id="overview-table-body">
-                  <tr><td colspan="7" class="text-muted text-center">No anomalies recorded yet. Test events in the Interactive Sandbox.</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-
-        <!-- TAB 2: INTERACTIVE SANDBOX & CODE GENERATOR -->
-        <section id="tab-sandbox" class="tab-page">
-          <div class="page-header">
-            <div>
-              <h1>Interactive Evaluation Sandbox</h1>
-              <p>Simulate authentication events and generate integration code for your backend</p>
-            </div>
-          </div>
-
-          <div class="sandbox-grid">
-            <!-- Form Card -->
-            <div class="card">
-              <div class="card-header">
-                <h2>Event Scenario Configurator</h2>
-              </div>
-              <form id="sandbox-form" class="form-body">
-                <div class="form-field">
-                  <label for="sb-user">Target User ID</label>
-                  <input type="text" id="sb-user" value="usr_security_admin" required>
-                </div>
-
-                <div class="form-row">
-                  <div class="form-field">
-                    <label for="sb-preset">Login Location Preset</label>
-                    <select id="sb-preset">
-                      <option value="40.7128,-74.0060,New York,US">New York, US</option>
-                      <option value="51.5074,-0.1278,London,GB">London, GB</option>
-                      <option value="35.6762,139.6503,Tokyo,JP">Tokyo, JP</option>
-                      <option value="19.0760,72.8777,Mumbai,IN">Mumbai, IN</option>
-                      <option value="-33.8688,151.2093,Sydney,AU">Sydney, AU</option>
-                    </select>
-                  </div>
-                  <div class="form-field">
-                    <label for="sb-time">Elapsed Time Since Last Login</label>
-                    <select id="sb-time">
-                      <option value="2">2 minutes (Impossible Travel Jump 🚨)</option>
-                      <option value="15">15 minutes (High Velocity 🚀)</option>
-                      <option value="360">6 hours (Standard Flight ✈️)</option>
-                      <option value="1440">24 hours (Normal Activity ☀️)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div class="form-row">
-                  <div class="form-field">
-                    <label for="sb-device">Device Fingerprint ID</label>
-                    <input type="text" id="sb-device" value="dev-macbook-corporate" required>
-                  </div>
-                  <div class="form-field">
-                    <label for="sb-ip">Origin IPv4 Address</label>
-                    <input type="text" id="sb-ip" value="198.51.100.45" required>
-                  </div>
-                </div>
-
-                <button type="submit" class="btn btn-primary btn-block">
-                  ▶️ Evaluate Event & Run AI Model
-                </button>
-              </form>
-            </div>
-
-            <!-- Output & Code Snippet Card -->
-            <div class="card">
-              <div class="card-header">
-                <h2>Evaluation Output & Integration Snippets</h2>
-                <div class="code-tabs">
-                  <button class="code-tab-btn active" data-lang="json">Response</button>
-                  <button class="code-tab-btn" data-lang="curl">cURL</button>
-                  <button class="code-tab-btn" data-lang="python">Python</button>
-                  <button class="code-tab-btn" data-lang="node">Node.js</button>
-                </div>
-              </div>
-
-              <div class="code-container">
-                <pre><code id="code-output">// Submit an event using the configurator to inspect risk payload and code</code></pre>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- TAB 3: AUDIT LOGS -->
-        <section id="tab-logs" class="tab-page">
-          <div class="page-header">
-            <div>
-              <h1>Audit Log Inspector</h1>
-              <p>Historical audit trail of flagged identity security threats</p>
-            </div>
-            <button id="refresh-logs-btn" class="btn btn-secondary btn-sm">🔄 Refresh Table</button>
-          </div>
-
-          <div class="card">
-            <div class="table-wrap">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th>TIMESTAMP</th>
-                    <th>USER ID</th>
-                    <th>RISK SCORE</th>
-                    <th>TIER</th>
-                    <th>GEOGRAPHIC DISTANCE</th>
-                    <th>CALCULATED SPEED</th>
-                    <th>RISK REASONS</th>
-                  </tr>
-                </thead>
-                <tbody id="audit-table-body">
-                  <tr><td colspan="7" class="text-muted text-center">Loading audit history...</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-
-        <!-- TAB 4: SETUP GUIDE & TUTORIALS -->
-        <section id="tab-tutorials" class="tab-page">
-          <div class="page-header">
-            <div>
-              <h1>Developer Integration Guide & Tutorials</h1>
-              <p>Step-by-step setup instructions to integrate VigilGuard ITDR into your authentication gateway</p>
-            </div>
-          </div>
-
-          <div class="tutorial-wrapper">
-            <!-- Step Progress Indicator -->
-            <div class="tutorial-steps">
-              <div class="tut-step active" data-step="1">
-                <span class="step-num">1</span>
-                <span class="step-lbl">Generate API Key</span>
-              </div>
-              <div class="tut-step" data-step="2">
-                <span class="step-num">2</span>
-                <span class="step-lbl">Instrument Login Handler</span>
-              </div>
-              <div class="tut-step" data-step="3">
-                <span class="step-num">3</span>
-                <span class="step-lbl">Enforce Step-Up Auth</span>
-              </div>
-              <div class="tut-step" data-step="4">
-                <span class="step-num">4</span>
-                <span class="step-lbl">Production Checklist</span>
-              </div>
-            </div>
-
-            <!-- Tutorial Content Panels -->
-            <div class="card tutorial-card">
-              <!-- Step 1 -->
-              <div class="tut-panel active" id="tut-step-1">
-                <h2>Step 1: Obtain a Tenant API Key</h2>
-                <p>Every request to VigilGuard ITDR requires an active API key passed in the <code>X-API-Key</code> HTTP header.</p>
-                <div class="alert alert-info">
-                  💡 <strong>Default Demo Key:</strong> Your environment is pre-configured with <code>demo-master-key-9000</code>. You can also generate new keys in the <a href="#" onclick="document.querySelector('[data-tab=apikeys]').click(); return false;">API Keys Portal</a>.
-                </div>
-                <div class="code-box">
-                  <pre><code># Test your API key authentication via cURL
-curl -X GET "http://localhost:8000/v1/stats" \
-     -H "X-API-Key: demo-master-key-9000"</code></pre>
-                </div>
-              </div>
-
-              <!-- Step 2 -->
-              <div class="tut-panel" id="tut-step-2">
-                <h2>Step 2: Send Auth Payload on Every Login Attempt</h2>
-                <p>In your auth endpoint (e.g. NextAuth, Passport.js, Django, FastAPI), make an async call to <code>/v1/auth/evaluate</code> right after verifying user password/MFA.</p>
-                <div class="code-box">
-                  <pre><code># Python Integration Example
-import requests
-
-def on_user_login(user_id, lat, lon, device_id, ip):
-    response = requests.post(
-        "http://localhost:8000/v1/auth/evaluate",
-        headers={"X-API-Key": "demo-master-key-9000"},
-        json={
-            "user_id": user_id,
-            "login_ts": "2026-08-02T15:30:00Z",
-            "lat": lat,
-            "lon": lon,
-            "device_id": device_id,
-            "ip": ip
+  <title>Aegis | Enterprise Anomaly Engine</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gray: {
+              900: '#111827',
+              800: '#1F2937',
+              700: '#374151',
+            },
+            primary: {
+              400: '#60A5FA',
+              500: '#3B82F6',
+              600: '#2563EB',
+            }
+          }
         }
-    )
-    risk_data = response.json()
-    return risk_data</code></pre>
+      }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #0f1115; color: #f3f4f6; }
+    .code-font { font-family: 'JetBrains Mono', monospace; }
+    .glass-panel { background: rgba(31, 41, 55, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+    .stat-glow { box-shadow: 0 0 20px rgba(59, 130, 246, 0.15); }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+  <!-- Topbar -->
+  <header class="border-b border-gray-800 bg-[#0f1115] sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <svg class="w-8 h-8 text-primary-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span class="text-xl font-bold tracking-tight">Aegis<span class="text-gray-400 font-normal">ITDR</span></span>
+      </div>
+      <div class="flex items-center gap-4">
+        <span class="px-2.5 py-1 rounded-full bg-green-500/10 text-green-400 text-xs font-medium border border-green-500/20">System Operational</span>
+        <div class="w-8 h-8 rounded-full bg-gradient-to-r from-primary-500 to-indigo-600"></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-grow flex">
+    <!-- Sidebar -->
+    <aside class="w-64 border-r border-gray-800 hidden md:block">
+      <nav class="p-4 space-y-1">
+        <a href="#" class="flex items-center gap-3 px-3 py-2 bg-gray-800 rounded-md text-white font-medium"><svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>Overview</a>
+        <a href="#test" class="flex items-center gap-3 px-3 py-2 hover:bg-gray-800/50 rounded-md text-gray-300 font-medium transition-colors"><svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>Interactive Console</a>
+        <a href="#logs" class="flex items-center gap-3 px-3 py-2 hover:bg-gray-800/50 rounded-md text-gray-300 font-medium transition-colors"><svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>Audit Trail</a>
+        <a href="#settings" class="flex items-center gap-3 px-3 py-2 hover:bg-gray-800/50 rounded-md text-gray-300 font-medium transition-colors"><svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>Configuration</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="flex-1 p-6 lg:p-8 max-w-7xl">
+      <header class="mb-8">
+        <h1 class="text-3xl font-bold tracking-tight mb-2">Real-Time Threat Intelligence</h1>
+        <p class="text-gray-400">Monitoring enterprise authentication vectors with hybrid AI heuristics.</p>
+      </header>
+
+      <!-- Stats Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="glass-panel p-5 rounded-xl stat-glow">
+          <div class="text-sm font-medium text-gray-400 mb-1">Total Evaluated Events</div>
+          <div class="text-3xl font-bold text-white" id="stat-total">1,482</div>
+          <div class="mt-2 text-sm text-green-400 flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg> +12% this hour</div>
+        </div>
+        <div class="glass-panel p-5 rounded-xl">
+          <div class="text-sm font-medium text-gray-400 mb-1">Threats Intercepted</div>
+          <div class="text-3xl font-bold text-white" id="stat-anomalies">47</div>
+          <div class="mt-2 text-sm text-red-400 flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg> Critical Level</div>
+        </div>
+        <div class="glass-panel p-5 rounded-xl">
+          <div class="text-sm font-medium text-gray-400 mb-1">Avg Inference Latency</div>
+          <div class="text-3xl font-bold text-white">4.2<span class="text-lg text-gray-500 ml-1">ms</span></div>
+          <div class="mt-2 text-sm text-gray-400 flex items-center gap-1">P99: 12ms</div>
+        </div>
+      </div>
+
+      <!-- Chart & Log Feed -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div class="lg:col-span-2 glass-panel p-5 rounded-xl h-[400px]">
+          <h2 class="text-lg font-semibold mb-4">Risk Distribution (24h)</h2>
+          <div class="relative h-[300px] w-full">
+            <canvas id="riskChart"></canvas>
+          </div>
+        </div>
+        <div class="glass-panel p-5 rounded-xl h-[400px] flex flex-col">
+          <h2 class="text-lg font-semibold mb-4">Live Alert Stream</h2>
+          <div class="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar" id="live-alerts">
+            <!-- Alert Items -->
+            <div class="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+              <div class="flex justify-between items-start mb-1">
+                <span class="text-xs font-semibold text-red-400">CRITICAL • 94.2</span>
+                <span class="text-xs text-gray-500 code-font">Just now</span>
+              </div>
+              <div class="text-sm text-gray-200">usr_892 traveled 4,200km in 5m</div>
+            </div>
+            <div class="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+              <div class="flex justify-between items-start mb-1">
+                <span class="text-xs font-semibold text-yellow-400">HIGH • 71.0</span>
+                <span class="text-xs text-gray-500 code-font">2m ago</span>
+              </div>
+              <div class="text-sm text-gray-200">usr_102 unrecognized device hash</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interactive Console -->
+      <div class="glass-panel p-6 rounded-xl" id="test">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-bold">API Test Console</h2>
+          <span class="px-2.5 py-1 rounded-md bg-gray-800 text-xs text-gray-400 code-font border border-gray-700">POST /v1/auth/evaluate</span>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <!-- Input Form -->
+          <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-gray-400 mb-1">User ID</label>
+                <input type="text" id="inp-user" value="demo_exec_01" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-400 mb-1">Device Fingerprint</label>
+                <input type="text" id="inp-device" value="dev_macbook_pro_m3" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-primary-500 transition-all">
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-gray-400 mb-1">Location Coordinates</label>
+                <div class="flex gap-2">
+                  <input type="text" id="inp-lat" value="40.7128" placeholder="Lat" class="w-1/2 bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-primary-500 transition-all">
+                  <input type="text" id="inp-lon" value="-74.0060" placeholder="Lon" class="w-1/2 bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-primary-500 transition-all">
                 </div>
               </div>
-
-              <!-- Step 3 -->
-              <div class="tut-panel" id="tut-step-3">
-                <h2>Step 3: Enforce Risk-Based Step-Up Authentication (MFA / Block)</h2>
-                <p>Use the returned <code>risk_score</code> or <code>risk_tier</code> to take automated security actions:</p>
-                <ul class="tut-list">
-                  <li>🟢 <strong>LOW / MEDIUM (&lt; 60)</strong>: Allow user login without disruption.</li>
-                  <li>🟡 <strong>HIGH (60–79)</strong>: Require Step-Up Multi-Factor Authentication (WebAuthn / OTP).</li>
-                  <li>🔴 <strong>CRITICAL (&ge; 80)</strong>: Immediately block login attempt and dispatch security alert to your SOC.</li>
-                </ul>
-              </div>
-
-              <!-- Step 4 -->
-              <div class="tut-panel" id="tut-step-4">
-                <h2>Step 4: Enterprise Production Checklist</h2>
-                <p>Before launching to production users:</p>
-                <ul class="checklist">
-                  <li>✅ Store API keys in environment variables (e.g. <code>VIGILGUARD_API_KEY</code>).</li>
-                  <li>✅ Implement fallbacks so auth flow fails-open or degrades gracefully if security service is unreachable.</li>
-                  <li>✅ Ensure user IP geolocation lookup uses trusted CDN headers (e.g. <code>CF-IPCountry</code>, <code>X-Forwarded-For</code>).</li>
-                  <li>✅ Deploy to high-availability infrastructure (Vercel Serverless / AWS ECS).</li>
-                </ul>
+              <div>
+                <label class="block text-xs font-medium text-gray-400 mb-1">IP Address</label>
+                <input type="text" id="inp-ip" value="192.168.1.100" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-primary-500 transition-all">
               </div>
             </div>
-          </div>
-        </section>
-
-        <!-- TAB 5: API KEYS MANAGEMENT -->
-        <section id="tab-apikeys" class="tab-page">
-          <div class="page-header">
-            <div>
-              <h1>Tenant API Keys Portal</h1>
-              <p>Issue and revoke production API credentials for your backend microservices</p>
+            
+            <div class="flex gap-3 pt-2">
+              <button id="btn-simulate" class="flex-1 bg-primary-600 hover:bg-primary-500 text-white font-medium py-2 px-4 rounded-md transition-colors shadow-lg shadow-primary-500/20">Execute Payload</button>
+              <button id="btn-jump" class="bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition-colors border border-gray-600">Simulate Impossible Travel (Tokyo)</button>
             </div>
           </div>
 
-          <div class="card">
-            <div class="card-header">
-              <h2>Generate New Service API Key</h2>
-            </div>
-            <form id="key-gen-form" class="inline-form">
-              <input type="text" id="key-label" placeholder="Key Label (e.g., Auth Gateway Prod-US)" required>
-              <button type="submit" class="btn btn-primary">Create API Key</button>
-            </form>
-
-            <div id="key-output-banner" class="alert alert-success hidden">
-              <div><strong>Key Created Successfully!</strong> Copy this key immediately:</div>
-              <div class="key-copy-row">
-                <code id="new-key-code">sk_live_...</code>
-                <button id="copy-key-btn" class="btn btn-secondary btn-sm">📋 Copy</button>
-              </div>
-            </div>
+          <!-- Output JSON -->
+          <div class="bg-[#0d1117] border border-gray-800 rounded-lg p-4 relative group">
+            <div class="absolute top-3 right-3 text-xs text-gray-500 code-font">JSON Response</div>
+            <pre><code id="json-output" class="text-sm code-font text-green-400 overflow-x-auto block mt-4">// Awaiting execution...</code></pre>
           </div>
-        </section>
-      </main>
+        </div>
+      </div>
     </div>
-  </div>
+  </main>
 
   <script src="/static/dashboard.js"></script>
 </body>
