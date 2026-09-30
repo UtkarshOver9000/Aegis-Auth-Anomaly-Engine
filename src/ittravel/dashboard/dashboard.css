@@ -1,14 +1,88 @@
-﻿/* Custom Tailwind overrides and scrollbar styling */
-.custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
+/* Aegis Enterprise ITDR Design System */
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
+::-webkit-scrollbar-track {
+  background: #07090e;
 }
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: #374151;
-    border-radius: 10px;
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 9999px;
 }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: #4B5563;
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Navigation active item */
+.nav-item.active {
+  background: rgba(59, 130, 246, 0.12);
+  color: #60a5fa;
+  border-left: 3px solid #3b82f6;
+}
+.nav-item:not(.active) {
+  color: #94a3b8;
+}
+.nav-item:not(.active):hover {
+  background: rgba(30, 41, 59, 0.4);
+  color: #f1f5f9;
+}
+
+/* Leaflet Map Custom Dark Theme */
+.leaflet-container {
+  background: #0b0f17 !important;
+  font-family: 'JetBrains Mono', monospace;
+}
+.leaflet-popup-content-wrapper {
+  background: #101623 !important;
+  color: #f8fafc !important;
+  border: 1px solid #1e293b !important;
+  border-radius: 12px !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5) !important;
+  padding: 4px;
+}
+.leaflet-popup-tip {
+  background: #101623 !important;
+}
+
+/* Radar pulse animation for map origin/dest */
+@keyframes pulse-ring {
+  0% { transform: scale(0.33); opacity: 0.8; }
+  80%, 100% { transform: scale(2.2); opacity: 0; }
+}
+
+.radar-marker {
+  position: relative;
+  width: 16px;
+  height: 16px;
+}
+.radar-marker::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: rgba(244, 63, 94, 0.4);
+  animation: pulse-ring 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+.radar-marker-dot {
+  width: 16px;
+  height: 16px;
+  background-color: #f43f5e;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #f43f5e;
+}
+
+.origin-marker-dot {
+  width: 16px;
+  height: 16px;
+  background-color: #3b82f6;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #3b82f6;
 }

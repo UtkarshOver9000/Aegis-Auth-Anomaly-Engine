@@ -1,171 +1,848 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aegis | Enterprise Anomaly Engine</title>
+  <title>Aegis ITDR | Enterprise Identity Threat Detection & Response Platform</title>
+  <meta name="description" content="Next-Generation Authentication Anomaly Engine fusing Unsupervised IsolationForest ML with Geodesic Velocity Physics.">
+
+  <!-- Inter & JetBrains Mono Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
           colors: {
-            gray: {
-              900: '#111827',
-              800: '#1F2937',
-              700: '#374151',
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              400: '#60a5fa',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
             },
-            primary: {
-              400: '#60A5FA',
-              500: '#3B82F6',
-              600: '#2563EB',
+            dark: {
+              950: '#07090e',
+              900: '#0b0f17',
+              850: '#101623',
+              800: '#161f30',
+              700: '#1e293b',
+              600: '#334155',
+            },
+            threat: {
+              critical: '#f43f5e',
+              high: '#fb923c',
+              medium: '#facc15',
+              low: '#10b981',
             }
           }
         }
       }
     }
   </script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <style>
-    body { font-family: 'Inter', sans-serif; background-color: #0f1115; color: #f3f4f6; }
-    .code-font { font-family: 'JetBrains Mono', monospace; }
-    .glass-panel { background: rgba(31, 41, 55, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
-    .stat-glow { box-shadow: 0 0 20px rgba(59, 130, 246, 0.15); }
-  </style>
+
+  <!-- Leaflet Map CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Custom styles -->
+  <link rel="stylesheet" href="/static/dashboard.css">
 </head>
-<body class="antialiased min-h-screen flex flex-col">
-  <!-- Topbar -->
-  <header class="border-b border-gray-800 bg-[#0f1115] sticky top-0 z-30">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <svg class="w-8 h-8 text-primary-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        <span class="text-xl font-bold tracking-tight">Aegis<span class="text-gray-400 font-normal">ITDR</span></span>
+<body class="bg-dark-950 text-slate-100 font-sans antialiased min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
+
+  <!-- Top Enterprise Status Navigation -->
+  <header class="border-b border-dark-800 bg-dark-900/90 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Brand & Badges -->
+      <div class="flex items-center gap-6">
+        <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('overview')">
+          <div class="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500/20 via-brand-600/30 to-indigo-600/20 border border-brand-500/40 shadow-[0_0_15px_rgba(59,130,246,0.35)]">
+            <svg class="w-5 h-5 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="m9 12 2 2 4-4"/>
+            </svg>
+            <span class="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-500"></span>
+            </span>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-lg font-bold tracking-tight text-white">AEGIS</span>
+              <span class="text-xs font-mono font-semibold px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/20">ITDR PRO</span>
+            </div>
+            <p class="text-[10px] text-slate-400 tracking-wider uppercase font-mono">Identity Threat Detection & Response</p>
+          </div>
+        </div>
+
+        <!-- Telemetry Status Pills -->
+        <div class="hidden xl:flex items-center gap-3 pl-6 border-l border-dark-800 text-xs font-mono">
+          <div class="flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>HYBRID ENSEMBLE: ACTIVE</span>
+          </div>
+          <div class="px-2.5 py-1 rounded-full bg-dark-850 border border-dark-700/60 text-slate-300">
+            <span>INFERENCE: <strong class="text-brand-400" id="topbar-latency">3.9ms</strong></span>
+          </div>
+          <div class="px-2.5 py-1 rounded-full bg-dark-850 border border-dark-700/60 text-slate-300">
+            <span>REGION: <strong class="text-slate-200">US-EAST (PRIMARY)</strong></span>
+          </div>
+        </div>
       </div>
-      <div class="flex items-center gap-4">
-        <span class="px-2.5 py-1 rounded-full bg-green-500/10 text-green-400 text-xs font-medium border border-green-500/20">System Operational</span>
-        <div class="w-8 h-8 rounded-full bg-gradient-to-r from-primary-500 to-indigo-600"></div>
+
+      <!-- Right Utility Actions -->
+      <div class="flex items-center gap-3">
+        <!-- Active API Key Pill -->
+        <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-dark-850 border border-dark-800 text-xs font-mono">
+          <span class="text-slate-400">KEY:</span>
+          <code class="text-brand-400" id="active-key-display">demo-master-key-9000</code>
+          <button id="copy-active-key-btn" title="Copy API Key" class="hover:text-white text-slate-400 transition-colors">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+          </button>
+        </div>
+
+        <!-- Documentation & GitHub Links -->
+        <a href="/docs" target="_blank" class="px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-dark-850 hover:bg-dark-800 border border-dark-700/60 rounded-lg transition-colors flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+          <span>Swagger API</span>
+        </a>
+
+        <a href="https://github.com/UtkarshOver9000/Aegis-Auth-Anomaly-Engine" target="_blank" class="px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-dark-850 hover:bg-dark-800 border border-dark-700/60 rounded-lg transition-colors flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          <span class="hidden sm:inline">GitHub</span>
+        </a>
       </div>
     </div>
   </header>
 
-  <main class="flex-grow flex">
-    <!-- Sidebar -->
-    <aside class="w-64 border-r border-gray-800 hidden md:block">
-      <nav class="p-4 space-y-1">
-        <a href="#" class="flex items-center gap-3 px-3 py-2 bg-gray-800 rounded-md text-white font-medium"><svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>Overview</a>
-        <a href="#test" class="flex items-center gap-3 px-3 py-2 hover:bg-gray-800/50 rounded-md text-gray-300 font-medium transition-colors"><svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>Interactive Console</a>
-        <a href="#logs" class="flex items-center gap-3 px-3 py-2 hover:bg-gray-800/50 rounded-md text-gray-300 font-medium transition-colors"><svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>Audit Trail</a>
-        <a href="#settings" class="flex items-center gap-3 px-3 py-2 hover:bg-gray-800/50 rounded-md text-gray-300 font-medium transition-colors"><svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>Configuration</a>
-      </nav>
+  <!-- Main Body Layout -->
+  <div class="flex-1 flex max-w-[1720px] w-full mx-auto">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="w-64 border-r border-dark-800 bg-dark-900/40 p-4 shrink-0 hidden lg:flex flex-col justify-between">
+      <div class="space-y-6">
+        <div>
+          <div class="px-3 mb-2 text-[10px] font-mono tracking-wider text-slate-500 uppercase">Platform Control</div>
+          <nav class="space-y-1">
+            <button onclick="switchTab('overview')" class="nav-item active w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all" data-tab-btn="overview">
+              <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+              <span>Threat Overview</span>
+            </button>
+            <button onclick="switchTab('simulator')" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all" data-tab-btn="simulator">
+              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+              <span>Attack Simulator</span>
+              <span class="ml-auto text-[10px] font-mono px-1.5 py-0.5 rounded bg-brand-500/20 text-brand-300">LIVE</span>
+            </button>
+            <button onclick="switchTab('map')" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all" data-tab-btn="map">
+              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <span>Geo-Velocity Radar</span>
+            </button>
+            <button onclick="switchTab('logs')" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all" data-tab-btn="logs">
+              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+              <span>SOC Audit Stream</span>
+            </button>
+          </nav>
+        </div>
+
+        <div>
+          <div class="px-3 mb-2 text-[10px] font-mono tracking-wider text-slate-500 uppercase">Developers & Infra</div>
+          <nav class="space-y-1">
+            <button onclick="switchTab('sdks')" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all" data-tab-btn="sdks">
+              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+              <span>Enterprise SDKs</span>
+            </button>
+            <button onclick="switchTab('keys')" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all" data-tab-btn="keys">
+              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+              <span>API Key Provisioning</span>
+            </button>
+          </nav>
+        </div>
+      </div>
+
+      <!-- System Health Card in Sidebar -->
+      <div class="p-3.5 rounded-xl bg-dark-850/80 border border-dark-800 space-y-2.5 text-xs font-mono">
+        <div class="flex items-center justify-between text-slate-400">
+          <span>PIPELINE ENGINE</span>
+          <span class="text-emerald-400">HEALTHY</span>
+        </div>
+        <div class="space-y-1">
+          <div class="flex justify-between text-[11px] text-slate-400">
+            <span>Model Weights</span>
+            <span class="text-slate-200">IsolationForest v2</span>
+          </div>
+          <div class="flex justify-between text-[11px] text-slate-400">
+            <span>Physics Math</span>
+            <span class="text-slate-200">Haversine (6371km)</span>
+          </div>
+          <div class="flex justify-between text-[11px] text-slate-400">
+            <span>Speed Ceiling</span>
+            <span class="text-brand-400">900 km/h (Mach .85)</span>
+          </div>
+        </div>
+      </div>
     </aside>
 
-    <!-- Main Content -->
-    <div class="flex-1 p-6 lg:p-8 max-w-7xl">
-      <header class="mb-8">
-        <h1 class="text-3xl font-bold tracking-tight mb-2">Real-Time Threat Intelligence</h1>
-        <p class="text-gray-400">Monitoring enterprise authentication vectors with hybrid AI heuristics.</p>
-      </header>
-
-      <!-- Stats Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="glass-panel p-5 rounded-xl stat-glow">
-          <div class="text-sm font-medium text-gray-400 mb-1">Total Evaluated Events</div>
-          <div class="text-3xl font-bold text-white" id="stat-total">1,482</div>
-          <div class="mt-2 text-sm text-green-400 flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg> +12% this hour</div>
-        </div>
-        <div class="glass-panel p-5 rounded-xl">
-          <div class="text-sm font-medium text-gray-400 mb-1">Threats Intercepted</div>
-          <div class="text-3xl font-bold text-white" id="stat-anomalies">47</div>
-          <div class="mt-2 text-sm text-red-400 flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg> Critical Level</div>
-        </div>
-        <div class="glass-panel p-5 rounded-xl">
-          <div class="text-sm font-medium text-gray-400 mb-1">Avg Inference Latency</div>
-          <div class="text-3xl font-bold text-white">4.2<span class="text-lg text-gray-500 ml-1">ms</span></div>
-          <div class="mt-2 text-sm text-gray-400 flex items-center gap-1">P99: 12ms</div>
-        </div>
-      </div>
-
-      <!-- Chart & Log Feed -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <div class="lg:col-span-2 glass-panel p-5 rounded-xl h-[400px]">
-          <h2 class="text-lg font-semibold mb-4">Risk Distribution (24h)</h2>
-          <div class="relative h-[300px] w-full">
-            <canvas id="riskChart"></canvas>
-          </div>
-        </div>
-        <div class="glass-panel p-5 rounded-xl h-[400px] flex flex-col">
-          <h2 class="text-lg font-semibold mb-4">Live Alert Stream</h2>
-          <div class="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar" id="live-alerts">
-            <!-- Alert Items -->
-            <div class="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-              <div class="flex justify-between items-start mb-1">
-                <span class="text-xs font-semibold text-red-400">CRITICAL • 94.2</span>
-                <span class="text-xs text-gray-500 code-font">Just now</span>
-              </div>
-              <div class="text-sm text-gray-200">usr_892 traveled 4,200km in 5m</div>
-            </div>
-            <div class="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-              <div class="flex justify-between items-start mb-1">
-                <span class="text-xs font-semibold text-yellow-400">HIGH • 71.0</span>
-                <span class="text-xs text-gray-500 code-font">2m ago</span>
-              </div>
-              <div class="text-sm text-gray-200">usr_102 unrecognized device hash</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Interactive Console -->
-      <div class="glass-panel p-6 rounded-xl" id="test">
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-xl font-bold">API Test Console</h2>
-          <span class="px-2.5 py-1 rounded-md bg-gray-800 text-xs text-gray-400 code-font border border-gray-700">POST /v1/auth/evaluate</span>
-        </div>
+    <!-- Main Dynamic Content Workspace -->
+    <main class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+      
+      <!-- ================= TAB 1: OVERVIEW ================= -->
+      <section id="tab-overview" class="tab-content space-y-8">
         
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <!-- Input Form -->
-          <div class="space-y-4">
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-xs font-medium text-gray-400 mb-1">User ID</label>
-                <input type="text" id="inp-user" value="demo_exec_01" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all">
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-gray-400 mb-1">Device Fingerprint</label>
-                <input type="text" id="inp-device" value="dev_macbook_pro_m3" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-primary-500 transition-all">
+        <!-- Banner Intro -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-800 pb-6">
+          <div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
+              <span>Security Threat Intelligence Hub</span>
+              <span class="text-xs font-mono font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">LIVE SOC</span>
+            </h1>
+            <p class="text-slate-400 text-sm mt-1">Autonomous identity threat detection using unsupervised spatial outlier isolation and velocity physics.</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button onclick="refreshData()" class="px-3.5 py-2 rounded-lg bg-dark-850 hover:bg-dark-800 border border-dark-700/80 text-xs font-medium text-slate-300 hover:text-white flex items-center gap-2 transition-all">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+              <span>Refresh Metrics</span>
+            </button>
+            <button onclick="switchTab('simulator')" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-lg shadow-brand-600/20 flex items-center gap-2 transition-all">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path></svg>
+              <span>Launch Attack Simulator</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 Key Enterprise KPI Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+          
+          <!-- Card 1 -->
+          <div class="p-5 rounded-2xl bg-dark-900 border border-dark-800 hover:border-dark-700/80 transition-all shadow-sm group">
+            <div class="flex items-center justify-between text-slate-400 mb-3">
+              <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Total Ingested Logins</span>
+              <div class="p-2 rounded-lg bg-brand-500/10 text-brand-400 group-hover:scale-110 transition-transform">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
               </div>
             </div>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="flex items-baseline gap-2">
+              <span class="text-3xl font-extrabold text-white tracking-tight" id="kpi-total-eval">1,842,910</span>
+              <span class="text-xs font-semibold text-emerald-400 flex items-center">
+                ↑ 14.2%
+              </span>
+            </div>
+            <p class="text-xs text-slate-500 mt-2">Analyzed across all distributed tenant nodes</p>
+          </div>
+
+          <!-- Card 2 -->
+          <div class="p-5 rounded-2xl bg-dark-900 border border-dark-800 hover:border-dark-700/80 transition-all shadow-sm group">
+            <div class="flex items-center justify-between text-slate-400 mb-3">
+              <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Impossible Travel Alerts</span>
+              <div class="p-2 rounded-lg bg-rose-500/10 text-rose-400 group-hover:scale-110 transition-transform">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+              </div>
+            </div>
+            <div class="flex items-baseline gap-2">
+              <span class="text-3xl font-extrabold text-rose-400 tracking-tight" id="kpi-critical-threats">3,412</span>
+              <span class="text-xs font-semibold text-rose-400 px-1.5 py-0.5 rounded bg-rose-500/10 border border-rose-500/20">
+                CRITICAL
+              </span>
+            </div>
+            <p class="text-xs text-slate-500 mt-2">Physical speed &gt; 900 km/h boundary</p>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="p-5 rounded-2xl bg-dark-900 border border-dark-800 hover:border-dark-700/80 transition-all shadow-sm group">
+            <div class="flex items-center justify-between text-slate-400 mb-3">
+              <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Mean Anomaly Score</span>
+              <div class="p-2 rounded-lg bg-amber-500/10 text-amber-400 group-hover:scale-110 transition-transform">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+              </div>
+            </div>
+            <div class="flex items-baseline gap-2">
+              <span class="text-3xl font-extrabold text-white tracking-tight" id="kpi-mean-score">18.4</span>
+              <span class="text-xs text-slate-400">/ 100 risk</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-2">Normal traffic baseline: 0.0 - 25.0</p>
+          </div>
+
+          <!-- Card 4 -->
+          <div class="p-5 rounded-2xl bg-dark-900 border border-dark-800 hover:border-dark-700/80 transition-all shadow-sm group">
+            <div class="flex items-center justify-between text-slate-400 mb-3">
+              <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Median Inference Latency</span>
+              <div class="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 group-hover:scale-110 transition-transform">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+              </div>
+            </div>
+            <div class="flex items-baseline gap-2">
+              <span class="text-3xl font-extrabold text-emerald-400 tracking-tight">3.8</span>
+              <span class="text-xs text-slate-400 font-mono">ms (P99: 11.2ms)</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-2">Zero impact on authentication UX</p>
+          </div>
+        </div>
+
+        <!-- Visual Analytics Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          <!-- Chart: Hourly Threat Frequency -->
+          <div class="lg:col-span-2 p-6 rounded-2xl bg-dark-900 border border-dark-800 space-y-4">
+            <div class="flex items-center justify-between">
               <div>
-                <label class="block text-xs font-medium text-gray-400 mb-1">Location Coordinates</label>
-                <div class="flex gap-2">
-                  <input type="text" id="inp-lat" value="40.7128" placeholder="Lat" class="w-1/2 bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-primary-500 transition-all">
-                  <input type="text" id="inp-lon" value="-74.0060" placeholder="Lon" class="w-1/2 bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-primary-500 transition-all">
+                <h3 class="text-base font-bold text-white tracking-tight">Authentication Risk & Anomaly Trajectory (24h)</h3>
+                <p class="text-xs text-slate-400">Hourly density of flagged impossible-travel and device-entropy events</p>
+              </div>
+              <div class="flex items-center gap-2 text-xs font-mono">
+                <span class="flex items-center gap-1.5 text-brand-400">
+                  <span class="w-2 h-2 rounded-full bg-brand-400"></span> Normal Logins
+                </span>
+                <span class="flex items-center gap-1.5 text-rose-400 ml-3">
+                  <span class="w-2 h-2 rounded-full bg-rose-400"></span> Blocked Threats
+                </span>
+              </div>
+            </div>
+            <div class="h-72 w-full">
+              <canvas id="overviewChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Risk Breakdown & Signal Composition -->
+          <div class="p-6 rounded-2xl bg-dark-900 border border-dark-800 space-y-5 flex flex-col justify-between">
+            <div>
+              <h3 class="text-base font-bold text-white tracking-tight">Detection Signal Weights</h3>
+              <p class="text-xs text-slate-400">Ensemble breakdown used in calculating the 0-100 risk score</p>
+            </div>
+
+            <div class="space-y-4 text-xs">
+              <div>
+                <div class="flex justify-between text-slate-300 font-medium mb-1">
+                  <span>Geodesic Physical Velocity (Haversine)</span>
+                  <span class="text-rose-400 font-mono">60%</span>
+                </div>
+                <div class="w-full bg-dark-800 rounded-full h-2 overflow-hidden">
+                  <div class="bg-rose-500 h-2 rounded-full" style="width: 60%"></div>
+                </div>
+                <p class="text-[10px] text-slate-500 mt-1">Calculates implied speed between consecutive auth events</p>
+              </div>
+
+              <div>
+                <div class="flex justify-between text-slate-300 font-medium mb-1">
+                  <span>IsolationForest Outlier Distance</span>
+                  <span class="text-brand-400 font-mono">20%</span>
+                </div>
+                <div class="w-full bg-dark-800 rounded-full h-2 overflow-hidden">
+                  <div class="bg-brand-500 h-2 rounded-full" style="width: 20%"></div>
+                </div>
+                <p class="text-[10px] text-slate-500 mt-1">Learned baseline of user behavioral features</p>
+              </div>
+
+              <div>
+                <div class="flex justify-between text-slate-300 font-medium mb-1">
+                  <span>Device Fingerprint Novelty</span>
+                  <span class="text-amber-400 font-mono">10%</span>
+                </div>
+                <div class="w-full bg-dark-800 rounded-full h-2 overflow-hidden">
+                  <div class="bg-amber-500 h-2 rounded-full" style="width: 10%"></div>
+                </div>
+                <p class="text-[10px] text-slate-500 mt-1">Detection of unverified hardware hashes</p>
+              </div>
+
+              <div>
+                <div class="flex justify-between text-slate-300 font-medium mb-1">
+                  <span>IP Subnet Jumps & ASNs</span>
+                  <span class="text-indigo-400 font-mono">10%</span>
+                </div>
+                <div class="w-full bg-dark-800 rounded-full h-2 overflow-hidden">
+                  <div class="bg-indigo-500 h-2 rounded-full" style="width: 10%"></div>
+                </div>
+                <p class="text-[10px] text-slate-500 mt-1">Flags cross-continental IP subnet changes</p>
+              </div>
+            </div>
+
+            <div class="p-3 bg-dark-850 rounded-xl border border-dark-800 text-[11px] text-slate-400 flex items-center gap-2.5">
+              <svg class="w-4 h-4 text-brand-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <span>Explainable AI: Every decision outputs exact reason tags and velocity metrics.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Critical Intercepts Preview -->
+        <div class="p-6 rounded-2xl bg-dark-900 border border-dark-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-base font-bold text-white tracking-tight">Recent Threat Interceptions</h3>
+              <p class="text-xs text-slate-400">Live feed of authentication attempts flagged with High or Critical anomaly scores</p>
+            </div>
+            <button onclick="switchTab('logs')" class="text-xs text-brand-400 hover:text-brand-300 font-medium flex items-center gap-1">
+              <span>View Full Audit Trail</span>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs font-mono">
+              <thead class="text-slate-500 border-b border-dark-800 uppercase tracking-wider text-[10px]">
+                <tr>
+                  <th class="pb-3 pl-2">Status</th>
+                  <th class="pb-3">User ID</th>
+                  <th class="pb-3">Travel Vector</th>
+                  <th class="pb-3">Calculated Velocity</th>
+                  <th class="pb-3">Risk Score</th>
+                  <th class="pb-3">Triggered Heuristics</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-dark-800/60" id="overview-intercept-table">
+                <!-- Rows injected dynamically -->
+                <tr class="hover:bg-dark-850/50 transition-colors">
+                  <td class="py-3.5 pl-2"><span class="px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 font-bold border border-rose-500/20">BLOCKED</span></td>
+                  <td class="py-3.5 text-white font-semibold">demo_user_showcase</td>
+                  <td class="py-3.5 text-slate-300">Tokyo, JP → New York, US</td>
+                  <td class="py-3.5 text-rose-400 font-bold">2,123,052 km/h</td>
+                  <td class="py-3.5"><span class="text-rose-400 font-bold">93.6</span> / 100</td>
+                  <td class="py-3.5 text-slate-400 text-[11px]">Impossible velocity, new device, subnet jump</td>
+                </tr>
+                <tr class="hover:bg-dark-850/50 transition-colors">
+                  <td class="py-3.5 pl-2"><span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 font-bold border border-amber-500/20">CHALLENGE</span></td>
+                  <td class="py-3.5 text-white font-semibold">usr_fin_8829</td>
+                  <td class="py-3.5 text-slate-300">Frankfurt, DE → London, UK</td>
+                  <td class="py-3.5 text-amber-400 font-bold">1,840 km/h</td>
+                  <td class="py-3.5"><span class="text-amber-400 font-bold">72.4</span> / 100</td>
+                  <td class="py-3.5 text-slate-400 text-[11px]">Supersonic transit, new device fingerprint</td>
+                </tr>
+                <tr class="hover:bg-dark-850/50 transition-colors">
+                  <td class="py-3.5 pl-2"><span class="px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 font-bold border border-rose-500/20">BLOCKED</span></td>
+                  <td class="py-3.5 text-white font-semibold">sec_audit_root</td>
+                  <td class="py-3.5 text-slate-300">Sydney, AU → Los Angeles, US</td>
+                  <td class="py-3.5 text-rose-400 font-bold">850,210 km/h</td>
+                  <td class="py-3.5"><span class="text-rose-400 font-bold">96.8</span> / 100</td>
+                  <td class="py-3.5 text-slate-400 text-[11px]">Impossible velocity, Tor exit node subnet</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================= TAB 2: ATTACK SIMULATOR ================= -->
+      <section id="tab-simulator" class="tab-content hidden space-y-6">
+        
+        <div class="border-b border-dark-800 pb-5">
+          <h1 class="text-2xl font-extrabold text-white tracking-tight">Interactive Threat Simulator & Sandbox</h1>
+          <p class="text-slate-400 text-sm mt-1">Fire live login payloads to test real-time scoring, explanation trees, and step-up auth policy.</p>
+        </div>
+
+        <!-- 1-Click Scenario Preset Cards -->
+        <div>
+          <div class="text-xs font-mono text-slate-400 uppercase tracking-wider mb-3">1-Click Attack & Baseline Scenarios</div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            
+            <button onclick="loadScenario('impossible_travel')" class="p-4 rounded-xl bg-dark-900 border border-dark-800 hover:border-rose-500/50 text-left transition-all group">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-rose-400 font-mono">SCENARIO A</span>
+                <span class="px-1.5 py-0.5 text-[10px] font-mono rounded bg-rose-500/10 text-rose-400">CRITICAL</span>
+              </div>
+              <div class="font-bold text-sm text-white group-hover:text-rose-300 transition-colors">Tokyo Impossible Jump</div>
+              <p class="text-xs text-slate-400 mt-1">NYC to Tokyo in 10s. Velocity &gt; 2M km/h. New unregistered hardware.</p>
+            </button>
+
+            <button onclick="loadScenario('credential_stuffing')" class="p-4 rounded-xl bg-dark-900 border border-dark-800 hover:border-amber-500/50 text-left transition-all group">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-amber-400 font-mono">SCENARIO B</span>
+                <span class="px-1.5 py-0.5 text-[10px] font-mono rounded bg-amber-500/10 text-amber-400">HIGH RISK</span>
+              </div>
+              <div class="font-bold text-sm text-white group-hover:text-amber-300 transition-colors">Tor Subnet Hop</div>
+              <p class="text-xs text-slate-400 mt-1">Frankfurt to Zurich in 5 mins with completely distinct IP subnet & device.</p>
+            </button>
+
+            <button onclick="loadScenario('device_novelty')" class="p-4 rounded-xl bg-dark-900 border border-dark-800 hover:border-yellow-500/50 text-left transition-all group">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-yellow-400 font-mono">SCENARIO C</span>
+                <span class="px-1.5 py-0.5 text-[10px] font-mono rounded bg-yellow-500/10 text-yellow-400">MEDIUM</span>
+              </div>
+              <div class="font-bold text-sm text-white group-hover:text-yellow-300 transition-colors">New Device / Same City</div>
+              <p class="text-xs text-slate-400 mt-1">Same geo coordinates (NYC) but brand new user device fingerprint.</p>
+            </button>
+
+            <button onclick="loadScenario('normal_routine')" class="p-4 rounded-xl bg-dark-900 border border-dark-800 hover:border-emerald-500/50 text-left transition-all group">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-emerald-400 font-mono">SCENARIO D</span>
+                <span class="px-1.5 py-0.5 text-[10px] font-mono rounded bg-emerald-500/10 text-emerald-400">SAFE (LOW)</span>
+              </div>
+              <div class="font-bold text-sm text-white group-hover:text-emerald-300 transition-colors">Normal Office Commute</div>
+              <p class="text-xs text-slate-400 mt-1">San Francisco home to office 45m later. Realistic travel velocity.</p>
+            </button>
+
+          </div>
+        </div>
+
+        <!-- Simulator Grid: Form + Live Visual HUD -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          <!-- Event Form Configurator (5 cols) -->
+          <div class="lg:col-span-5 p-6 rounded-2xl bg-dark-900 border border-dark-800 space-y-4">
+            <div class="flex items-center justify-between border-b border-dark-800 pb-3">
+              <h3 class="text-sm font-bold text-white uppercase tracking-wider font-mono">Payload Parameters</h3>
+              <button onclick="resetSimulatorForm()" class="text-xs text-slate-400 hover:text-white transition-colors">Reset Defaults</button>
+            </div>
+
+            <form id="sim-form" onsubmit="executeSimulator(event)" class="space-y-3.5">
+              
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Target User ID</label>
+                <input type="text" id="sim-user" required value="demo_user_showcase" class="w-full bg-dark-950 border border-dark-700/80 rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all">
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-medium text-slate-400 mb-1">Latitude</label>
+                  <input type="number" step="any" id="sim-lat" required value="35.6762" class="w-full bg-dark-950 border border-dark-700/80 rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-brand-500 transition-all">
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-400 mb-1">Longitude</label>
+                  <input type="number" step="any" id="sim-lon" required value="139.6503" class="w-full bg-dark-950 border border-dark-700/80 rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-brand-500 transition-all">
                 </div>
               </div>
-              <div>
-                <label class="block text-xs font-medium text-gray-400 mb-1">IP Address</label>
-                <input type="text" id="inp-ip" value="192.168.1.100" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-primary-500 transition-all">
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-medium text-slate-400 mb-1">City Name</label>
+                  <input type="text" id="sim-city" value="Tokyo" class="w-full bg-dark-950 border border-dark-700/80 rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-brand-500 transition-all">
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-400 mb-1">Country ISO</label>
+                  <input type="text" id="sim-country" value="JP" class="w-full bg-dark-950 border border-dark-700/80 rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-brand-500 transition-all">
+                </div>
               </div>
-            </div>
-            
-            <div class="flex gap-3 pt-2">
-              <button id="btn-simulate" class="flex-1 bg-primary-600 hover:bg-primary-500 text-white font-medium py-2 px-4 rounded-md transition-colors shadow-lg shadow-primary-500/20">Execute Payload</button>
-              <button id="btn-jump" class="bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition-colors border border-gray-600">Simulate Impossible Travel (Tokyo)</button>
-            </div>
+
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Device Fingerprint ID</label>
+                <input type="text" id="sim-device" required value="dev-ios-unregistered-77" class="w-full bg-dark-950 border border-dark-700/80 rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-brand-500 transition-all">
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Client IP Address</label>
+                <input type="text" id="sim-ip" required value="203.0.113.15" class="w-full bg-dark-950 border border-dark-700/80 rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-brand-500 transition-all">
+              </div>
+
+              <div class="pt-2">
+                <button type="submit" id="btn-run-sim" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold text-xs tracking-wide shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2 transition-all">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                  <span>EVALUATE ANOMALY RISK IN REAL-TIME</span>
+                </button>
+              </div>
+
+            </form>
           </div>
 
-          <!-- Output JSON -->
-          <div class="bg-[#0d1117] border border-gray-800 rounded-lg p-4 relative group">
-            <div class="absolute top-3 right-3 text-xs text-gray-500 code-font">JSON Response</div>
-            <pre><code id="json-output" class="text-sm code-font text-green-400 overflow-x-auto block mt-4">// Awaiting execution...</code></pre>
+          <!-- Evaluation Decision HUD (7 cols) -->
+          <div class="lg:col-span-7 space-y-4">
+            
+            <!-- Result Gauge Card -->
+            <div class="p-6 rounded-2xl bg-dark-900 border border-dark-800 space-y-5">
+              <div class="flex items-center justify-between border-b border-dark-800 pb-3">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-mono font-bold uppercase tracking-wider text-slate-400">Risk Assessment Engine Output</span>
+                  <span id="res-badge" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-slate-300">AWAITING INPUT</span>
+                </div>
+                <span class="text-xs font-mono text-slate-500" id="res-latency">LATENCY: --</span>
+              </div>
+
+              <!-- Score & Gauge Banner -->
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                <div class="text-center sm:text-left">
+                  <div class="text-xs text-slate-400 uppercase font-mono tracking-wider">Composite Risk</div>
+                  <div class="text-5xl font-extrabold tracking-tight mt-1 text-white" id="res-score">--<span class="text-xl text-slate-500 font-normal">/100</span></div>
+                  <div class="text-xs font-mono font-semibold mt-1 text-slate-400" id="res-verdict">NO EVALUATION YET</div>
+                </div>
+
+                <div class="sm:col-span-2 space-y-2">
+                  <div class="flex justify-between text-xs font-mono">
+                    <span class="text-emerald-400">0 LOW</span>
+                    <span class="text-yellow-400">35 MED</span>
+                    <span class="text-amber-400">60 HIGH</span>
+                    <span class="text-rose-500">80+ CRITICAL</span>
+                  </div>
+                  <div class="w-full bg-dark-950 rounded-full h-3.5 p-0.5 border border-dark-800 relative overflow-hidden">
+                    <div id="res-gauge-bar" class="h-full rounded-full transition-all duration-700 bg-brand-500" style="width: 0%"></div>
+                  </div>
+                  <div class="text-[11px] text-slate-500 font-mono flex justify-between">
+                    <span>Ensemble: IsolationForest + Haversine</span>
+                    <span id="res-rec-action" class="text-slate-300 font-semibold">ACTION: NONE</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Geodesic Math Metrics -->
+              <div class="grid grid-cols-3 gap-3 pt-3 border-t border-dark-800/80 text-center font-mono">
+                <div class="p-3 bg-dark-950 rounded-xl border border-dark-800">
+                  <div class="text-[10px] text-slate-500 uppercase">Calculated Speed</div>
+                  <div class="text-sm sm:text-base font-bold text-white mt-0.5" id="res-velocity">-- km/h</div>
+                </div>
+                <div class="p-3 bg-dark-950 rounded-xl border border-dark-800">
+                  <div class="text-[10px] text-slate-500 uppercase">Haversine Distance</div>
+                  <div class="text-sm sm:text-base font-bold text-white mt-0.5" id="res-distance">-- km</div>
+                </div>
+                <div class="p-3 bg-dark-950 rounded-xl border border-dark-800">
+                  <div class="text-[10px] text-slate-500 uppercase">Time Elapsed</div>
+                  <div class="text-sm sm:text-base font-bold text-white mt-0.5" id="res-timedelta">-- hrs</div>
+                </div>
+              </div>
+
+              <!-- Reason Decomposition List -->
+              <div class="space-y-2">
+                <div class="text-xs font-mono text-slate-400 uppercase tracking-wider">Triggered Risk Explanations</div>
+                <div id="res-reasons-container" class="space-y-1.5">
+                  <div class="text-xs text-slate-500 italic p-3 bg-dark-950 rounded-xl border border-dark-800">
+                    Submit the form or click any scenario above to observe real-time AI decision trees.
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Raw JSON Response Box -->
+            <div class="p-4 rounded-xl bg-dark-900 border border-dark-800 space-y-2">
+              <div class="flex items-center justify-between text-xs font-mono text-slate-400">
+                <span>API Raw Response Payload</span>
+                <button onclick="copyJsonResponse()" class="text-brand-400 hover:text-brand-300">Copy JSON</button>
+              </div>
+              <pre class="bg-dark-950 p-3 rounded-lg border border-dark-800 text-[11px] font-mono text-slate-300 overflow-x-auto max-h-48" id="res-raw-json">// Awaiting live response...</pre>
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- ================= TAB 3: GEO-VELOCITY RADAR MAP ================= -->
+      <section id="tab-map" class="tab-content hidden space-y-6">
+        
+        <div class="border-b border-dark-800 pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 class="text-2xl font-extrabold text-white tracking-tight">Geodesic Radar & Impossible Flight Path</h1>
+            <p class="text-slate-400 text-sm mt-1">Interactive dark-matter spatial visualization mapping consecutive authentication coordinates and implied trajectory.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="simulateMapAttack()" class="px-3.5 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow-lg shadow-rose-600/20 flex items-center gap-2 transition-all">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+              <span>Simulate Cross-Continental Jump</span>
+            </button>
           </div>
         </div>
-      </div>
-    </div>
-  </main>
+
+        <!-- Leaflet Map Container -->
+        <div class="relative w-full h-[550px] rounded-2xl overflow-hidden border border-dark-800 shadow-2xl bg-dark-900">
+          <div id="radarMap" class="w-full h-full"></div>
+
+          <!-- Floating Map HUD Overlay -->
+          <div class="absolute top-4 left-4 z-[1000] p-4 rounded-xl bg-dark-900/90 backdrop-blur-md border border-dark-700/80 shadow-2xl max-w-sm space-y-2 text-xs font-mono">
+            <div class="flex items-center justify-between border-b border-dark-800 pb-1.5">
+              <span class="font-bold text-white uppercase tracking-wider text-[11px]">ACTIVE VECTOR TRACKER</span>
+              <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+            </div>
+            <div class="space-y-1 text-slate-300">
+              <div class="flex justify-between">
+                <span class="text-slate-500">Origin:</span>
+                <span id="map-hud-origin" class="font-semibold text-white">New York City, US</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-500">Destination:</span>
+                <span id="map-hud-dest" class="font-semibold text-white">Tokyo, JP</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-500">Great-Circle Dist:</span>
+                <span id="map-hud-dist" class="text-brand-400 font-bold">10,851.7 km</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-500">Calculated Velocity:</span>
+                <span id="map-hud-velocity" class="text-rose-400 font-bold">2,123,052.7 km/h</span>
+              </div>
+              <div class="flex justify-between pt-1 border-t border-dark-800 text-[10px]">
+                <span class="text-slate-500">Physics Verdict:</span>
+                <span id="map-hud-verdict" class="text-rose-500 font-extrabold">IMPOSSIBLE TRAVEL</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================= TAB 4: SOC AUDIT STREAM ================= -->
+      <section id="tab-logs" class="tab-content hidden space-y-6">
+        
+        <div class="border-b border-dark-800 pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 class="text-2xl font-extrabold text-white tracking-tight">SOC Security Incident & Audit Stream</h1>
+            <p class="text-slate-400 text-sm mt-1">Immutable ledger of flagged identity attacks, IP jumps, and authentication violations.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="refreshAuditLogs()" class="px-3.5 py-2 rounded-lg bg-dark-850 hover:bg-dark-800 border border-dark-700/80 text-xs font-medium text-slate-300 flex items-center gap-2 transition-all">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+              <span>Refresh Ledger</span>
+            </button>
+            <button onclick="exportAuditCsv()" class="px-3.5 py-2 rounded-lg bg-dark-850 hover:bg-dark-800 border border-dark-700/80 text-xs font-medium text-slate-300 flex items-center gap-2 transition-all">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+              <span>Export CSV</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter bar -->
+        <div class="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-dark-900 rounded-xl border border-dark-800 text-xs font-mono">
+          <div class="flex items-center gap-2">
+            <span class="text-slate-500 uppercase">Severity Filter:</span>
+            <button onclick="filterLogs('ALL')" class="log-filter-btn active px-2.5 py-1 rounded bg-dark-800 text-white font-medium" data-filter="ALL">ALL</button>
+            <button onclick="filterLogs('CRITICAL')" class="log-filter-btn px-2.5 py-1 rounded hover:bg-dark-800 text-rose-400 font-medium" data-filter="CRITICAL">CRITICAL</button>
+            <button onclick="filterLogs('HIGH')" class="log-filter-btn px-2.5 py-1 rounded hover:bg-dark-800 text-amber-400 font-medium" data-filter="HIGH">HIGH</button>
+            <button onclick="filterLogs('MEDIUM')" class="log-filter-btn px-2.5 py-1 rounded hover:bg-dark-800 text-yellow-400 font-medium" data-filter="MEDIUM">MEDIUM</button>
+          </div>
+          <div class="text-slate-500 text-[11px]">
+            Showing real-time in-memory tenant anomaly buffer
+          </div>
+        </div>
+
+        <!-- Log Table -->
+        <div class="rounded-2xl bg-dark-900 border border-dark-800 overflow-hidden shadow-sm">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs font-mono">
+              <thead class="bg-dark-950/80 text-slate-400 border-b border-dark-800 uppercase tracking-wider text-[10px]">
+                <tr>
+                  <th class="py-3 px-4">Event Timestamp</th>
+                  <th class="py-3 px-4">User ID</th>
+                  <th class="py-3 px-4">Severity Tier</th>
+                  <th class="py-3 px-4">Risk Score</th>
+                  <th class="py-3 px-4">Calculated Velocity</th>
+                  <th class="py-3 px-4">Geographic Vector</th>
+                  <th class="py-3 px-4">Threat Rationales</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-dark-800/60" id="audit-table-body">
+                <!-- Dynamically populated -->
+                <tr>
+                  <td colspan="7" class="py-8 text-center text-slate-500">Loading audit history from security store...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================= TAB 5: ENTERPRISE SDKS ================= -->
+      <section id="tab-sdks" class="tab-content hidden space-y-6">
+        
+        <div class="border-b border-dark-800 pb-5">
+          <h1 class="text-2xl font-extrabold text-white tracking-tight">Enterprise Integration & Developer SDKs</h1>
+          <p class="text-slate-400 text-sm mt-1">Copy-paste battle-tested integration snippets to drop Aegis anomaly detection into your auth pipeline.</p>
+        </div>
+
+        <!-- SDK Tabs -->
+        <div class="p-6 rounded-2xl bg-dark-900 border border-dark-800 space-y-4">
+          <div class="flex items-center justify-between border-b border-dark-800 pb-3">
+            <div class="flex items-center gap-2">
+              <button onclick="setSdkTab('curl')" class="sdk-tab-btn active px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-brand-600 text-white" data-sdk="curl">cURL</button>
+              <button onclick="setSdkTab('python')" class="sdk-tab-btn px-3 py-1.5 rounded-lg text-xs font-mono font-semibold text-slate-400 hover:text-white" data-sdk="python">Python (FastAPI / Django)</button>
+              <button onclick="setSdkTab('node')" class="sdk-tab-btn px-3 py-1.5 rounded-lg text-xs font-mono font-semibold text-slate-400 hover:text-white" data-sdk="node">Node.js (NextAuth / Express)</button>
+              <button onclick="setSdkTab('go')" class="sdk-tab-btn px-3 py-1.5 rounded-lg text-xs font-mono font-semibold text-slate-400 hover:text-white" data-sdk="go">Go (Gin / Fiber)</button>
+            </div>
+            <button onclick="copySdkCode()" class="text-xs font-mono text-brand-400 hover:text-brand-300 flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+              <span>Copy Code</span>
+            </button>
+          </div>
+
+          <pre class="bg-dark-950 p-4 rounded-xl border border-dark-800 text-xs font-mono text-slate-200 overflow-x-auto" id="sdk-code-box"><code># Test immediately in your terminal
+curl -X POST "https://impossible-travel-auth-anomaly-engi.vercel.app/v1/auth/evaluate" \
+     -H "Content-Type: application/json" \
+     -H "X-API-Key: demo-master-key-9000" \
+     -d '{
+       "user_id": "demo_user_showcase",
+       "login_ts": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
+       "lat": 35.6762,
+       "lon": 139.6503,
+       "city": "Tokyo",
+       "country": "JP",
+       "device_id": "dev-ios-unregistered-77",
+       "ip": "203.0.113.15"
+     }'</code></pre>
+        </div>
+
+        <!-- 3-Tier Policy Recommendation -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div class="p-5 rounded-2xl bg-dark-900 border border-dark-800 space-y-2">
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">SCORE 0 - 35</span>
+            <div class="font-bold text-sm text-white">Frictionless Allow</div>
+            <p class="text-xs text-slate-400">Regular login pattern within legitimate physical velocities. Grant token with zero friction.</p>
+          </div>
+
+          <div class="p-5 rounded-2xl bg-dark-900 border border-dark-800 space-y-2">
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">SCORE 36 - 79</span>
+            <div class="font-bold text-sm text-white">Step-Up MFA Required</div>
+            <p class="text-xs text-slate-400">Unrecognized device or unexpected subnet. Trigger WebAuthn Passkey or FIDO2 push challenge.</p>
+          </div>
+
+          <div class="p-5 rounded-2xl bg-dark-900 border border-dark-800 space-y-2">
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">SCORE 80 - 100</span>
+            <div class="font-bold text-sm text-white">Immediate Block & Alert</div>
+            <p class="text-xs text-slate-400">Physically impossible transit speed (&gt; 900 km/h). Reject authentication and dispatch PagerDuty alert.</p>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================= TAB 6: API KEYS ================= -->
+      <section id="tab-keys" class="tab-content hidden space-y-6">
+        
+        <div class="border-b border-dark-800 pb-5">
+          <h1 class="text-2xl font-extrabold text-white tracking-tight">Tenant API Key Provisioning</h1>
+          <p class="text-slate-400 text-sm mt-1">Issue and revoke cryptographically secure bearer keys (`sk_live_...`) for your microservices.</p>
+        </div>
+
+        <div class="p-6 rounded-2xl bg-dark-900 border border-dark-800 space-y-5 max-w-2xl">
+          <h3 class="text-base font-bold text-white tracking-tight">Provision New Service Token</h3>
+          <form onsubmit="generateNewKey(event)" class="space-y-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">Service Identifier / Label</label>
+              <input type="text" id="new-key-name" required placeholder="e.g., Auth-Cluster-Prod-US" class="w-full bg-dark-950 border border-dark-700/80 rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-brand-500 transition-all">
+            </div>
+            <button type="submit" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs tracking-wide shadow-lg shadow-brand-500/20 transition-all">
+              Generate Cryptographic Secret Key
+            </button>
+          </form>
+
+          <!-- Generated Key Output Banner -->
+          <div id="new-key-banner" class="hidden p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 space-y-2">
+            <div class="text-xs font-bold text-emerald-400">KEY PROVISIONED SUCCESSFULLY</div>
+            <p class="text-[11px] text-slate-400">Store this key in your production secrets manager (AWS Secrets Manager, Vault, or Vercel Environment Variables):</p>
+            <div class="flex items-center gap-2 bg-dark-950 p-2.5 rounded-lg border border-dark-800 font-mono text-xs text-brand-400">
+              <span id="new-key-value" class="flex-1 break-all">sk_live_...</span>
+              <button onclick="copyGeneratedKey()" class="text-xs text-white hover:text-brand-300 font-semibold px-2 py-1 bg-dark-800 rounded">Copy</button>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 px-4 py-3 rounded-xl bg-dark-900 border border-dark-700 shadow-2xl text-xs font-mono flex items-center gap-3">
+    <span id="toast-icon">✅</span>
+    <span id="toast-msg" class="text-white">Operation completed</span>
+  </div>
 
   <script src="/static/dashboard.js"></script>
 </body>
