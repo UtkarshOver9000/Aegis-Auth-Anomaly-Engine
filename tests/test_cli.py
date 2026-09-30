@@ -1,10 +1,13 @@
 ﻿import subprocess
 import json
 import pytest
+import sys
+import os
 
 def run_cli(*args):
-    cmd = ["python", "-m", "ittravel.cli"] + list(args)
-    env = {"PYTHONPATH": "src"}
+    cmd = [sys.executable, "-m", "ittravel.cli"] + list(args)
+    env = os.environ.copy()
+    env["PYTHONPATH"] = "src"
     result = subprocess.run(cmd, capture_output=True, text=True, env=env)
     return result
 
