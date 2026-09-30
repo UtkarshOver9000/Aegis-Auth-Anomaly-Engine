@@ -15,7 +15,25 @@ from .state import StateStore, UserState, store
 
 
 class AIAnomalyEngine:
+    """
+    Core AI/ML Anomaly Detection Engine.
+    
+    This engine uses an ensemble approach, combining a scikit-learn IsolationForest
+    for unsupervised anomaly detection with deterministic heuristics (like Haversine
+    distance calculation) to detect impossible physical travel and anomalous login behavior.
+    
+    Attributes:
+        model (IsolationForest): The scikit-learn ML model.
+        store (StateStore): The in-memory or database-backed state store for user history.
+    """
     def __init__(self, contamination: float = 0.05, state_store: StateStore | None = None):
+        """
+        Initialize the Anomaly Engine.
+
+        Args:
+            contamination (float): The proportion of outliers in the data set for IsolationForest.
+            state_store (StateStore | None): The state store instance. Uses default if None.
+        """
         self.model = IsolationForest(
             n_estimators=100,
             contamination=contamination,
