@@ -17,14 +17,14 @@ from ..state import store
 from .auth import verify_api_key
 
 app = FastAPI(
-    title="VigilGuard Identity Threat Detection & Response (ITDR) API",
+    title="Aegis ITDR — Identity Threat Detection & Auth Anomaly Engine",
     description=(
         "Enterprise-grade AI-powered impossible travel and authentication anomaly detection. "
         "Evaluates real-time login events using an IsolationForest ensemble model with "
         "Haversine geo-velocity physics, device entropy, and IP subnet analysis."
     ),
     version="2.4.0",
-    contact={"name": "VigilGuard Security", "url": "https://github.com/UtkarshOver9000"},
+    contact={"name": "Aegis Security by Utkarsh", "url": "https://github.com/UtkarshOver9000/Aegis-Auth-Anomaly-Engine"},
     license_info={"name": "MIT"},
 )
 

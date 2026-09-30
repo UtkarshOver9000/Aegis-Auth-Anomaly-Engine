@@ -3,9 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ittravel"
-version = "2.0.0"
-description = "AI-Powered Impossible Travel & Auth Anomaly Security SaaS Engine"
+name = "aegis-itdr"
+version = "2.4.0"
+description = "Aegis ITDR: Enterprise Identity Threat Detection & Impossible Travel Anomaly Engine"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
