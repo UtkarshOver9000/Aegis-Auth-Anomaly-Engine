@@ -1,24 +1,28 @@
 """
-FastAPI service for Aegis login-risk scoring.
+FastAPI service for Alibi: login-risk scoring plus threat intelligence.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
+from uuid import uuid4
 
 from fastapi import Depends, FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from .. import __version__
 from ..engine import get_engine
-from ..schema import APIKeyCreate, APIKeyResponse, EvaluationResult, LoginEvent
+from ..intel import news, service
+from ..intel.network import lookup, malware_ip, sample_ips, tor_exits
+from ..schema import APIKeyCreate, APIKeyResponse, DemoStory, EvaluationResult, LoginEvent
 from ..state import store
 from .auth import verify_api_key, verify_master_key
 
 app = FastAPI(
-    title="Aegis: login risk scoring",
+    title="Alibi: login security and threat intelligence",
     description=(
         "Scores each login attempt for account-takeover and attack-IP risk with gradient-boosting models trained "
         "on the RBA login dataset (31.3M logins), plus a physical impossible-travel check when coordinates are "
@@ -28,6 +32,7 @@ app = FastAPI(
     license_info={"name": "MIT"},
 )
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "POST"], allow_headers=["*"])
+app.add_middleware(GZipMiddleware, minimum_size=2048)
 
 DASHBOARD_DIR = Path(__file__).resolve().parent.parent / "dashboard"
 if DASHBOARD_DIR.exists():
@@ -39,7 +44,7 @@ async def dashboard():
     index_file = DASHBOARD_DIR / "index.html"
     if index_file.exists():
         return FileResponse(str(index_file), media_type="text/html")
-    return HTMLResponse("<h1>Aegis API</h1><p>See <a href='/docs'>/docs</a></p>")
+    return HTMLResponse("<h1>Alibi API</h1><p>See <a href='/docs'>/docs</a></p>")
 
 
 @app.post("/v1/auth/evaluate", response_model=EvaluationResult, tags=["Evaluation"])
@@ -52,6 +57,18 @@ async def evaluate_login(event: LoginEvent, _auth: str = Depends(verify_api_key)
 async def get_anomalies(limit: int = Query(50, ge=1, le=200), _auth: str = Depends(verify_api_key)):
     """Recent HIGH and CRITICAL logins scored by this server instance."""
     return store.get_anomalies(limit)
+
+
+@app.post("/v1/demo/check", tags=["Evaluation"])
+async def demo_check(story: DemoStory):
+    """Score a whole sign-in story in one call, no key needed: the account's usual sign-ins, then the one being
+    tested. Runs under a fresh throwaway user id, so the public demo never touches other accounts."""
+    uid = f"demo-{uuid4().hex[:12]}"
+    engine = get_engine()
+    results = [engine.evaluate_event(e.model_copy(update={"user_id": uid})) for e in story.events]
+    timeline = [{"tier": r.risk_tier, "score": r.risk_score, "reasons": r.reasons[:3], "distance_km": r.distance_km,
+                 "velocity_kmph": r.velocity_kmph, "network": r.network} for r in results]
+    return {"history_logins": len(results) - 1, "verdict": results[-1], "timeline": timeline}
 
 
 @app.post("/v1/keys/generate", response_model=APIKeyResponse, tags=["Authentication"])
@@ -76,6 +93,78 @@ async def get_stats(_auth: str = Depends(verify_api_key)):
         "critical": sum(1 for a in anomalies if a.get("risk_tier") == "CRITICAL"),
         "version": __version__,
     }
+
+
+@app.get("/v1/intel/overview", tags=["Intel"])
+async def intel_overview():
+    """Headline numbers for the home page, all from the real data sources."""
+    return service.overview(get_engine().card)
+
+
+@app.get("/v1/intel/breaches", tags=["Intel"])
+async def intel_breaches(full: bool = False):
+    """Data breaches from Have I Been Pwned (CC BY 4.0). `full=true` returns every breach."""
+    return {"breaches": service.all_breaches()} if full else service.breaches_summary()
+
+
+@app.get("/v1/intel/flaws", tags=["Intel"])
+async def intel_flaws():
+    """Vulnerabilities known to be exploited in the wild (CISA KEV catalog)."""
+    return service.flaws_summary()
+
+
+@app.get("/v1/intel/countries", tags=["Intel"])
+async def intel_countries():
+    """Per-country Tor exits, public DNS resolvers, hosting IP space and OONI censorship measurements."""
+    return service.countries()
+
+
+@app.get("/v1/intel/threats", tags=["Intel"])
+async def intel_threats():
+    """Criminal infrastructure right now: malware and botnet servers (abuse.ch), criminal networks (Spamhaus),
+    recent ransomware victims as aggregate counts (ransomware.live)."""
+    return service.threats()
+
+
+@app.get("/v1/intel/cables", tags=["Intel"])
+async def intel_cables():
+    """Submarine internet cables and landing stations (TeleGeography, CC BY-NC-SA 3.0)."""
+    return service.cables()
+
+
+@app.get("/v1/intel/sources", tags=["Intel"])
+async def intel_sources():
+    """Every data source behind the numbers, with its license."""
+    return {**service.SOURCES, "news_feeds": news.NEWS_FEEDS, "video_feeds": news.VIDEO_FEEDS}
+
+
+@app.get("/v1/intel/states", tags=["Intel"])
+async def intel_states():
+    """State and province borders (Natural Earth, public domain), simplified for the globe."""
+    return FileResponse(str(service.DATA / "states.json"), media_type="application/json")
+
+
+@app.get("/v1/intel/news", tags=["Intel"])
+async def intel_news():
+    """Latest security headlines and videos from public feeds (cached for 30 minutes)."""
+    return {"news": news.latest(news.NEWS_FEEDS, "news")[:40], "videos": news.latest(news.VIDEO_FEEDS, "videos")[:12]}
+
+
+@app.get("/v1/intel/ip/{ip}", tags=["Intel"])
+async def intel_ip(ip: str):
+    """Who owns an IP address, and whether it is a Tor exit or a hosting / VPN network."""
+    net = lookup(ip)
+    return {**net.__dict__, "type": net.label}
+
+
+@app.get("/v1/intel/sample-ips", tags=["Intel"])
+async def intel_sample_ips(country: str = Query(..., min_length=2, max_length=2)):
+    """Real example IPs for a country: its biggest home ISPs and hosting / VPN networks, plus a live Tor exit."""
+    cc = country.upper()
+    hosting = sample_ips(cc, True, 1) or sample_ips("US", True, 1)
+    tor = sorted(tor_exits())
+    return {"home": sample_ips(cc, False, 2), "hosting": hosting, "tor": tor[len(tor) // 2] if tor else None,
+            "malware": malware_ip(cc)}
 
 
 @app.get("/v1/health", include_in_schema=False)

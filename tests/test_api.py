@@ -17,7 +17,7 @@ EVENT = {
 
 def test_health_and_dashboard():
     assert client.get("/v1/health").json() == {"status": "ok"}
-    assert "Aegis" in client.get("/").text
+    assert "Alibi" in client.get("/").text
 
 
 def test_evaluate_requires_a_key():

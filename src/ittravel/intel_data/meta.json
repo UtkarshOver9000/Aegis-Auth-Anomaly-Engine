@@ -1,0 +1,84 @@
+{
+  "fetched_at": "2026-10-04T11:14:58Z",
+  "network": {
+    "ranges": 458519,
+    "networks": 79119,
+    "hosting_networks": 195
+  },
+  "breaches": {
+    "breaches": 1020,
+    "accounts": 16285303406,
+    "how": [
+      [
+        "Hacked, method not disclosed",
+        766
+      ],
+      [
+        "Ransomware / extortion",
+        72
+      ],
+      [
+        "Left open online",
+        45
+      ],
+      [
+        "Software flaw exploited",
+        34
+      ],
+      [
+        "Not disclosed",
+        33
+      ],
+      [
+        "Through a supplier",
+        16
+      ],
+      [
+        "Scraped",
+        15
+      ],
+      [
+        "Info-stealer malware",
+        15
+      ],
+      [
+        "Phishing / social engineering",
+        15
+      ],
+      [
+        "Credential-stuffing list",
+        9
+      ]
+    ]
+  },
+  "flaws": {
+    "flaws": 1733,
+    "catalog_version": "2026.10.02",
+    "released": "2026-10-02T15:19:38.2945Z"
+  },
+  "threats": {
+    "malicious_ips": 8420,
+    "threatfox_iocs_48h": 11005,
+    "urlhaus_urls_30d": 16398,
+    "spamhaus_drop_ranges": 1692,
+    "spamhaus_asn_drop": 430
+  },
+  "threats_fetched_at": "2026-10-04T11:24:00Z",
+  "cables": {
+    "cables": 733,
+    "landing_points": 1927,
+    "landings_without_country": 29
+  },
+  "states": {
+    "states_provinces": 4596
+  },
+  "countries": {
+    "tor_in_snapshot": false,
+    "tor_exit_relays": 0,
+    "tor_exit_ips": 0,
+    "dns_resolvers": 62530,
+    "ooni_countries": 179,
+    "ooni_measurements": 50419717
+  },
+  "window_ooni": "last 30 days to fetch date"
+}

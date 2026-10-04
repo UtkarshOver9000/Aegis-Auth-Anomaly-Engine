@@ -40,6 +40,7 @@ class EvaluationResult(BaseModel):
     ato_percentile: float
     attack_ip_percentile: float
     reasons: list[str]
+    network: dict = Field(default_factory=dict, description="Who owns the IP: network, country, Tor / hosting flags")
     features: dict
     velocity_kmph: float
     distance_km: float
@@ -47,6 +48,11 @@ class EvaluationResult(BaseModel):
     previous_location: dict | None = None
     current_location: dict
     timestamp: str
+
+
+class DemoStory(BaseModel):
+    events: list[LoginEvent] = Field(..., min_length=1, max_length=30,
+                                     description="The account's usual sign-ins, oldest first; the last one is scored")
 
 
 class APIKeyCreate(BaseModel):

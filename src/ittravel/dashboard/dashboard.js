@@ -1,505 +1,646 @@
-// Aegis dashboard: every verdict, score and reason on this page comes from the live API.
+// Alibi dashboard. Every number on the page comes from the API, which reads the real data
+// snapshot (HIBP, CISA KEV, abuse.ch, Spamhaus, ransomware.live, iptoasn, OONI, TeleGeography,
+// public-dns.info) or the live news feeds. Nothing here is generated.
 
-let currentSection = 'sandbox';
-const MASTER_KEY = 'demo-master-key-9000';
-let activeApiKey = MASTER_KEY;
-let currentLang = 'curl';
-let mapInstance = null;
-let currentTileLayer = null;
-let originMarker = null;
-let destMarker = null;
-let flightLine = null;
-let currentLayerName = 'dark';
-let lastFlight = null;
-const KNOWN_DEVICE = 'dev-known-laptop';
-const auditLedger = [];
+const $ = (sel, el = document) => el.querySelector(sel);
+const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
+const fmt = (n) => Number(n).toLocaleString("en-US");
+const compact = (n) => Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(n);
+const pct = (x, d = 2) => `${(x * 100).toFixed(d)}%`;
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const day = (iso) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const TIER_STYLE = {
-  LOW: { badge: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20', bar: 'bg-emerald-500', text: 'text-emerald-400', icon: '✅', line: '#10b981' },
-  MEDIUM: { badge: 'bg-amber-500/10 text-amber-300 border border-amber-500/20', bar: 'bg-amber-400', text: 'text-amber-300', icon: '🟡', line: '#fbbf24' },
-  HIGH: { badge: 'bg-orange-500/10 text-orange-400 border border-orange-500/20', bar: 'bg-orange-500 shadow-[0_0_12px_#fb923c]', text: 'text-orange-400', icon: '⚠️', line: '#fb923c' },
-  CRITICAL: { badge: 'bg-rose-500/10 text-rose-400 border border-rose-500/20', bar: 'bg-rose-500 shadow-[0_0_12px_#f43f5e]', text: 'text-rose-400', icon: '🚨', line: '#f43f5e' },
+function ago(iso) {
+  if (!iso) return "";
+  const mins = Math.round((Date.now() - new Date(iso)) / 60000);
+  if (mins < 60) return `${Math.max(mins, 1)} min ago`;
+  if (mins < 1440) return `${Math.round(mins / 60)} h ago`;
+  return `${Math.round(mins / 1440)} days ago`;
+}
+
+async function api(path, opts) {
+  const res = await fetch(path, opts);
+  if (!res.ok) throw new Error(`${res.status} ${(await res.text()).slice(0, 200)}`);
+  return res.json();
+}
+
+const kpi = (v, l) => `<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`;
+
+function bars(el, rows, label = (n) => fmt(n)) {
+  const max = Math.max(...rows.map((r) => r[1]), 1);
+  el.innerHTML = rows.map(([k, n]) => `<div class="bar"><span>${esc(k)}</span>
+    <div class="track"><div class="fill" style="width:${(n / max) * 100}%"></div></div><span class="n">${label(n)}</span></div>`).join("");
+}
+
+// ---------- tabs ----------
+const loaders = {};
+const loaded = new Set();
+
+function show(tab) {
+  if (!$(`#tab-${tab}`)) tab = "home";
+  $$(".tab").forEach((s) => (s.hidden = s.id !== `tab-${tab}`));
+  $$("nav a").forEach((a) => a.classList.toggle("on", a.dataset.tab === tab));
+  if (!loaded.has(tab) && loaders[tab]) {
+    loaded.add(tab);
+    loaders[tab]().catch((err) => console.error(tab, err));
+  }
+  if (tab === "check" && tripMap) setTimeout(() => tripMap.invalidateSize(), 50);
+  if (tab === "globe" && globe) setTimeout(sizeGlobe, 50);
+  window.scrollTo(0, 0);
+}
+window.addEventListener("hashchange", () => show(location.hash.slice(1)));
+
+// ---------- shared country data ----------
+const WORLD_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
+let worldPromise;
+
+function center(f) {
+  // centre of the country's largest piece of land (so France sits in Europe, not halfway to French Guiana)
+  if (f.geometry.type === "Polygon") return d3.geoCentroid(f);
+  const parts = f.geometry.coordinates.map((c) => ({ type: "Polygon", coordinates: c }));
+  return d3.geoCentroid(parts.reduce((a, b) => (d3.geoArea(a) > d3.geoArea(b) ? a : b)));
+}
+
+function world() {
+  worldPromise ??= Promise.all([fetch(WORLD_URL).then((r) => r.json()), api("/v1/intel/countries")]).then(([topo, data]) => {
+    const byNumeric = {};
+    for (const [a2, c] of Object.entries(data.countries)) byNumeric[+c.numeric] = { a2, ...c };
+    const features = topojson.feature(topo, topo.objects.countries).features.filter((f) => f.id !== "010"); // no Antarctica
+    const centers = {};
+    features.forEach((f) => {
+      f.properties.c = byNumeric[+f.id];
+      if (f.properties.c) centers[f.properties.c.a2] = center(f);
+    });
+    return { features, data, centers };
+  });
+  return worldPromise;
+}
+
+const sampleCache = {};
+const samples = (cc) => (sampleCache[cc] ??= api(`/v1/intel/sample-ips?country=${cc}`));
+
+// ---------- home ----------
+loaders.home = async () => {
+  const o = await api("/v1/intel/overview");
+  const t = o.takeovers_caught, rw = o.ransomware_victims;
+  $("#home-kpis").innerHTML = [
+    kpi(compact(o.accounts_exposed_last_12_months), `accounts exposed in ${o.breaches_last_12_months} published breaches in the last 12 months`),
+    kpi(fmt(o.malicious_ips), "servers caught spreading malware or running botnets right now"),
+    kpi(fmt(rw.victims), `businesses claimed by ransomware gangs, ${day(rw.from)} to ${day(rw.to)}`),
+    kpi(fmt(o.exploited_flaws_last_30_days), "software flaws newly confirmed as exploited in the last 30 days"),
+    kpi(fmt(o.criminal_networks), "whole networks Spamhaus lists as run by criminals"),
+    kpi(`${t.caught} of ${t.of}`, `account takeovers caught in the test data, asking only ${pct(t.challenge_rate)} of sign-ins for a code`),
+    kpi(compact(o.total_accounts_exposed), `accounts exposed across ${fmt(o.total_breaches)} breaches on record`),
+    kpi(fmt(o.countries_with_confirmed_blocking), "countries where websites were found blocked in the last 30 days"),
+  ].join("");
+  $("#home-asof").textContent = `Breach, flaw, malware, ransomware and network data as of ${day(o.as_of)}. News is fetched live.`;
 };
 
-document.addEventListener("DOMContentLoaded", () => {
-  renderAuditTable();
-  updateSnippetCode();
-  loadModelCard();
-});
-
-// Toast notification
-function showToast(msg, isSuccess = true) {
-  const toast = document.getElementById("toast");
-  const msgEl = document.getElementById("toast-msg");
-  const iconEl = document.getElementById("toast-icon");
-  if (!toast || !msgEl) return;
-
-  msgEl.textContent = msg;
-  iconEl.textContent = isSuccess ? "✅" : "⚠️";
-  toast.classList.remove("translate-y-20", "opacity-0");
-  toast.classList.add("translate-y-0", "opacity-100");
-
-  setTimeout(() => {
-    toast.classList.remove("translate-y-0", "opacity-100");
-    toast.classList.add("translate-y-20", "opacity-0");
-  }, 2200);
-}
-
-
-// Section Switching
-function showSection(name) {
-  currentSection = name;
-
-  // Toggle active tabs
-  document.querySelectorAll("[data-nav]").forEach(btn => {
-    if (btn.getAttribute("data-nav") === name) {
-      btn.classList.add("active");
-    } else {
-      btn.classList.remove("active");
-    }
-  });
-
-  // Toggle sections
-  const sections = ["sandbox", "radar", "policy", "audit"];
-  sections.forEach(s => {
-    const el = document.getElementById(`section-${s}`);
-    if (el) {
-      if (s === name) {
-        el.classList.remove("hidden");
-      } else {
-        el.classList.add("hidden");
-      }
-    }
-  });
-
-  // Initialize map when entering radar section
-  if (name === "radar") {
-    setTimeout(initLeafletMap, 50);
-  }
-}
-
-
-// Haversine Great Circle Math
-function calculateHaversine(lat1, lon1, lat2, lon2) {
-  const R = 6371.0; // Earth radius in km
-  const dLat = (lat2 - lat1) * Math.PI / 180.0;
-  const dLon = (lon2 - lon1) * Math.PI / 180.0;
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(lat1 * Math.PI / 180.0) * Math.cos(lat2 * Math.PI / 180.0) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-
-// Preset scenarios (sample accounts; coordinates are real city locations)
-function pickPreset(preset) {
-  const set = (id, v) => { document.getElementById(id).value = v; };
-  const P = {
-    nyc_tokyo: ["alex.executive@acme.com", "New York, US", "40.7128, -74.0060", "Tokyo, JP", "35.6762, 139.6503", 5, "dev-ios-unverified-44"],
-    london_sydney: ["sarah.lead@acme.com", "London, GB", "51.5074, -0.1278", "Sydney, AU", "-33.8688, 151.2093", 10, "dev-android-unknown-99"],
-    frankfurt_zurich: ["dev.ops@acme.com", "Frankfurt, DE", "50.1109, 8.6821", "Zurich, CH", "47.3769, 8.5417", 15, "dev-tor-relay-node"],
-    sf_commute: ["emily.staff@acme.com", "San Francisco, US", "37.7749, -122.4194", "San Jose, US", "37.3382, -121.8863", 45, KNOWN_DEVICE],
-  }[preset];
-  ["sb-user", "sb-prev-city", "sb-prev-coords", "sb-curr-city", "sb-curr-coords", "sb-minutes", "sb-device"].forEach((id, i) => set(id, P[i]));
-  showToast(`Loaded preset: ${preset.replace('_', ' ').toUpperCase()}`);
-  runEvaluation();
-}
-
-function resetSandboxInputs() {
-  document.getElementById("sandbox-form").reset();
-  showToast("Reset form to default values");
-}
-
-const parseCoords = s => s.split(",").map(x => parseFloat(x.trim()));
-const countryOf = city => (city.split(",")[1] || "").trim().toUpperCase() || null;
-
-async function postLogin(event) {
-  const res = await fetch("/v1/auth/evaluate", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-API-Key": activeApiKey },
-    body: JSON.stringify(event),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail));
-  return data;
-}
-
-// Live evaluation: send the account's history, then the login being tested, and render the API's answer.
-async function runEvaluation(e) {
-  if (e) e.preventDefault();
-  const user = document.getElementById("sb-user").value;
-  const prevCity = document.getElementById("sb-prev-city").value;
-  const currCity = document.getElementById("sb-curr-city").value;
-  const [lat1, lon1] = parseCoords(document.getElementById("sb-prev-coords").value);
-  const [lat2, lon2] = parseCoords(document.getElementById("sb-curr-coords").value);
-  const minutes = Math.max(1, parseFloat(document.getElementById("sb-minutes").value) || 5);
-  const device = document.getElementById("sb-device").value.trim() || KNOWN_DEVICE;
-  const userId = `${user}#demo-${Date.now().toString(36)}`;  // fresh history for every run
-  const now = Date.now();
-  const base = { user_id: userId, ip: "198.51.100.20", device_id: KNOWN_DEVICE, asn: 29695, rtt_ms: 420, success: true };
-  const btn = document.getElementById("btn-eval");
-  if (btn) btn.disabled = true;
-  try {
-    for (let d = 5; d >= 1; d--) {
-      await postLogin({ ...base, login_ts: new Date(now - minutes * 60000 - d * 86400000).toISOString(),
-        country: countryOf(prevCity), city: prevCity.split(",")[0].trim(), lat: lat1, lon: lon1 });
-    }
-    await postLogin({ ...base, login_ts: new Date(now - minutes * 60000).toISOString(),
-      country: countryOf(prevCity), city: prevCity.split(",")[0].trim(), lat: lat1, lon: lon1 });
-    const known = device === KNOWN_DEVICE;
-    const t0 = performance.now();
-    const r = await postLogin({ ...base, login_ts: new Date(now).toISOString(), country: countryOf(currCity),
-      city: currCity.split(",")[0].trim(), lat: lat2, lon: lon2, device_id: device,
-      asn: known ? 29695 : 9009, ip: known ? "198.51.100.20" : "203.0.113.15" });
-    const ms = (performance.now() - t0).toFixed(1);
-    document.getElementById("eval-runtime").textContent = `Round-trip: ${ms}ms`;
-    document.getElementById("latency-badge").textContent = `${ms}ms`;
-    renderVerdict(r, prevCity, currCity, minutes);
-    auditLedger.unshift({ timestamp: new Date().toISOString(), user, score: r.risk_score, tier: r.risk_tier,
-      velocity: Math.round(r.velocity_kmph), vector: `${prevCity} → ${currCity}`, reasons: r.reasons.join("; ") });
-    if (auditLedger.length > 50) auditLedger.pop();
-    renderAuditTable();
-    lastFlight = [{ lat: lat1, lon: lon1, city: prevCity }, { lat: lat2, lon: lon2, city: currCity }, r];
-    updateMapFlightPath(...lastFlight);
-    updateSnippetCode();
-    showToast(`API verdict: ${r.risk_tier}`);
-  } catch (err) {
-    showToast(`Evaluation failed: ${err.message}`, false);
-  } finally {
-    if (btn) btn.disabled = false;
-  }
-}
-
-function renderVerdict(r, prevCity, currCity, minutes) {
-  const st = TIER_STYLE[r.risk_tier];
-  const badge = document.getElementById("human-badge");
-  badge.className = `px-2.5 py-0.5 rounded-full text-xs font-bold ${st.badge}`;
-  badge.textContent = `${r.risk_tier} RISK`;
-  document.getElementById("verdict-headline").innerHTML =
-    `<span class="${st.text} text-lg">${st.icon}</span> <span>Recommended action: ${esc(r.recommended_action)}</span>`;
-  document.getElementById("verdict-narrative").innerHTML =
-    `Login from <strong>${esc(currCity)}</strong> ${esc(minutes)} minutes after one from <strong>${esc(prevCity)}</strong> ` +
-    `(${Math.round(r.distance_km).toLocaleString()} km, ${Math.round(r.velocity_kmph).toLocaleString()} km/h). ` +
-    `The models rate it riskier than <strong>${r.risk_score.toFixed(2)}%</strong> of real validation logins ` +
-    `(takeover percentile ${r.ato_percentile.toFixed(2)}, attack-IP percentile ${r.attack_ip_percentile.toFixed(2)}).`;
-  const bar = document.getElementById("velocity-bar");
-  bar.className = `h-full rounded-full transition-all duration-700 ${st.bar}`;
-  bar.style.width = `${Math.min(100, (r.velocity_kmph / 900) * 66)}%`;
-  document.getElementById("hud-score").innerHTML = `${r.risk_score.toFixed(1)}<span class="text-xs text-slate-500 font-normal">/100</span>`;
-  document.getElementById("hud-score").className = `text-xl sm:text-2xl font-black ${st.text} mt-0.5`;
-  document.getElementById("hud-velocity").textContent = `${Math.round(r.velocity_kmph).toLocaleString()} km/h`;
-  document.getElementById("hud-distance").textContent = `${Math.round(r.distance_km).toLocaleString()} km`;
-  const action = document.getElementById("hud-action");
-  action.textContent = r.recommended_action.toUpperCase();
-  action.className = `text-xs sm:text-sm font-bold ${st.text} mt-2`;
-  document.getElementById("reasons-list").innerHTML = `
-    <div class="text-xs font-mono text-slate-400">Reasons returned by the API:</div>
-    ${r.reasons.map(t => `
-      <div class="flex items-center gap-2 text-xs font-mono text-slate-200 p-2 rounded bg-surface-950 border border-surface-800">
-        <span class="${st.text} font-bold">●</span><span>${esc(t)}</span>
-      </div>`).join("")}`;
-}
-
-// Leaflet Radar Map Management
-function initLeafletMap() {
-  const container = document.getElementById("radarMap");
-  if (!container) return;
-
-  if (mapInstance) {
-    mapInstance.invalidateSize();
-    return;
-  }
-
-  mapInstance = L.map("radarMap", {
-    zoomControl: true,
-    attributionControl: true,
-    minZoom: 2,
-    maxZoom: 14
-  }).setView([30, 10], 2);
-
-  // Default Dark Matter Layer
-  currentTileLayer = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap contributors", className: "tiles-dark" }).addTo(mapInstance);
-
-  if (lastFlight) updateMapFlightPath(...lastFlight);
-
-  // Map Click Listener to select coordinates directly!
-  mapInstance.on("click", (e) => {
-    const lat = e.latlng.lat.toFixed(4);
-    const lon = e.latlng.lng.toFixed(4);
-    document.getElementById("sb-curr-coords").value = `${lat}, ${lon}`;
-    document.getElementById("sb-curr-city").value = `Point (${lat}, ${lon})`;
-    showToast(`Updated login destination to (${lat}, ${lon})`);
-  });
-}
-
-// Map Layer Switcher
-function changeMapLayer(layer) {
-  currentLayerName = layer;
-  if (!mapInstance) return;
-
-  document.querySelectorAll(".layer-btn").forEach(btn => {
-    if (btn.getAttribute("data-layer") === layer) {
-      btn.classList.add("active", "bg-surface-800", "text-white");
-      btn.classList.remove("text-slate-400");
-    } else {
-      btn.classList.remove("active", "bg-surface-800", "text-white");
-      btn.classList.add("text-slate-400");
-    }
-  });
-
-  if (currentTileLayer) {
-    mapInstance.removeLayer(currentTileLayer);
-  }
-
-  if (layer === "satellite") {
-    // Esri World Imagery (high-resolution orbital satellite)
-    currentTileLayer = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
-      maxZoom: 18, attribution: "Tiles &copy; Esri"
-    }).addTo(mapInstance);
-    showToast("Switched map to Satellite Reconnaissance");
-  } else if (layer === "street") {
-    // CartoDB Voyager / Street Grid
-    currentTileLayer = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap contributors" }).addTo(mapInstance);
-    showToast("Switched map to Street Grid");
-  } else {
-    // Cyber Dark Matter
-    currentTileLayer = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap contributors", className: "tiles-dark" }).addTo(mapInstance);
-    showToast("Switched map to Cyber Dark Matter");
-  }
-}
-
-function updateMapFlightPath(origin, dest, r) {
-  const dist = r.distance_km, speed = r.velocity_kmph, tier = r.risk_tier;
-  if (!mapInstance) return;
-
-  if (originMarker) mapInstance.removeLayer(originMarker);
-  if (destMarker) mapInstance.removeLayer(destMarker);
-  if (flightLine) mapInstance.removeLayer(flightLine);
-
-  const originIcon = L.divIcon({
-    className: "radar-origin",
-    html: '<div class="radar-origin-dot"></div>',
-    iconSize: [14, 14],
-    iconAnchor: [7, 7]
-  });
-
-  const destIcon = L.divIcon({
-    className: "radar-dest",
-    html: '<div class="radar-dest-dot"></div>',
-    iconSize: [14, 14],
-    iconAnchor: [7, 7]
-  });
-
-  originMarker = L.marker([origin.lat, origin.lon], { icon: originIcon }).addTo(mapInstance)
-    .bindPopup(`<b>Previous Login</b><br>${esc(origin.city)}<br><span style="color:#60a5fa">${origin.lat.toFixed(2)}, ${origin.lon.toFixed(2)}</span>`);
-
-  destMarker = L.marker([dest.lat, dest.lon], { icon: destIcon }).addTo(mapInstance)
-    .bindPopup(`<b>Login Being Scored</b><br>${esc(dest.city)}<br><span style="color:#f43f5e;font-weight:bold">${Math.round(speed).toLocaleString()} km/h</span>`);
-
-  const lineColor = TIER_STYLE[tier].line;
-
-  flightLine = L.polyline([
-    [origin.lat, origin.lon],
-    [dest.lat, dest.lon]
-  ], {
-    color: lineColor,
-    weight: 3,
-    dashArray: "6, 8",
-    opacity: 0.9
-  }).addTo(mapInstance);
-
-  const bounds = L.latLngBounds([[origin.lat, origin.lon], [dest.lat, dest.lon]]);
-  mapInstance.fitBounds(bounds, { padding: [60, 60] });
-
-  // Update Map HUD
-  const elOrig = document.getElementById("map-orig-txt");
-  const elDest = document.getElementById("map-dest-txt");
-  const elDist = document.getElementById("map-dist-txt");
-  const elSpeed = document.getElementById("map-speed-txt");
-
-  if (elOrig) elOrig.textContent = origin.city;
-  if (elDest) elDest.textContent = dest.city;
-  if (elDist) elDist.textContent = `${Math.round(dist).toLocaleString()} km`;
-  if (elSpeed) elSpeed.textContent = `${Math.round(speed).toLocaleString()} km/h`;
-  const elVerdict = document.getElementById("map-verdict-txt");
-  if (elVerdict) { elVerdict.textContent = `${tier}: ${r.recommended_action}`; elVerdict.className = `${TIER_STYLE[tier].text} font-black`; }
-}
-
-
-// API key issuing (real endpoint; requires the master key)
-async function createKey(e) {
-  e.preventDefault();
-  const label = document.getElementById("key-label-input").value;
-  try {
-    const res = await fetch("/v1/keys/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-API-Key": MASTER_KEY },
-      body: JSON.stringify({ name: label }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || res.statusText);
-    activeApiKey = data.api_key;
-    document.getElementById("key-text").textContent = data.api_key;
-    document.getElementById("key-result-box").classList.remove("hidden");
-    updateSnippetCode();
-    showToast(`Key issued for ${label}`);
-  } catch (err) {
-    showToast(`Key request failed: ${err.message}`, false);
-  }
-}
-function copyGeneratedToken() {
-  const key = document.getElementById("key-text").textContent;
-  navigator.clipboard.writeText(key);
-  showToast("API Key copied to clipboard");
-}
-
-
-// Code Snippet Generator
-function setLang(lang) {
-  currentLang = lang;
-  document.querySelectorAll(".code-tab").forEach(tab => {
-    if (tab.getAttribute("data-lang") === lang) {
-      tab.classList.add("active", "text-brand-400", "font-bold");
-      tab.classList.remove("hover:text-white");
-    } else {
-      tab.classList.remove("active", "text-brand-400", "font-bold");
-      tab.classList.add("hover:text-white");
-    }
-  });
-  updateSnippetCode();
-}
-
-function updateSnippetCode() {
-  const codeBox = document.getElementById("snippet-display");
-  if (!codeBox) return;
-
-  const user = document.getElementById("sb-user")?.value || "alex@acme.com";
-  const currCoords = document.getElementById("sb-curr-coords")?.value || "35.6762, 139.6503";
-  const [lat, lon] = currCoords.split(",").map(s => s.trim());
-  const device = document.getElementById("sb-device")?.value || "dev-ios-unverified-44";
-
-  if (currentLang === "curl") {
-    codeBox.innerHTML = `<code>curl -X POST "https://impossible-travel-auth-anomaly-engi.vercel.app/v1/auth/evaluate" \\
-     -H "Content-Type: application/json" \\
-     -H "X-API-Key: ${activeApiKey}" \\
-     -d '{
-       "user_id": "${user}",
-       "login_ts": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
-       "lat": ${lat},
-       "lon": ${lon},
-       "country": "JP",
-       "asn": 9009,
-       "device_id": "${device}",
-       "ip": "203.0.113.15"
-     }'</code>`;
-  } else if (currentLang === "python") {
-    codeBox.innerHTML = `<code>import requests
-
-response = requests.post(
-    "https://impossible-travel-auth-anomaly-engi.vercel.app/v1/auth/evaluate",
-    headers={"X-API-Key": "${activeApiKey}"},
-    json={
-        "user_id": "${user}",
-        "login_ts": "2026-09-30T18:30:00Z",
-        "lat": ${lat},
-        "lon": ${lon},
-        "device_id": "${device}",
-        "ip": "203.0.113.15"
-    }
-)
-result = response.json()
-
-if result.get("risk_tier") == "CRITICAL":
-    raise PermissionError("Access Denied: Impossible physical velocity detected")</code>`;
-  } else if (currentLang === "node") {
-    codeBox.innerHTML = `<code>// NextAuth / Express Middleware
-const res = await fetch("https://impossible-travel-auth-anomaly-engi.vercel.app/v1/auth/evaluate", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "X-API-Key": "${activeApiKey}"
+// ---------- live globe ----------
+const METRICS = {
+  malicious_ips: {
+    title: "Malware and botnet servers right now",
+    explain: "Servers that security researchers caught spreading malware or controlling botnets in the last few days. Most are not rented servers but hacked home routers, cameras and other devices, which is why countries with huge numbers of home connections lead this list.",
+    source: "malware",
   },
-  body: JSON.stringify({
-    user_id: "${user}",
-    login_ts: new Date().toISOString(),
-    lat: ${lat},
-    lon: ${lon},
-    device_id: "${device}",
-    ip: req.ip || "203.0.113.15"
-  })
+  ransomware_victims: {
+    title: "Ransomware victims this week",
+    explain: "Businesses that ransomware gangs posted on their leak sites this week, by the victim's country. Gangs post victims who refuse to pay, so the real number of attacks is higher.",
+    source: "ransomware",
+  },
+  confirmed_blocks: {
+    title: "Websites confirmed blocked, last 30 days",
+    explain: "Volunteers running OONI Probe test whether websites and apps load. A confirmed block means the test hit a known government or ISP block page. More volunteers means more tests, so a high number means heavy blocking or a lot of testing, and often both.",
+    source: "censorship",
+  },
+  hosting_ipv4: {
+    title: "Addresses on hosting / VPN networks",
+    explain: "IPv4 addresses that belong to cloud, hosting and VPN companies. Real customers rarely sign in from a data center, but bots, scrapers and people hiding behind VPNs do, so Alibi treats these networks with extra care.",
+    source: "network",
+  },
+  dns_resolvers: {
+    title: "Working public DNS servers",
+    explain: "DNS servers turn names like google.com into addresses. Open public ones are useful, but attackers also misuse them to flood websites with traffic, and governments block them to enforce censorship.",
+    source: "dns",
+  },
+  cable_landings: {
+    title: "Undersea cable landing stations",
+    explain: "Where undersea internet cables come ashore. Almost all traffic between continents runs through these cables, so countries with few landings can be cut off by a single fault or attack.",
+    source: "cables",
+  },
+  tor_exits: {
+    title: "Tor exit relays",
+    explain: "Tor hides where a person really is by bouncing their traffic around the world. Exit relays are where that traffic comes back out, so a sign-in from one could be anyone, anywhere.",
+    source: "tor",
+  },
+};
+let metric = "malicious_ips", globe, selected, journey = [], journeyArcs = [];
+
+function sizeGlobe() {
+  const el = $("#globe");
+  globe.width(el.clientWidth).height(el.clientHeight);
+}
+
+const IMG = "https://cdn.jsdelivr.net/npm/three-globe@2/example/img/"; // NASA Blue Marble imagery, public domain
+let states = [], cablePaths = [], landings = [], stateLines = [], picked = null, hovered = null;
+
+loaders.globe = async () => {
+  const [{ features, data, centers }, cab, st] = await Promise.all([world(), api("/v1/intel/cables"), api("/v1/intel/states")]);
+  if (!data.totals.tor_exit_relays) $('[data-metric="tor_exits"]').remove(); // Tor list unreachable when the snapshot was built
+  states = st;
+  stateLines = st.flatMap((s) => s.r.map((ring) => ({ kind: "state", coords: ring })));
+  cablePaths = cab.cables.flatMap((c) => c.paths.map((p) => ({ kind: "cable", name: c.name, color: c.color, coords: p })));
+  landings = cab.landings.map((l) => ({ ...l, kind: "landing" }));
+  const el = $("#globe");
+  globe = Globe({ animateIn: true })(el)
+    .globeImageUrl(`${IMG}earth-blue-marble.jpg`).bumpImageUrl(`${IMG}earth-topology.png`)
+    .backgroundImageUrl(`${IMG}night-sky.png`)
+    .showAtmosphere(true).atmosphereColor("#9ec9ff").atmosphereAltitude(0.16)
+    // countries: invisible caps (for hover and click) with crisp borders
+    .polygonsData(features)
+    .polygonAltitude((f) => (f === selected ? 0.012 : 0.004))
+    .polygonCapColor((f) => (f === selected ? "rgba(255,255,255,0.22)" : f === hovered ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0)"))
+    .polygonSideColor(() => "rgba(0,0,0,0)")
+    .polygonStrokeColor(() => "rgba(255,255,255,0.75)")
+    .polygonLabel((f) => countryTip(f.properties.c))
+    .onPolygonHover((f) => { hovered = f; globe.polygonCapColor(globe.polygonCapColor()); })
+    .onPolygonClick((f, _e, at) => selectCountry(f, at))
+    .onGlobeClick((at) => pickAt(features, at))
+    // state borders (thin) and, when switched on, undersea cables
+    .pathsData(stateLines).pathPoints("coords").pathPointLat((p) => p[0]).pathPointLng((p) => p[1])
+    .pathPointAlt(0.0045).pathStroke(null)
+    .pathColor((p) => (p.kind === "state" ? "rgba(255,255,255,0.28)" : p.color))
+    .pathLabel((p) => (p.kind === "cable" ? `<div class="globe-tip">Undersea cable: ${esc(p.name)}</div>` : ""))
+    .pathDashLength((p) => (p.kind === "cable" ? 0.08 : 1)).pathDashGap((p) => (p.kind === "cable" ? 0.01 : 0))
+    .pathDashAnimateTime((p) => (p.kind === "cable" ? 16000 : 0)).pathTransitionDuration(0)
+    .onPathClick((_p, _e, at) => pickAt(features, at))
+    // data nodes rising from each country
+    .pointLat("lat").pointLng("lng").pointsMerge(false)
+    .pointAltitude((p) => p.alt).pointRadius((p) => p.radius).pointColor((p) => p.color)
+    .pointLabel((p) => (p.kind === "node" ? countryTip(p.c) : `<div class="globe-tip">Cable landing: ${esc(p.name)}</div>`))
+    .onPointClick((p, _e, at) => (p.kind === "node" ? selectCountry(p.feature, at) : pickAt(features, at)))
+    .ringsData([]).ringColor(() => (t) => `rgba(255,120,90,${1 - t})`).ringMaxRadius(3.5).ringPropagationSpeed(2).ringRepeatPeriod(1400)
+    .arcsData([]).arcColor("color").arcStroke(0.8).arcDashLength(0.5).arcDashGap(0.15).arcDashAnimateTime(1600)
+    .arcAltitudeAutoScale(0.45).arcLabel((a) => `<div class="globe-tip">${esc(a.label)}</div>`)
+    .labelsData([]).labelLat("lat").labelLng("lng").labelText("text").labelSize(1.1).labelDotRadius(0.45)
+    .labelColor(() => "#ffffff").labelResolution(2);
+  globe.pointOfView({ lat: 22, lng: 40, altitude: 2 });
+  Object.assign(globe.controls(), { autoRotate: true, autoRotateSpeed: 0.35, minDistance: 115, maxDistance: 520 });
+  $("#reset-view").addEventListener("click", () => globe.pointOfView({ lat: 22, lng: 40, altitude: 2 }, 800));
+  el.addEventListener("pointerdown", () => (globe.controls().autoRotate = false), { once: true });
+  sizeGlobe();
+  window.addEventListener("resize", sizeGlobe);
+  globe.__centers = centers;
+  globe.__data = data;
+  globe.__features = features;
+
+  $$("[data-metric]").forEach((b) => b.addEventListener("click", () => {
+    metric = b.dataset.metric;
+    $$("[data-metric]").forEach((x) => x.classList.toggle("on", x === b));
+    paint();
+  }));
+  $("#show-cables").addEventListener("change", () => {
+    globe.pathsData($("#show-cables").checked ? [...stateLines, ...cablePaths] : stateLines);
+    paint();
+  });
+  $$("[data-journey]").forEach((b) => b.addEventListener("click", () => {
+    journey = b.dataset.journey.split(",");
+    renderJourney();
+    runJourney();
+  }));
+  $("#journey-go").addEventListener("click", runJourney);
+  paint();
+};
+
+function inRing(lat, lng, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [yi, xi] = ring[i], [yj, xj] = ring[j];
+    if ((yi > lat) !== (yj > lat) && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+function stateAt(at) {
+  return at && states.find((s) => at.lat >= s.b[0] && at.lat <= s.b[2] && at.lng >= s.b[1] && at.lng <= s.b[3]
+    && s.r.some((ring) => inRing(at.lat, at.lng, ring)));
+}
+
+function pickAt(features, at) {
+  // clicks that land on a border, a cable or the sea still pick the country underneath
+  const f = at && features.find((x) => d3.geoContains(x, [at.lng, at.lat]));
+  if (f) selectCountry(f, at);
+}
+
+function countryTip(c) {
+  if (!c) return "";
+  return `<div class="globe-tip"><b>${esc(c.name)}</b><br>${fmt(c.malicious_ips)} malware servers now
+    <br>${fmt(c.ransomware_victims)} ransomware victims this week<br>${fmt(c.confirmed_blocks)} websites confirmed blocked
+    <br>${fmt(c.cable_landings)} cable landings</div>`;
+}
+
+function paint() {
+  const data = globe.__data, centers = globe.__centers, features = globe.__features;
+  const max = Math.max(...Object.values(data.countries).map((c) => c[metric]), 1);
+  const color = d3.scaleSequentialLog([1, max], d3.interpolateRgb("#ffd27a", "#ff3b2f"));
+  const nodes = features.filter((f) => f.properties.c?.[metric] > 0 && centers[f.properties.c.a2]).map((f) => {
+    const c = f.properties.c, v = c[metric], t = Math.log1p(v) / Math.log1p(max);
+    return { kind: "node", c, feature: f, lat: centers[c.a2][1], lng: centers[c.a2][0],
+      alt: 0.01 + 0.22 * t, radius: 0.25 + 0.35 * t, color: color(Math.max(v, 1)) };
+  });
+  const showLandings = $("#show-cables").checked;
+  globe.pointsData(showLandings ? [...nodes, ...landings.map((l) => ({ ...l, alt: 0.006, radius: 0.12, color: "#ffd27a" }))] : nodes);
+  const top = nodes.sort((a, b) => b.c[metric] - a.c[metric]).slice(0, 10);
+  globe.ringsData(top.map((n) => ({ lat: n.lat, lng: n.lng })));
+  $("#legend-bar").style.background = "linear-gradient(90deg, #ffd27a, #ff3b2f)";
+  $("#legend-max").textContent = `${compact(max)} (node height, log scale)`;
+  const m = METRICS[metric];
+  $("#top-title").textContent = `Top 10: ${m.title.toLowerCase()}`;
+  $("#top-list").innerHTML = top.map((n) => `<li><span>${esc(n.c.name)}</span><b>${fmt(n.c[metric])}</b></li>`).join("");
+  $("#metric-explain").textContent = m.explain;
+  const s = data.sources[m.source];
+  $("#map-sources").innerHTML = s ? `Source: <a href="${s.url}" target="_blank" rel="noopener">${esc(s.name)}</a> (${esc(s.license)}). Taller, redder nodes mean more; pulsing rings mark the top 10.` : "";
+}
+
+async function selectCountry(f, at) {
+  const c = f.properties.c;
+  if (!c) return;
+  selected = f;
+  globe.polygonAltitude(globe.polygonAltitude()).polygonCapColor(globe.polygonCapColor());
+  const [lng, lat] = globe.__centers[c.a2];
+  const st = stateAt(at);
+  globe.controls().autoRotate = false;
+  globe.pointOfView(at ? { lat: at.lat, lng: at.lng, altitude: 1.2 } : { lat, lng, altitude: 1.5 }, 900);
+  const facts = [
+    ["Malware servers now", fmt(c.malicious_ips)],
+    ["Ransomware victims this week", fmt(c.ransomware_victims)],
+    ["Websites confirmed blocked", `${fmt(c.confirmed_blocks)} in ${compact(c.censorship_measurements)} tests`],
+    ["Public DNS servers", fmt(c.dns_resolvers)],
+    ["Hosting / VPN addresses", compact(c.hosting_ipv4)],
+    ["Undersea cable landings", fmt(c.cable_landings)],
+  ];
+  if (globe.__data.totals.tor_exit_relays) facts.push(["Tor exits", fmt(c.tor_exits)]);
+  $("#country-panel").innerHTML = `${st && st.c === c.a2 ? `<p class="fineprint">${esc(st.t)}: <b>${esc(st.n)}</b></p>` : ""}
+    <h3>${esc(c.name)}</h3><div class="facts">${facts.map(([k, v]) => `<div><b>${k}</b>${v}</div>`).join("")}</div>
+    <p class="fineprint" id="country-nets">Looking up its networks…</p>
+    <button class="btn" id="add-journey" ${journey.length >= 3 ? "disabled" : ""}>Add to journey</button>`;
+  $("#add-journey").addEventListener("click", () => {
+    if (journey.length < 3 && journey.at(-1) !== c.a2) journey.push(c.a2);
+    renderJourney();
+    $("#add-journey").disabled = journey.length >= 3;
+  });
+  try {
+    const s = await samples(c.a2);
+    const homes = s.home.map((h) => esc(h.network)).join(" and ");
+    $("#country-nets").innerHTML = (homes ? `Biggest home and business networks: ${homes}.` : "No home networks on record.") +
+      (s.malware ? ` A server reported for malware here: ${esc(s.malware)}.` : "");
+  } catch {
+    $("#country-nets").textContent = "";
+  }
+}
+
+function renderJourney() {
+  const names = globe.__data.countries;
+  $("#journey-list").innerHTML = journey.map((cc, i) => `<li>${esc(names[cc].name)}${i === 0 ? " <span class='muted'>(usual home)</span>" : ""}
+    <button data-drop="${i}" aria-label="Remove">remove</button></li>`).join("");
+  $$("[data-drop]").forEach((b) => b.addEventListener("click", () => {
+    journey.splice(+b.dataset.drop, 1);
+    renderJourney();
+  }));
+  $("#journey-go").disabled = journey.length < 2;
+  const pts = journey.map((cc) => ({ lat: globe.__centers[cc][1], lng: globe.__centers[cc][0], text: names[cc].name }));
+  globe.labelsData(pts);
+  journeyArcs = pts.slice(1).map((p, i) => ({ startLat: pts[i].lat, startLng: pts[i].lng, endLat: p.lat, endLng: p.lng,
+    color: [css("--accent"), css("--accent")], label: `${pts[i].text} → ${p.text}` }));
+  globe.arcsData(journeyArcs);
+  $("#journey-result").innerHTML = "";
+}
+
+async function runJourney() {
+  if (journey.length < 2) return;
+  const names = globe.__data.countries, centers = globe.__centers;
+  const gap = Math.max(1, +$("#journey-minutes").value || 1);
+  const btn = $("#journey-go");
+  $("#journey-err").textContent = "";
+  btn.disabled = true;
+  btn.textContent = "Checking…";
+  try {
+    const hops = await Promise.all(journey.map(samples));
+    if (hops.some((h) => !h.home.length)) throw new Error("One of these countries has no home networks on record to sign in from.");
+    const ev = (ts, i) => {
+      const [lon, lat] = centers[journey[i]];
+      return { user_id: "demo", login_ts: new Date(ts).toISOString(), ip: hops[i].home[0].ip, country: journey[i],
+        city: names[journey[i]].name, lat, lon, success: true, device_id: "usual-laptop", browser: "Chrome 128.0",
+        os: "Windows 10", device_type: "desktop" };
+    };
+    const t0 = Date.now() - gap * 60000 * (journey.length - 1);
+    const events = [];
+    for (let i = 6; i >= 0; i--) events.push(ev(t0 - i * 2 * 86400000, 0));
+    for (let i = 1; i < journey.length; i++) events.push(ev(t0 + i * gap * 60000, i));
+    const { timeline } = await api("/v1/demo/check", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ events }),
+    });
+    const steps = timeline.slice(-(journey.length - 1));
+    const tierColor = { LOW: css("--ok"), MEDIUM: css("--warn"), HIGH: css("--risk"), CRITICAL: css("--risk") };
+    journeyArcs.forEach((a, i) => {
+      a.color = [tierColor[steps[i].tier], tierColor[steps[i].tier]];
+      a.label = `${a.label}: ${fmt(Math.round(steps[i].distance_km))} km in ${gap} min, ${steps[i].tier}`;
+    });
+    globe.arcsData([...journeyArcs]);
+    $("#journey-result").innerHTML = steps.map((s, i) => `<div class="hop ${s.tier}"><b>${esc(names[journey[i]].name)} → ${esc(names[journey[i + 1]].name)}</b>:
+      ${fmt(Math.round(s.distance_km))} km in ${gap} min${s.velocity_kmph ? ` (${fmt(Math.round(s.velocity_kmph))} km/h)` : ""}.
+      <span class="badge ${s.tier}">${s.tier}</span><br><span class="muted">${esc(s.reasons[0])}</span></div>`).join("") +
+      `<p class="fineprint">Each hop signs in from that country's biggest home network, after two weeks of usual sign-ins from ${esc(names[journey[0]].name)}. Planes fly about 900 km/h.</p>`;
+  } catch (err) {
+    $("#journey-err").textContent = err.message;
+  } finally {
+    btn.disabled = journey.length < 2;
+    btn.textContent = "Check this journey";
+  }
+}
+
+// ---------- breaches ----------
+let allBreaches, breachList = [];
+const HOW_SHORT = (h) => h.replace("Hacked, method not disclosed", "Hacked (method not given)");
+
+function breachRows(rows) {
+  breachList = rows;
+  $("#breach-rows").innerHTML = rows.map((b, i) => `<tr class="click" data-i="${i}"><td><b>${esc(b.name)}</b><br><span class="fineprint">${esc(b.domain || "")}</span></td>
+    <td>${day(b.breach_date)}</td><td class="num">${fmt(b.accounts)}</td><td>${esc(HOW_SHORT(b.how))}</td></tr>`).join("")
+    || `<tr><td colspan="4" class="muted">No published breach matches. That's good news, not a guarantee.</td></tr>`;
+}
+
+$("#breach-rows").addEventListener("click", (e) => {
+  const tr = e.target.closest("tr.click");
+  if (!tr) return;
+  if (tr.nextElementSibling?.classList.contains("detail")) return tr.nextElementSibling.remove();
+  const b = breachList[+tr.dataset.i];
+  tr.insertAdjacentHTML("afterend", `<tr class="detail"><td colspan="4">${esc(b.summary)}<br><br><b>Exposed:</b> ${esc(b.data.join(", "))}
+    <br><span class="fineprint">Write-up: Have I Been Pwned, CC BY 4.0.</span></td></tr>`);
 });
 
-const evaluation = await res.json();
-if (evaluation.risk_tier === "CRITICAL") {
-  return res.status(403).json({ error: "Impossible Travel Anomaly" });
-}</code>`;
-  }
+loaders.breaches = async () => {
+  const s = await api("/v1/intel/breaches");
+  const top = s.biggest_companies[0];
+  $("#breach-kpis").innerHTML = [
+    kpi(fmt(s.total_breaches), "breaches on record"),
+    kpi(compact(s.total_accounts), "accounts exposed in total"),
+    kpi(fmt(s.last_12_months.breaches), `breaches in the last 12 months, ${compact(s.last_12_months.accounts)} accounts`),
+    kpi(compact(top.accounts), `biggest single company breach: ${esc(top.name)}`),
+    kpi(compact(s.lists.accounts), `accounts in ${s.lists.count} lists traded by hackers and harvested by info-stealer malware`),
+  ].join("");
+  bars($("#breach-how"), s.how_stolen.map(([h, n]) => [HOW_SHORT(h), n]));
+  bars($("#breach-data"), s.most_exposed_data, (n) => `${fmt(n)} breaches`);
+  bars($("#breach-years"), Object.entries(s.accounts_by_year), compact);
+  breachRows(s.biggest_companies);
+};
+
+$("#breach-search").addEventListener("input", async (e) => {
+  const q = e.target.value.trim().toLowerCase();
+  allBreaches ??= (await api("/v1/intel/breaches?full=true")).breaches;
+  $("#breach-table-title").textContent = q ? `Breaches matching "${e.target.value.trim()}"` : "Biggest company breaches";
+  const rows = q ? allBreaches.filter((b) => b.name.toLowerCase().includes(q) || (b.domain || "").toLowerCase().includes(q))
+    : allBreaches.filter((b) => b.kind === "company").sort((a, b) => b.accounts - a.accounts);
+  breachRows(rows.slice(0, 25));
+});
+
+// ---------- attacks ----------
+loaders.attacks = async () => {
+  const [t, { data }] = await Promise.all([api("/v1/intel/threats"), world()]);
+  const name = (cc) => data.countries[cc]?.name || cc;
+  const rw = t.ransomware;
+  $("#attack-kpis").innerHTML = [
+    kpi(fmt(t.malicious_ips), "servers caught spreading malware or running botnets"),
+    kpi(fmt(t.threatfox_iocs_48h), "new threat indicators shared by researchers in the last 48 hours"),
+    kpi(fmt(t.urlhaus_online), `malware download links still live, of ${fmt(t.urlhaus_urls_30d)} reported in 30 days`),
+    kpi(fmt(rw.victims), `businesses claimed by ransomware gangs, ${day(rw.from)} to ${day(rw.to)}`),
+    kpi(fmt(t.spamhaus_asn_drop), "whole networks run by criminals (Spamhaus)"),
+  ].join("");
+  const iot = t.iot_botnet_ips / t.malicious_ips;
+  $("#attack-insight").innerHTML = `<b>The surprise:</b> only ${pct(t.hosting_share_of_malicious_ips, 0)} of these malware servers run on
+    hosting or VPN networks, about the same as those networks' ${pct(t.hosting_share_of_internet, 0)} share of the internet.
+    ${pct(iot, 0)} are home routers, cameras and other gadgets taken over by botnets like Mozi and Mirai.
+    Blocking data centers alone would miss most of them, which is why Alibi checks every IP against these lists too.`;
+  bars($("#attack-malware"), t.top_malware.filter(([m]) => !/^(unnamed|unknown malware|none)$/i.test(m)).slice(0, 10));
+  bars($("#attack-countries"), t.top_countries.slice(0, 10).map(([cc, n]) => [name(cc), n]));
+  $("#attack-networks").innerHTML = t.top_networks.map((n) => `<tr><td>${esc(n.network)} <span class="fineprint">AS${n.asn}</span></td>
+    <td>${n.criminal_network ? '<span class="tag">criminal network</span>' : n.hosting ? "hosting / cloud" : "home or business internet provider"}</td>
+    <td class="num">${fmt(n.count)}</td></tr>`).join("");
+  $("#ransom-window").textContent = `${rw.victims} businesses posted on ransomware gangs' leak sites between ${day(rw.from)} and ${day(rw.to)}. ` +
+    "Only totals are shown here: no victim names, links or stolen files.";
+  bars($("#ransom-sectors"), rw.by_sector.filter(([s]) => !/not (found|stated)/i.test(s)).slice(0, 10));
+  bars($("#ransom-countries"), rw.by_country.slice(0, 10).map(([cc, n]) => [name(cc), n]));
+  bars($("#ransom-groups"), rw.by_group.slice(0, 10));
+  $("#drop-text").textContent = `${fmt(t.spamhaus_drop_ranges)} address blocks (${compact(t.spamhaus_drop_addresses)} addresses) and ` +
+    `${t.spamhaus_asn_drop} whole networks are on Spamhaus's "do not route" lists: hijacked, or run by spammers and cybercriminals. Where those networks are registered:`;
+  bars($("#drop-countries"), t.spamhaus_asn_drop_countries.map(([cc, n]) => [name(cc), n]));
+  $("#attack-sources").innerHTML = "Sources: " + Object.values(t.sources).map((s) =>
+    `<a href="${s.url}" target="_blank" rel="noopener">${esc(s.name)}</a> (${esc(s.license)})`).join(" · ") + `. As of ${day(t.as_of)}.`;
+};
+
+// ---------- exploited flaws ----------
+loaders.flaws = async () => {
+  const f = await api("/v1/intel/flaws");
+  $("#flaw-kpis").innerHTML = [
+    kpi(fmt(f.added_last_7_days), "added in the last 7 days"),
+    kpi(fmt(f.added_last_30_days), "added in the last 30 days"),
+    kpi(fmt(f.total), "exploited flaws on the list"),
+    kpi(fmt(f.ransomware_linked), "used in ransomware attacks"),
+  ].join("");
+  bars($("#flaw-vendors"), f.top_vendors_last_12_months);
+  bars($("#flaw-months"), Object.entries(f.added_by_month).map(([m, n]) => [
+    new Date(`${m}-01`).toLocaleDateString("en-GB", { month: "short", year: "numeric" }), n]));
+  $("#flaw-rows").innerHTML = f.latest.map((r) => `<tr><td>${day(r.added)}</td>
+    <td><a href="https://nvd.nist.gov/vuln/detail/${esc(r.cve)}" target="_blank" rel="noopener">${esc(r.cve)}</a><br>${esc(r.name)}</td>
+    <td>${esc(r.vendor)} ${esc(r.product)}</td><td>${r.ransomware ? '<span class="tag">yes</span>' : "not known"}</td></tr>`).join("");
+};
+
+// ---------- account takeover: check a sign-in ----------
+// Main business city of each country in the picker (for the map and the travel-speed check).
+const CITIES = {
+  IN: ["Mumbai", 19.076, 72.8777], US: ["New York", 40.7128, -74.006], GB: ["London", 51.5074, -0.1278],
+  DE: ["Berlin", 52.52, 13.405], FR: ["Paris", 48.8566, 2.3522], NL: ["Amsterdam", 52.3676, 4.9041],
+  BR: ["São Paulo", -23.5505, -46.6333], JP: ["Tokyo", 35.6762, 139.6503], SG: ["Singapore", 1.3521, 103.8198],
+  AE: ["Dubai", 25.2048, 55.2708], AU: ["Sydney", -33.8688, 151.2093], CA: ["Toronto", 43.6532, -79.3832],
+  NG: ["Lagos", 6.5244, 3.3792], ZA: ["Johannesburg", -26.2041, 28.0473], RU: ["Moscow", 55.7558, 37.6173],
+  CN: ["Shanghai", 31.2304, 121.4737], KR: ["Seoul", 37.5665, 126.978], ID: ["Jakarta", -6.2088, 106.8456],
+};
+const DEVICES = {
+  same: { device_id: "usual-laptop", browser: "Chrome 128.0", os: "Windows 10", device_type: "desktop" },
+  new: { device_id: "unknown-phone", browser: "Chrome Mobile 128.0", os: "Android 14", device_type: "mobile" },
+};
+const PRESETS = {
+  usual: { home: "IN", country: "IN", net: "home", device: "same", minutes: 900, fails: 0, correct: true },
+  tor: { home: "IN", country: "IN", net: "tor", device: "same", minutes: 600, fails: 0, correct: true },
+  vpn: { home: "IN", country: "IN", net: "vpn", device: "same", minutes: 600, fails: 0, correct: true },
+  malware: { home: "IN", country: "IN", net: "malware", device: "same", minutes: 600, fails: 0, correct: true },
+  abroad: { home: "IN", country: "BR", net: "newhome", device: "new", minutes: 2880, fails: 0, correct: true },
+  travel: { home: "IN", country: "GB", net: "newhome", device: "same", minutes: 10, fails: 0, correct: true },
+  guessing: { home: "IN", country: "IN", net: "newhome", device: "new", minutes: 600, fails: 6, correct: true },
+};
+const SAY = {
+  LOW: "Looks like the real owner. Let them in.",
+  MEDIUM: "A little unusual, but believable. Let them in and keep a note.",
+  HIGH: "This story doesn't add up. Ask for a one-time code first.",
+  CRITICAL: "Very likely not the owner. Block it and alert them.",
+};
+
+let tripMap, tripLayer, checkReady;
+const ensureCheck = () => (checkReady ??= setupCheck());
+loaders.check = ensureCheck;
+
+async function setupCheck() {
+  const names = (await world()).data.countries;
+  const opts = Object.keys(CITIES)
+    .sort((a, b) => names[a].name.localeCompare(names[b].name))
+    .map((cc) => `<option value="${cc}">${esc(names[cc].name)} (${CITIES[cc][0]})</option>`).join("");
+  $("#f-home").innerHTML = opts;
+  $("#f-country").innerHTML = opts;
+  tripMap = L.map("trip-map", { scrollWheelZoom: false, worldCopyJump: true }).setView([30, 40], 2);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 6, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  }).addTo(tripMap);
+  tripLayer = L.layerGroup().addTo(tripMap);
+  applyPreset("usual", false);
 }
 
-function copySnippet() {
-  const code = document.getElementById("snippet-display").innerText;
-  navigator.clipboard.writeText(code);
-  showToast("Code snippet copied to clipboard");
+async function applyPreset(name, run = true) {
+  if (run) await ensureCheck();
+  const p = PRESETS[name];
+  $("#f-home").value = p.home;
+  $("#f-country").value = p.country;
+  $("#f-net").value = p.net;
+  $("#f-device").value = p.device;
+  $("#f-minutes").value = p.minutes;
+  $("#f-fails").value = p.fails;
+  $("#f-correct").checked = p.correct;
+  $$("[data-preset]").forEach((b) => b.classList.toggle("on", b.dataset.preset === name));
+  if (run) runCheck();
+}
+$$("[data-preset]").forEach((b) => b.addEventListener("click", () => applyPreset(b.dataset.preset)));
+$("#check-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  $$("[data-preset]").forEach((b) => b.classList.remove("on"));
+  runCheck();
+});
+
+function loginEvent(ts, ip, cc, device, success) {
+  const [city, lat, lon] = CITIES[cc];
+  return { user_id: "demo", login_ts: new Date(ts).toISOString(), ip, country: cc, city, lat, lon, success, ...DEVICES[device] };
 }
 
-
-// Audit table: logins scored in this browser session
-function renderAuditTable() {
-  const tbody = document.getElementById("audit-rows");
-  if (!tbody) return;
-  if (!auditLedger.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="py-4 px-4 text-slate-500">No logins scored yet. Run a scenario in the sandbox.</td></tr>`;
-    return;
-  }
-  tbody.innerHTML = auditLedger.map(item => `
-      <tr class="hover:bg-surface-850/50 transition-colors">
-        <td class="py-3 px-4 text-slate-400">${new Date(item.timestamp).toLocaleTimeString()}</td>
-        <td class="py-3 px-4 font-semibold text-white">${esc(item.user)}</td>
-        <td class="py-3 px-4"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${TIER_STYLE[item.tier].badge}">${item.tier}</span></td>
-        <td class="py-3 px-4 font-bold ${TIER_STYLE[item.tier].text}">${item.score.toFixed(1)}</td>
-        <td class="py-3 px-4 text-slate-300">${item.velocity.toLocaleString()} km/h</td>
-        <td class="py-3 px-4 text-slate-400">${esc(item.vector)}</td>
-        <td class="py-3 px-4 text-slate-400 truncate max-w-xs text-[11px]">${esc(item.reasons)}</td>
-      </tr>`).join("");
-}
-function exportCsv() {
-  const headers = ["Timestamp", "User", "Score", "Tier", "Velocity_kmph", "Vector", "Reasons"];
-  const rows = auditLedger.map(i => [
-    `"${i.timestamp}"`,
-    `"${i.user}"`,
-    i.score,
-    `"${i.tier}"`,
-    i.velocity,
-    `"${i.vector}"`,
-    `"${i.reasons}"`
-  ]);
-
-  const csv = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
-  const link = document.createElement("a");
-  link.setAttribute("href", encodeURI(csv));
-  link.setAttribute("download", `aegis_incidents_${new Date().toISOString().slice(0, 10)}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  showToast("Exported incident ledger to CSV");
-}
-
-
-// Real held-out metrics of the deployed models
-async function loadModelCard() {
-  const tile = (label, value) => `<div class="p-3 bg-surface-950 rounded-xl border border-surface-800"><div class="text-[10px] text-slate-400 uppercase">${label}</div><div class="text-lg font-black text-white mt-0.5">${value}</div></div>`;
-  const pct = v => `${(v * 100).toFixed(2)}%`;
+async function runCheck() {
+  await ensureCheck();
+  const home = $("#f-home").value, there = $("#f-country").value, net = $("#f-net").value, device = $("#f-device").value;
+  const minutes = Math.max(1, +$("#f-minutes").value || 1), fails = Math.min(10, Math.max(0, +$("#f-fails").value || 0));
+  const btn = $("#f-go");
+  $("#f-err").textContent = "";
+  btn.disabled = true;
+  btn.textContent = "Checking…";
   try {
-    const m = await (await fetch("/v1/model")).json();
-    const a = m.test_metrics.ato, k = m.test_metrics.attack_ip;
-    document.getElementById("card-ato").innerHTML = tile("ROC-AUC", a.roc_auc.toFixed(3)) + tile("Takeovers caught", `${a.confusion_matrix.tp} of ${a.positives}`) +
-      tile("Logins challenged", pct(a.alert_rate)) + tile("Test logins", a.logins.toLocaleString());
-    document.getElementById("card-atk").innerHTML = tile("ROC-AUC", k.roc_auc.toFixed(3)) + tile("PR-AUC", k.pr_auc.toFixed(3)) +
-      tile("Precision / recall", `${pct(k.precision)} / ${pct(k.recall)}`) + tile("Test logins", k.logins.toLocaleString());
-    document.getElementById("card-note").textContent = `Dataset: ${m.dataset.name}. ${m.dataset.note}`;
+    const [hs, ts] = await Promise.all([samples(home), samples(there)]);
+    const usual = hs.home[0];
+    let ip;
+    if (net === "home") ip = home === there ? usual : ts.home[0];
+    else if (net === "newhome") ip = home === there ? ts.home[1] || ts.home[0] : ts.home[0];
+    else if (net === "vpn") ip = ts.hosting[0];
+    else if (net === "malware") ip = { ip: ts.malware, network: "reported malware server" };
+    else if (ts.tor) ip = { ip: ts.tor, network: "Tor" };
+    else throw new Error("This server can't reach the Tor Project's exit list right now (torproject.org is blocked on some networks), so the Tor story can't be checked here.");
+
+    // Two weeks of ordinary sign-ins from home, then the one being tested.
+    const testAt = Date.now();
+    const lastUsual = testAt - minutes * 60000;
+    const events = [];
+    for (let i = 6; i >= 0; i--) events.push(loginEvent(lastUsual - i * 2 * 86400000, usual.ip, home, "same", true));
+    for (let i = fails; i >= 1; i--) events.push(loginEvent(testAt - i * 20000, ip.ip, there, device, false));
+    events.push(loginEvent(testAt, ip.ip, there, device, $("#f-correct").checked));
+
+    const { verdict } = await api("/v1/demo/check", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ events }),
+    });
+    renderVerdict(verdict, usual, ip, home, there, fails);
   } catch (err) {
-    document.getElementById("card-note").textContent = "Could not load the model card.";
+    $("#f-err").textContent = err.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Check this sign-in";
   }
 }
+
+function renderVerdict(v, usual, ip, home, there, fails) {
+  const n = v.network || {};
+  const reasons = v.reasons.length ? v.reasons : ["Nothing unusual compared with this account's history"];
+  const facts = [
+    ["Network", `${esc(n.network || "unknown")}${n.asn ? ` (AS${n.asn})` : ""}`],
+    ["Connection type", esc(n.type || "unknown")],
+    ["IP address", esc(ip.ip)],
+    ["IP registered in", esc(n.country || "unknown")],
+    ["Takeover model", `riskier than ${v.ato_percentile}% of real sign-ins`],
+    ["Attack-IP model", `riskier than ${v.attack_ip_percentile}% of real sign-ins`],
+  ];
+  if (v.distance_km > 0) facts.push(["Distance from last sign-in", `${fmt(Math.round(v.distance_km))} km`],
+    ["Speed needed", `${fmt(Math.round(v.velocity_kmph))} km/h`]);
+  $("#verdict").innerHTML = `
+    <span class="badge ${v.risk_tier}">${v.risk_tier}</span>
+    <p class="say">${SAY[v.risk_tier]}</p>
+    <div class="meter"><div style="width:${v.risk_score}%"></div></div>
+    <p class="fineprint">The model rates it riskier than ${v.risk_score}% of sign-ins in the real test data. Alibi would ${esc(v.recommended_action)}.</p>
+    <h3>Why</h3><ul>${reasons.map((r) => `<li>${esc(r)}</li>`).join("")}</ul>
+    <div class="facts">${facts.map(([k, val]) => `<div><b>${k}</b>${val}</div>`).join("")}</div>
+    <p class="fineprint">History sent first: 7 sign-ins over two weeks from ${esc(usual.network)} in ${CITIES[home][0]}${fails ? `, then ${fails} wrong passwords` : ""}.</p>`;
+
+  tripLayer.clearLayers();
+  const a = CITIES[home], b = CITIES[there];
+  L.circleMarker([a[1], a[2]], { radius: 7, color: css("--accent"), fillOpacity: 0.9 }).bindTooltip(`Usual: ${a[0]}`).addTo(tripLayer);
+  const color = { LOW: css("--ok"), MEDIUM: css("--warn"), HIGH: css("--risk"), CRITICAL: css("--risk") }[v.risk_tier];
+  L.circleMarker([b[1], b[2]], { radius: 8, color, fillOpacity: 0.9 }).bindTooltip(`This sign-in: ${b[0]}`).addTo(tripLayer);
+  if (home !== there) {
+    L.polyline([[a[1], a[2]], [b[1], b[2]]], { color, dashArray: "6 6" }).addTo(tripLayer);
+    tripMap.fitBounds([[a[1], a[2]], [b[1], b[2]]], { padding: [40, 40], maxZoom: 5 });
+  } else tripMap.setView([a[1], a[2]], 4);
+}
+
+// ---------- news ----------
+loaders.news = async () => {
+  const { news, videos } = await api("/v1/intel/news");
+  $("#news-list").innerHTML = news.map((n) => `<li><a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.title)}</a>
+    <small>${esc(n.source)} · ${ago(n.published)}</small></li>`).join("") || '<li class="muted">The news feeds could not be reached right now.</li>';
+  $("#video-list").innerHTML = videos.map((v) => {
+    const id = new URL(v.url).searchParams.get("v");
+    return `<li class="vid">${id ? `<img src="https://i.ytimg.com/vi/${esc(id)}/mqdefault.jpg" alt="" loading="lazy">` : "<span></span>"}
+      <div><a href="${esc(v.url)}" target="_blank" rel="noopener">${esc(v.title)}</a><small>${esc(v.source)} · ${ago(v.published)}</small></div></li>`;
+  }).join("") || '<li class="muted">The video feeds could not be reached right now.</li>';
+};
+
+// ---------- data & accuracy ----------
+loaders.results = async () => {
+  const [m, src] = await Promise.all([api("/v1/model"), api("/v1/intel/sources")]);
+  const ato = m.test_metrics.ato, ip = m.test_metrics.attack_ip;
+  $("#model-kpis").innerHTML = [
+    kpi(`${ato.confusion_matrix.tp} of ${ato.positives}`, `account takeovers caught (recall ${pct(ato.recall, 1)})`),
+    kpi(pct(ato.alert_rate), `of sign-ins asked for a code (${ato.alerts_per_10k_logins} per 10,000)`),
+    kpi(ato.roc_auc.toFixed(3), "takeover ROC-AUC (1.0 is perfect, 0.5 is a coin flip)"),
+    kpi(ip.roc_auc.toFixed(3), `attack-IP ROC-AUC, recall ${pct(ip.recall, 1)} at a ${pct(ip.alert_rate)} alert rate`),
+    kpi(compact(ato.logins), "test sign-ins the model never saw"),
+    kpi(pct(ato.precision, 2), "takeover precision: most codes go to real owners, which is why Alibi asks rather than blocks"),
+  ].join("");
+  $("#model-plain").textContent = `Out of ${fmt(ato.logins)} sign-ins in the test months, ${ato.positives} were real account takeovers. ` +
+    `Asking for a one-time code on the riskiest ${pct(ato.alert_rate)} of sign-ins would have stopped ${ato.confusion_matrix.tp} of them. ` +
+    `The other ${fmt(ato.confusion_matrix.fp)} people asked for a code were real owners who typed it and carried on. ` +
+    `Spotting sign-ins from known attack IPs is harder: the model ranks them well above chance (ROC-AUC ${ip.roc_auc.toFixed(2)}) ` +
+    `but catches only ${pct(ip.recall, 1)} at that budget, which is why Alibi adds the Tor, VPN, malware-server and criminal-network checks on top.`;
+  const { news_feeds: nf, video_feeds: vf, ...sources } = src;
+  const rows = [
+    [m.dataset.name, m.dataset.source, "CC BY 4.0. Synthesized by its authors from 33M+ real logins; trains and tests the takeover models"],
+    ...Object.values(sources).map((x) => [x.name, x.url, x.license]),
+    [`Security news: ${Object.keys(nf).join(", ")}`, Object.values(nf)[0], "public RSS feeds, headlines and links only"],
+    [`Videos: ${Object.keys(vf).join(", ")}`, "https://www.youtube.com", "public YouTube channel feeds, titles and links only"],
+    ["World map shapes: Natural Earth via world-atlas", "https://github.com/topojson/world-atlas", "public domain"],
+    ["Street map tiles", "https://www.openstreetmap.org/copyright", "© OpenStreetMap contributors, ODbL"],
+  ];
+  $("#sources").innerHTML = rows.map(([n, u, l]) => `<li><a href="${esc(u)}" target="_blank" rel="noopener">${esc(n)}</a>: ${esc(l)}</li>`).join("");
+};
+
+show(location.hash.slice(1) || "home");

@@ -27,13 +27,20 @@ import joblib
 import numpy as np
 
 from .geo import haversine_km
+from .intel.network import lookup
 from .rba.features import FEATURE_COLUMNS
 from .schema import EvaluationResult, LoginEvent
 from .state import StateStore, UserState, store
 
 ARTIFACT_DIR = Path(__file__).resolve().parent / "artifacts"
 TIERS = ((99.9, "CRITICAL"), (99.0, "HIGH"), (90.0, "MEDIUM"))
-ACTIONS = {"LOW": "allow", "MEDIUM": "allow and log", "HIGH": "step-up authentication", "CRITICAL": "block and alert"}
+ACTIONS = {
+    "LOW": "let them in",
+    "MEDIUM": "let them in and log it for review",
+    "HIGH": "ask for a one-time code",
+    "CRITICAL": "block and alert the owner",
+}
+GUESSING_FAILS = 5  # wrong passwords in the user's last 10 attempts that count as someone guessing
 TIER_RANK = {"LOW": 0, "MEDIUM": 1, "HIGH": 2, "CRITICAL": 3}
 
 
@@ -108,6 +115,11 @@ class RiskEngine:
         if now.tzinfo is None:
             now = now.replace(tzinfo=UTC)
         user = self.store.get_user(event.user_id)
+        net = lookup(event.ip)
+        if event.asn is None and net.asn:  # fill the network from public IP data when the caller doesn't know it
+            event = event.model_copy(update={"asn": net.asn})
+        if event.country is None and net.country:
+            event = event.model_copy(update={"country": net.country})
         feats = self.features(user, event, now)
         x = np.array([[feats[c] for c in FEATURE_COLUMNS]], dtype=np.float32)
         proba = {t: float(m.predict_proba(x)[0, 1]) for t, m in self.models.items()}
@@ -132,6 +144,25 @@ class RiskEngine:
                     f"= {velocity:,.0f} km/h (> {_velocity_threshold():.0f} km/h)",
                 )
                 tier = max(tier, "HIGH", key=TIER_RANK.get)
+        if net.threat:
+            reasons.insert(0, f"This IP is a known malware server: {net.threat}")
+            tier = "CRITICAL"
+        elif net.criminal_network:
+            owner = net.network or "unknown"
+            reasons.insert(0, f"The IP belongs to a network Spamhaus lists as run by criminals ({owner})")
+            tier = max(tier, "HIGH", key=TIER_RANK.get)
+        if net.tor_exit:
+            reasons.insert(0, "Signed in through Tor, a network built to hide where people really are")
+            tier = max(tier, "HIGH", key=TIER_RANK.get)
+        elif net.hosting:
+            reasons.insert(0, f"Came from a hosting / VPN network ({net.network}), where VPNs, proxies and bots run")
+            # a VPN the owner always uses is fine; a data-center network new to this account gets a code
+            tier = max(tier, "HIGH" if feats["new_asn"] else "MEDIUM", key=TIER_RANK.get)
+        if feats["fails_prev10"] >= GUESSING_FAILS:
+            reasons.insert(0, f"{feats['fails_prev10']} wrong passwords just before this: someone may be guessing")
+            tier = max(tier, "HIGH", key=TIER_RANK.get)
+        if net.country and event.country and net.country != event.country:
+            reasons.append(f"The IP is registered in {net.country}, but the login claims {event.country}")
         if not reasons:
             reasons.append("Nothing unusual for this user")
 
@@ -154,6 +185,9 @@ class RiskEngine:
             ato_percentile=pct["ato"],
             attack_ip_percentile=pct["attack_ip"],
             reasons=reasons,
+            network={"asn": net.asn, "network": net.network, "country": net.country, "type": net.label,
+                     "tor_exit": net.tor_exit, "hosting": net.hosting, "threat": net.threat,
+                     "criminal_network": net.criminal_network},
             features={k: round(float(v), 4) for k, v in feats.items()},
             velocity_kmph=round(velocity, 1),
             distance_km=round(distance_km, 1),
@@ -180,7 +214,7 @@ class RiskEngine:
             out.append(f"New network for this user (ASN {event.asn})")
         if f["new_ua"] or f["new_device"]:
             out.append("New device or browser for this user")
-        if f["fails_prev10"] >= 3:
+        if 3 <= f["fails_prev10"] < GUESSING_FAILS:
             out.append(f"{f['fails_prev10']} failed attempts in this user's last 10")
         if f["ip_attempts_1h"] >= 10:
             out.append(f"This IP made {f['ip_attempts_1h']} attempts in the past hour ({f['ip_failures_1h']} failed)")

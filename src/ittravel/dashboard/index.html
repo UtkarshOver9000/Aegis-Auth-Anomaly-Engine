@@ -1,472 +1,226 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aegis ITDR — Real-Time Identity Threat Detection & Auth Anomaly Platform</title>
-  <meta name="description" content="Aegis detects account takeover and impossible travel attacks in real time using geodesic physics and machine learning.">
-
-  <!-- Typography -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Plus Jakarta Sans', 'sans-serif'],
-            mono: ['JetBrains Mono', 'monospace'],
-          },
-          colors: {
-            brand: {
-              50: '#eff6ff',
-              100: '#dbeafe',
-              400: '#60a5fa',
-              500: '#3b82f6',
-              600: '#2563eb',
-              700: '#1d4ed8',
-            },
-            surface: {
-              950: '#090d16',
-              900: '#0e1422',
-              850: '#141c2e',
-              800: '#1a243a',
-              700: '#263452',
-            }
-          }
-        }
-      }
-    }
-  </script>
-
-  <!-- Leaflet Map CSS & JS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <!-- Custom CSS -->
-  <link rel="stylesheet" href="/static/dashboard.css">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Alibi: who's breaking in, how, and from where</title>
+<meta name="description" content="Alibi tracks data breaches at major companies and how they happened, live malware and botnet servers, criminal networks, ransomware, exploited software flaws and suspicious sign-ins, on one live 3D globe." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/globe.gl@2.46.2/dist/globe.gl.min.js"></script>
+<link rel="stylesheet" href="/static/dashboard.css">
 </head>
-<body class="bg-surface-950 text-slate-100 font-sans antialiased min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
-
-  <!-- Top Global Header -->
-  <header class="border-b border-surface-800 bg-surface-900/90 backdrop-blur-md sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      
-      <!-- Brand Logo & Platform Title -->
-      <div class="flex items-center gap-8">
-        <a href="#" onclick="showSection('sandbox'); return false;" class="flex items-center gap-3 group">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-600 to-sky-400 p-[1px] shadow-lg shadow-brand-500/20 group-hover:shadow-brand-500/40 transition-all">
-            <div class="w-full h-full bg-surface-950 rounded-xl flex items-center justify-center">
-              <svg class="w-5 h-5 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                <path d="m9 12 2 2 4-4"/>
-              </svg>
-            </div>
-          </div>
-          <div>
-            <div class="flex items-center gap-2">
-              <span class="font-extrabold text-lg tracking-tight text-white">Aegis</span>
-              <span class="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20">ITDR</span>
-            </div>
-            <p class="text-[10px] text-slate-400 tracking-wide">Identity Threat Detection & Response</p>
-          </div>
-        </a>
-
-        <!-- Top Navigation Links -->
-        <nav class="hidden md:flex items-center gap-1 text-sm font-medium">
-          <button onclick="showSection('sandbox')" class="nav-tab active px-3.5 py-1.5 rounded-lg transition-all" data-nav="sandbox">
-            Interactive Sandbox
-          </button>
-          <button onclick="showSection('radar')" class="nav-tab px-3.5 py-1.5 rounded-lg transition-all" data-nav="radar">
-            Geodesic Radar Map
-          </button>
-          
-          <button onclick="showSection('policy')" class="nav-tab px-3.5 py-1.5 rounded-lg transition-all" data-nav="policy">
-            Model & Keys
-          </button>
-          <button onclick="showSection('audit')" class="nav-tab px-3.5 py-1.5 rounded-lg transition-all" data-nav="audit">
-            Audit Stream
-          </button>
-        </nav>
-      </div>
-
-      <!-- Right Utility Actions -->
-      <div class="flex items-center gap-3">
-        <div class="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-mono text-emerald-400">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>API round-trip: <span id="latency-badge">—</span></span>
-        </div>
-
-        <a href="/docs" target="_blank" class="px-3 py-1.5 text-xs font-semibold text-slate-200 bg-surface-850 hover:bg-surface-800 border border-surface-700/80 rounded-lg transition-all flex items-center gap-1.5">
-          <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
-          <span>API Docs</span>
-        </a>
-
-        <a href="https://github.com/UtkarshOver9000/Aegis-Auth-Anomaly-Engine" target="_blank" class="px-3 py-1.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-500 rounded-lg shadow-sm shadow-brand-500/20 transition-all flex items-center gap-1.5">
-          <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-          <span class="hidden sm:inline">GitHub</span>
-        </a>
-      </div>
-    </div>
-  </header>
-
-  <!-- Main Viewport -->
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
-
-    <!-- ================= SECTION 1: INTERACTIVE SANDBOX ================= -->
-    <section id="section-sandbox" class="space-y-8">
-      
-      <!-- Human-friendly Intro Banner -->
-      <div class="relative overflow-hidden rounded-3xl bg-gradient-to-b from-surface-900 via-surface-900 to-surface-950 border border-surface-800 p-6 sm:p-10 shadow-2xl">
-        <div class="max-w-3xl space-y-4">
-          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-xs font-mono font-medium text-brand-400">
-            <span>⚡ REAL-TIME PROOF OF CONCEPT</span>
-          </div>
-          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-tight">
-            Stop account takeovers before they cause damage.
-          </h1>
-          <p class="text-base sm:text-lg text-slate-300 leading-relaxed">
-            If a user signs in from <strong>New York</strong> and then 10 minutes later from <strong>Tokyo</strong>, it is physically impossible. Aegis scores every login with models trained on 31.3M logins from the RBA dataset (account takeover and attack-IP risk) and adds a physical impossible-travel check on the speed between consecutive logins.
-          </p>
-          <div class="flex flex-wrap items-center gap-3 pt-2">
-            <span class="text-xs text-slate-400 font-mono">Quick test scenarios:</span>
-            <button onclick="pickPreset('nyc_tokyo')" class="px-3 py-1.5 rounded-lg bg-surface-850 hover:bg-surface-800 text-xs font-medium text-rose-300 border border-rose-500/30 transition-all flex items-center gap-1.5">
-              <span>🚨 NYC → Tokyo (5 mins)</span>
-            </button>
-            <button onclick="pickPreset('london_sydney')" class="px-3 py-1.5 rounded-lg bg-surface-850 hover:bg-surface-800 text-xs font-medium text-rose-300 border border-rose-500/30 transition-all flex items-center gap-1.5">
-              <span>🚨 London → Sydney (10 mins)</span>
-            </button>
-            <button onclick="pickPreset('frankfurt_zurich')" class="px-3 py-1.5 rounded-lg bg-surface-850 hover:bg-surface-800 text-xs font-medium text-amber-300 border border-amber-500/30 transition-all flex items-center gap-1.5">
-              <span>⚠️ Frankfurt → Zurich (15 mins)</span>
-            </button>
-            <button onclick="pickPreset('sf_commute')" class="px-3 py-1.5 rounded-lg bg-surface-850 hover:bg-surface-800 text-xs font-medium text-emerald-300 border border-emerald-500/30 transition-all flex items-center gap-1.5">
-              <span>✅ SF Local Commute (45 mins)</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Sandbox Interactive Testing Console -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        <!-- Left Column: Input Form (5 cols) -->
-        <div class="lg:col-span-5 rounded-2xl bg-surface-900 border border-surface-800 p-6 space-y-5 shadow-sm">
-          <div class="flex items-center justify-between border-b border-surface-800 pb-3">
-            <div>
-              <h2 class="text-base font-bold text-white tracking-tight">Simulate Login Attempt</h2>
-              <p class="text-xs text-slate-400">Configure parameters or select a scenario above</p>
-            </div>
-            <button onclick="resetSandboxInputs()" class="text-xs text-slate-400 hover:text-white transition-colors">Reset</button>
-          </div>
-
-          <form id="sandbox-form" onsubmit="runEvaluation(event)" class="space-y-4">
-            
-            <div>
-              <label class="block text-xs font-medium text-slate-300 mb-1">Simulated User Account</label>
-              <input type="text" id="sb-user" required value="alex.executive@acme.com" class="w-full bg-surface-950 border border-surface-700/80 rounded-lg px-3.5 py-2 text-xs font-mono text-white focus:outline-none focus:border-brand-500 transition-all">
-            </div>
-
-            <!-- Previous Login -->
-            <div class="p-3.5 rounded-xl bg-surface-950/80 border border-surface-800 space-y-2">
-              <div class="text-[11px] font-mono font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full bg-brand-400"></span>
-                <span>1. Baseline / Previous Login</span>
-              </div>
-              <div class="grid grid-cols-2 gap-2 text-xs font-mono">
-                <div>
-                  <span class="text-[10px] text-slate-500">City / Country</span>
-                  <input type="text" id="sb-prev-city" value="New York, US" class="w-full bg-surface-900 border border-surface-700/60 rounded px-2.5 py-1 text-slate-200">
-                </div>
-                <div>
-                  <span class="text-[10px] text-slate-500">Coordinates</span>
-                  <input type="text" id="sb-prev-coords" value="40.7128, -74.0060" class="w-full bg-surface-900 border border-surface-700/60 rounded px-2.5 py-1 text-slate-200">
-                </div>
-              </div>
-            </div>
-
-            <!-- Current Login -->
-            <div class="p-3.5 rounded-xl bg-surface-950/80 border border-surface-800 space-y-2">
-              <div class="text-[11px] font-mono font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full bg-rose-400 animate-ping"></span>
-                <span>2. New Inbound Login Attempt</span>
-              </div>
-              <div class="grid grid-cols-2 gap-2 text-xs font-mono">
-                <div>
-                  <span class="text-[10px] text-slate-500">City / Country</span>
-                  <input type="text" id="sb-curr-city" value="Tokyo, JP" class="w-full bg-surface-900 border border-surface-700/60 rounded px-2.5 py-1 text-slate-200">
-                </div>
-                <div>
-                  <span class="text-[10px] text-slate-500">Coordinates</span>
-                  <input type="text" id="sb-curr-coords" value="35.6762, 139.6503" class="w-full bg-surface-900 border border-surface-700/60 rounded px-2.5 py-1 text-slate-200">
-                </div>
-              </div>
-
-              <div class="grid grid-cols-2 gap-2 pt-1 text-xs font-mono">
-                <div>
-                  <span class="text-[10px] text-slate-500">Minutes Between Logins</span>
-                  <input type="number" id="sb-minutes" min="1" max="1440" value="5" class="w-full bg-surface-900 border border-surface-700/60 rounded px-2.5 py-1 text-slate-200">
-                </div>
-                <div>
-                  <span class="text-[10px] text-slate-500">Device (dev-known-laptop = usual)</span>
-                  <input type="text" id="sb-device" value="dev-ios-unverified-44" class="w-full bg-surface-900 border border-surface-700/60 rounded px-2.5 py-1 text-slate-200">
-                </div>
-              </div>
-            </div>
-
-            <button type="submit" id="btn-eval" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-brand-600 via-indigo-600 to-brand-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold text-xs tracking-wide shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2 transition-all">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-              <span>RUN REAL-TIME ANOMALY EVALUATION</span>
-            </button>
-
-          </form>
-        </div>
-
-        <!-- Right Column: Human Assessment Decision HUD (7 cols) -->
-        <div class="lg:col-span-7 space-y-5">
-          
-          <!-- Verdict Card with Human Touch -->
-          <div class="rounded-2xl bg-surface-900 border border-surface-800 p-6 space-y-6 shadow-sm">
-            <div class="flex items-center justify-between border-b border-surface-800 pb-3">
-              <div class="flex items-center gap-2">
-                <span class="text-xs font-mono uppercase tracking-wider text-slate-400 font-bold">Aegis Assessment Verdict</span>
-                <span id="human-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-surface-800 text-slate-300 border border-surface-700">NOT SCORED YET</span>
-              </div>
-              <span class="text-xs font-mono text-slate-400" id="eval-runtime">Round-trip: —</span>
-            </div>
-
-            <!-- Plain English Summary -->
-            <div class="p-5 rounded-2xl bg-surface-950 border border-surface-800 space-y-2" id="verdict-card">
-              <div class="text-sm font-bold text-white flex items-center gap-2" id="verdict-headline">
-                <span>Pick a scenario above or press the button to score a login.</span>
-              </div>
-              <p class="text-xs sm:text-sm text-slate-300 leading-relaxed" id="verdict-narrative">
-                The verdict, score and reasons here come straight from the API's response.
-              </p>
-            </div>
-
-            <!-- Velocity Comparison Visual Bar -->
-            <div class="space-y-2">
-              <div class="flex justify-between items-center text-xs font-mono text-slate-400">
-                <span>Calculated Velocity: <strong class="text-white text-sm" id="hud-velocity">—</strong></span>
-                <span>Speed Boundary: <span class="text-brand-400 font-semibold">900 km/h (Mach .85)</span></span>
-              </div>
-              <div class="w-full bg-surface-950 rounded-full h-3 p-0.5 border border-surface-800 overflow-hidden relative">
-                <div id="velocity-bar" class="h-full rounded-full transition-all duration-700 bg-surface-700" style="width: 0%"></div>
-              </div>
-              <div class="flex justify-between text-[10px] font-mono text-slate-500">
-                <span>🚗 Car (100 km/h)</span>
-                <span>✈️ Commercial Jet (900 km/h)</span>
-                <span class="text-rose-400 font-bold">🚀 Impossible (&gt;900 km/h)</span>
-              </div>
-            </div>
-
-            <!-- Detailed Telemetry Metrics -->
-            <div class="grid grid-cols-3 gap-3 font-mono text-center">
-              <div class="p-3 bg-surface-950 rounded-xl border border-surface-800">
-                <div class="text-[10px] text-slate-400 uppercase">Risk percentile</div>
-                <div class="text-xl sm:text-2xl font-black text-rose-400 mt-0.5" id="hud-score">—</div>
-              </div>
-              <div class="p-3 bg-surface-950 rounded-xl border border-surface-800">
-                <div class="text-[10px] text-slate-400 uppercase">Geodesic Dist</div>
-                <div class="text-xl sm:text-2xl font-black text-white mt-0.5" id="hud-distance">—</div>
-              </div>
-              <div class="p-3 bg-surface-950 rounded-xl border border-surface-800">
-                <div class="text-[10px] text-slate-400 uppercase">Recommended Action</div>
-                <div class="text-xs sm:text-sm font-bold text-rose-400 mt-2" id="hud-action">—</div>
-              </div>
-            </div>
-
-            <!-- Explainable Reasons -->
-            <div class="space-y-1.5" id="reasons-list">
-              <div class="text-xs font-mono text-slate-400">Reasons will appear after scoring.</div>
-            </div>
-
-          </div>
-
-          <!-- Code Snippet Generator Tab -->
-          <div class="rounded-2xl bg-surface-900 border border-surface-800 p-5 space-y-3">
-            <div class="flex items-center justify-between text-xs font-mono text-slate-400 border-b border-surface-800 pb-2.5">
-              <div class="flex items-center gap-3">
-                <button onclick="setLang('curl')" class="code-tab active text-brand-400 font-bold" data-lang="curl">cURL</button>
-                <button onclick="setLang('python')" class="code-tab hover:text-white" data-lang="python">Python</button>
-                <button onclick="setLang('node')" class="code-tab hover:text-white" data-lang="node">Node.js</button>
-              </div>
-              <button onclick="copySnippet()" class="text-brand-400 hover:text-brand-300 font-semibold flex items-center gap-1">
-                <span>Copy Snippet</span>
-              </button>
-            </div>
-            <pre class="text-xs font-mono text-slate-300 bg-surface-950 p-3 rounded-xl border border-surface-800 overflow-x-auto" id="snippet-display"><code>curl -X POST "https://impossible-travel-auth-anomaly-engi.vercel.app/v1/auth/evaluate" \
-     -H "Content-Type: application/json" \
-     -H "X-API-Key: demo-master-key-9000" \
-     -d '{"user_id": "alex@acme.com", "lat": 35.6762, "lon": 139.6503, "device_id": "dev-44", "ip": "203.0.113.15"}'</code></pre>
-          </div>
-
-        </div>
-
-      </div>
-
-    </section>
-
-    <!-- ================= SECTION 2: GEODESIC RADAR MAP ================= -->
-    <section id="section-radar" class="hidden space-y-6">
-      
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-surface-800 pb-5">
-        <div>
-          <h2 class="text-2xl font-extrabold text-white tracking-tight">Geodesic Radar & Vector Path</h2>
-          <p class="text-xs sm:text-sm text-slate-400">Click anywhere on the map to set coordinates or select different tile provider layers.</p>
-        </div>
-        
-        <!-- Map Layer Switcher (Human-friendly tile options) -->
-        <div class="flex items-center gap-2 p-1 bg-surface-900 rounded-xl border border-surface-800 text-xs font-mono">
-          <button onclick="changeMapLayer('dark')" class="layer-btn active px-3 py-1.5 rounded-lg bg-surface-800 text-white font-semibold transition-all" data-layer="dark">
-            🌙 Cyber Dark
-          </button>
-          <button onclick="changeMapLayer('satellite')" class="layer-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white font-semibold transition-all" data-layer="satellite">
-            🛰️ Satellite Recon
-          </button>
-          <button onclick="changeMapLayer('street')" class="layer-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white font-semibold transition-all" data-layer="street">
-            🗺️ Street Grid
-          </button>
-        </div>
-      </div>
-
-      <!-- Map Viewport -->
-      <div class="relative w-full h-[580px] rounded-3xl overflow-hidden border border-surface-800 shadow-2xl bg-surface-950">
-        <div id="radarMap" class="w-full h-full"></div>
-
-        <!-- Floating Vector Flight Info HUD -->
-        <div class="absolute bottom-5 left-5 z-[1000] p-4 rounded-2xl bg-surface-900/90 backdrop-blur-md border border-surface-700/80 shadow-2xl max-w-sm space-y-2 text-xs font-mono">
-          <div class="flex items-center justify-between border-b border-surface-800 pb-1.5">
-            <span class="font-bold text-white text-[11px] uppercase tracking-wider">Flight Trajectory Vector</span>
-            <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
-          </div>
-          <div class="space-y-1 text-slate-300">
-            <div class="flex justify-between">
-              <span class="text-slate-500">Origin:</span>
-              <span id="map-orig-txt" class="font-semibold text-white">New York City, US</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-slate-500">Destination:</span>
-              <span id="map-dest-txt" class="font-semibold text-white">Tokyo, JP</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-slate-500">Great-Circle:</span>
-              <span id="map-dist-txt" class="text-brand-400 font-bold">—</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-slate-500">Velocity:</span>
-              <span id="map-speed-txt" class="text-rose-400 font-bold">—</span>
-            </div>
-            <div class="flex justify-between pt-1 border-t border-surface-800 text-[10px]">
-              <span class="text-slate-500">Evaluation:</span>
-              <span class="text-slate-300 font-black" id="map-verdict-txt">—</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </section>
-
-    <!-- ================= SECTION 4: MODEL & API KEYS ================= -->
-    <section id="section-policy" class="hidden space-y-6">
-      <div class="border-b border-surface-800 pb-5">
-        <h2 class="text-2xl font-extrabold text-white tracking-tight">Deployed Model & API Keys</h2>
-        <p class="text-xs sm:text-sm text-slate-400">Held-out test results of the models this API is running, trained on the RBA login dataset (31.3M logins, Wiefling et al., 2022).</p>
-      </div>
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="p-6 rounded-2xl bg-surface-900 border border-surface-800 space-y-4">
-          <h3 class="text-base font-bold text-white tracking-tight">Account takeover model</h3>
-          <div class="grid grid-cols-2 gap-3 font-mono text-center" id="card-ato"></div>
-          <h3 class="text-base font-bold text-white tracking-tight pt-2">Attack-IP model</h3>
-          <div class="grid grid-cols-2 gap-3 font-mono text-center" id="card-atk"></div>
-          <p class="text-[11px] text-slate-500" id="card-note">Loading model card…</p>
-        </div>
-        <div class="p-6 rounded-2xl bg-surface-900 border border-surface-800 space-y-5">
-          <h3 class="text-base font-bold text-white tracking-tight">Issue a Service API Key</h3>
-          <p class="text-xs text-slate-400">Issuing keys requires the master key. This demo uses the public demo master key, and keys live in server memory only (sandbox).</p>
-          <form onsubmit="createKey(event)" class="space-y-3">
-            <input type="text" id="key-label-input" required placeholder="Service label (e.g. login-gateway)" class="w-full bg-surface-950 border border-surface-700/80 rounded-lg px-3.5 py-2 text-xs font-mono text-white focus:outline-none focus:border-brand-500 transition-all">
-            <button type="submit" class="w-full py-2.5 px-4 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs transition-all shadow-md shadow-brand-500/20">Generate API Key</button>
-          </form>
-          <div id="key-result-box" class="hidden p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 space-y-2">
-            <div class="text-xs font-bold text-emerald-400 font-mono">KEY ISSUED (USED FOR YOUR NEXT EVALUATIONS)</div>
-            <div class="flex items-center gap-2 bg-surface-950 p-2.5 rounded-lg border border-surface-800 text-xs font-mono text-brand-400">
-              <span id="key-text" class="flex-1 break-all">demo_...</span>
-              <button onclick="copyGeneratedToken()" class="px-2 py-1 rounded bg-surface-800 text-white hover:text-brand-300 text-xs">Copy</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ================= SECTION 5: AUDIT STREAM ================= -->
-    <section id="section-audit" class="hidden space-y-6">
-      
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-surface-800 pb-5">
-        <div>
-          <h2 class="text-2xl font-extrabold text-white tracking-tight">Security Incident Audit Trail</h2>
-          <p class="text-xs sm:text-sm text-slate-400">Chronological ledger of suspicious authentication events and velocity anomalies.</p>
-        </div>
-        <div class="flex items-center gap-2">
-          <button onclick="exportCsv()" class="px-3.5 py-2 rounded-lg bg-surface-850 hover:bg-surface-800 border border-surface-700/80 text-xs font-medium text-slate-200 flex items-center gap-2 transition-all">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-            <span>Export CSV</span>
-          </button>
-        </div>
-      </div>
-
-      <div class="rounded-2xl bg-surface-900 border border-surface-800 overflow-hidden shadow-sm">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs font-mono">
-            <thead class="bg-surface-950 text-slate-400 border-b border-surface-800 uppercase tracking-wider text-[10px]">
-              <tr>
-                <th class="py-3.5 px-4">Timestamp</th>
-                <th class="py-3.5 px-4">User</th>
-                <th class="py-3.5 px-4">Verdict Tier</th>
-                <th class="py-3.5 px-4">Score</th>
-                <th class="py-3.5 px-4">Velocity</th>
-                <th class="py-3.5 px-4">Vector</th>
-                <th class="py-3.5 px-4">Rationale</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-surface-800/60" id="audit-rows">
-              <!-- Dynamically populated -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-    </section>
-
-  </main>
-
-  <!-- Clean Footer -->
-  <footer class="border-t border-surface-800 bg-surface-950 py-8 text-center text-xs font-mono text-slate-500">
-    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-      <div>
-        <span>Aegis ITDR Platform</span> • <span>Engine v2.4.0</span> • <span>Models trained on the RBA login dataset</span>
-      </div>
-      <div class="flex items-center gap-4">
-        <a href="https://github.com/UtkarshOver9000/Aegis-Auth-Anomaly-Engine" target="_blank" class="hover:text-white transition-colors">GitHub Repository</a>
-        <a href="/docs" target="_blank" class="hover:text-white transition-colors">API Documentation</a>
-      </div>
-    </div>
-  </footer>
-
-  <!-- Toast -->
-  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 px-4 py-3 rounded-xl bg-surface-900 border border-surface-700 shadow-2xl text-xs font-mono flex items-center gap-3">
-    <span id="toast-icon">✅</span>
-    <span id="toast-msg" class="text-white">Success</span>
+<body>
+<header class="top">
+  <div class="wrap top-inner">
+    <a class="brand" href="#home"><span class="logo">A</span>Alibi</a>
+    <nav>
+      <a href="#globe" data-tab="globe">Live globe</a>
+      <a href="#breaches" data-tab="breaches">Breaches</a>
+      <a href="#attacks" data-tab="attacks">Attacks</a>
+      <a href="#flaws" data-tab="flaws">Exploited flaws</a>
+      <a href="#check" data-tab="check">Account takeover</a>
+      <a href="#news" data-tab="news">News</a>
+      <a href="#results" data-tab="results">Data &amp; accuracy</a>
+    </nav>
   </div>
+</header>
 
-  <script src="/static/dashboard.js"></script>
+<main class="wrap">
+
+  <section id="tab-home" class="tab">
+    <div class="hero">
+      <h1>Who's breaking in, how, and from where.</h1>
+      <p class="lede">Alibi pulls the world's public security data into one place: which companies lost their
+        customers' data and how it happened, the servers attackers are using today, the networks run by
+        criminals, the ransomware gangs hitting businesses this week, the software flaws being exploited right now, and
+        whether a single sign-in looks like the real account owner or an intruder.</p>
+      <div class="hero-actions">
+        <a class="btn primary" href="#globe">Open the live globe</a>
+        <a class="btn" href="#breaches">See the biggest breaches</a>
+      </div>
+    </div>
+    <div class="kpis" id="home-kpis"><p class="muted">Loading the latest numbers…</p></div>
+    <div class="steps" id="modules">
+      <a class="step" href="#breaches"><span>1</span><h3>Breaches</h3><p>Every published data breach, the biggest companies hit, and how the data got out.</p></a>
+      <a class="step" href="#attacks"><span>2</span><h3>Attacks</h3><p>Live malware and botnet servers, criminal networks, and this week's ransomware victims by country and industry.</p></a>
+      <a class="step" href="#flaws"><span>3</span><h3>Exploited flaws</h3><p>Software holes attackers are actively using, updated by the US government every weekday.</p></a>
+      <a class="step" href="#check"><span>4</span><h3>Account takeover</h3><p>A model trained on 31 million logins decides if a sign-in is the owner, a VPN, Tor or a malware server.</p></a>
+      <a class="step" href="#globe"><span>5</span><h3>Live globe</h3><p>Every country's numbers on a 3D globe, linked by the real undersea internet cables. Chain countries into a sign-in journey.</p></a>
+      <a class="step" href="#news"><span>6</span><h3>News</h3><p>Security headlines and videos as they're published.</p></a>
+    </div>
+    <p class="fineprint" id="home-asof"></p>
+  </section>
+
+  <section id="tab-globe" class="tab" hidden>
+    <h2>The live globe</h2>
+    <p class="muted">The real Earth, with every country and state border. Drag to spin, scroll to zoom, click anywhere to
+      see what's happening there. Nodes rise from each country by the number you pick; switch on the undersea cables
+      to see how countries are physically wired together.</p>
+    <div class="chips" id="metric-chips">
+      <button data-metric="malicious_ips" class="on">Malware servers now</button>
+      <button data-metric="ransomware_victims">Ransomware victims this week</button>
+      <button data-metric="confirmed_blocks">Websites blocked</button>
+      <button data-metric="hosting_ipv4">Hosting / VPN address space</button>
+      <button data-metric="dns_resolvers">Public DNS servers</button>
+      <button data-metric="cable_landings">Cable landing stations</button>
+      <button data-metric="tor_exits">Tor exits</button>
+    </div>
+    <div class="globe-layout">
+      <div class="card globe-card"><div id="globe"></div>
+        <div class="toggle"><label><input type="checkbox" id="show-cables"> Undersea cables</label><button class="link" id="reset-view">Reset view</button></div>
+        <div class="legend"><span>low</span><i id="legend-bar"></i><span id="legend-max"></span></div>
+      </div>
+      <aside class="globe-side">
+        <div class="card" id="country-panel"><h3>Pick a country</h3><p class="muted">Click a country on the globe.</p></div>
+        <div class="card" id="journey-panel">
+          <h3>Sign-in journey</h3>
+          <p class="muted">Chain 2 or 3 countries as one account's sign-ins and see whether the trip is possible.
+            Use "Add to journey" on a country, or try one:</p>
+          <div class="chips small">
+            <button data-journey="IN,GB">India → UK</button>
+            <button data-journey="US,NG,RU">USA → Nigeria → Russia</button>
+            <button data-journey="DE,FR">Germany → France</button>
+          </div>
+          <ol id="journey-list" class="journey"></ol>
+          <label>Minutes between sign-ins <input id="journey-minutes" type="number" min="1" value="45"></label>
+          <button class="btn primary" id="journey-go" disabled>Check this journey</button>
+          <p class="err" id="journey-err"></p>
+          <div id="journey-result"></div>
+        </div>
+      </aside>
+    </div>
+    <div class="grid2">
+      <div class="card"><h3 id="top-title">Top countries</h3><ol class="toplist" id="top-list"></ol></div>
+      <div class="card"><h3>What this means</h3><p id="metric-explain" class="muted"></p><p class="fineprint" id="map-sources"></p></div>
+    </div>
+  </section>
+
+  <section id="tab-breaches" class="tab" hidden>
+    <h2>Data breaches, and how they happened</h2>
+    <p class="muted">Every breach published by <a href="https://haveibeenpwned.com" target="_blank" rel="noopener">Have I Been Pwned</a>.
+      How each one happened is read from Have I Been Pwned's own write-up of it.</p>
+    <div class="kpis" id="breach-kpis"></div>
+    <div class="grid2">
+      <div class="card"><h3>How company data got out</h3><div class="bars" id="breach-how"></div>
+        <p class="fineprint">Count of company breaches. Most write-ups only say a company "suffered a breach" without the method.</p></div>
+      <div class="card"><h3>What gets taken most often</h3><div class="bars" id="breach-data"></div></div>
+    </div>
+    <div class="card"><h3>Accounts exposed, by year of breach</h3><div class="bars" id="breach-years"></div></div>
+    <div class="card">
+      <div class="row-between"><h3 id="breach-table-title">Biggest company breaches</h3><input id="breach-search" placeholder="Search a company, e.g. LinkedIn, Adobe, Canva" /></div>
+      <p class="fineprint">Click a row to read how it happened.</p>
+      <table class="table"><thead><tr><th>Company</th><th>Breached</th><th class="num">Accounts</th><th>How</th></tr></thead><tbody id="breach-rows"></tbody></table>
+    </div>
+    <p class="fineprint">Source: Have I Been Pwned (haveibeenpwned.com), CC BY 4.0.</p>
+  </section>
+
+  <section id="tab-attacks" class="tab" hidden>
+    <h2>Attacks happening now</h2>
+    <p class="muted">Servers caught spreading malware or controlling botnets, networks run by criminals, and the
+      businesses ransomware gangs claimed this week. Gathered by security researchers and shared publicly.</p>
+    <div class="kpis" id="attack-kpis"></div>
+    <div class="card callout" id="attack-insight"></div>
+    <div class="grid2">
+      <div class="card"><h3>Malware families behind them</h3><div class="bars" id="attack-malware"></div></div>
+      <div class="card"><h3>Countries hosting them</h3><div class="bars" id="attack-countries"></div></div>
+    </div>
+    <div class="card"><h3>Networks hosting the most malware servers</h3>
+      <table class="table"><thead><tr><th>Network</th><th>Type</th><th class="num">Malware servers</th></tr></thead><tbody id="attack-networks"></tbody></table>
+    </div>
+    <h2>Ransomware this week</h2>
+    <p class="muted" id="ransom-window"></p>
+    <div class="grid2">
+      <div class="card"><h3>Industries hit</h3><div class="bars" id="ransom-sectors"></div></div>
+      <div class="card"><h3>Countries hit</h3><div class="bars" id="ransom-countries"></div></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h3>Most active gangs</h3><div class="bars" id="ransom-groups"></div></div>
+      <div class="card"><h3>Networks run by criminals</h3><p id="drop-text" class="muted"></p><div class="bars" id="drop-countries"></div></div>
+    </div>
+    <p class="fineprint" id="attack-sources"></p>
+  </section>
+
+  <section id="tab-flaws" class="tab" hidden>
+    <h2>Security flaws attackers are using right now</h2>
+    <p class="muted">The US Cybersecurity and Infrastructure Security Agency (CISA) lists software flaws that are
+      confirmed to be exploited in real attacks. Companies are told to patch these first.</p>
+    <div class="kpis" id="flaw-kpis"></div>
+    <div class="grid2">
+      <div class="card"><h3>Whose products, in the last 12 months</h3><div class="bars" id="flaw-vendors"></div></div>
+      <div class="card"><h3>New flaws added each month</h3><div class="bars" id="flaw-months"></div></div>
+    </div>
+    <div class="card"><h3>Latest additions</h3>
+      <table class="table"><thead><tr><th>Added</th><th>Flaw</th><th>Product</th><th>Ransomware</th></tr></thead><tbody id="flaw-rows"></tbody></table>
+    </div>
+    <p class="fineprint">Source: CISA Known Exploited Vulnerabilities catalog (public US government data).</p>
+  </section>
+
+  <section id="tab-check" class="tab" hidden>
+    <h2>Account takeover: check a sign-in</h2>
+    <p class="muted">Pick a story, or build your own. Two weeks of the account's usual sign-ins go to the live model
+      first, then the sign-in you're testing. The IP addresses are real ones from each country's networks.</p>
+    <div class="chips">
+      <button data-preset="usual">Usual morning sign-in</button>
+      <button data-preset="tor">Same person, but through Tor</button>
+      <button data-preset="vpn">From a VPN / cloud server</button>
+      <button data-preset="malware">From a known malware server</button>
+      <button data-preset="abroad">New country, new phone</button>
+      <button data-preset="travel">Mumbai, then London 10 min later</button>
+      <button data-preset="guessing">Lots of wrong passwords first</button>
+    </div>
+    <div class="grid2">
+      <form id="check-form" class="card">
+        <label>Usually signs in from<select id="f-home"></select></label>
+        <label>This sign-in comes from<select id="f-country"></select></label>
+        <label>Network<select id="f-net">
+          <option value="home">their usual home network</option>
+          <option value="newhome">a different home / mobile network</option>
+          <option value="vpn">a VPN / cloud server</option>
+          <option value="tor">Tor</option>
+          <option value="malware">a server reported for malware</option>
+        </select></label>
+        <label>Device<select id="f-device"><option value="same">their usual laptop</option><option value="new">a phone we've never seen</option></select></label>
+        <label>Minutes since their last sign-in<input id="f-minutes" type="number" min="1" value="600"></label>
+        <label>Wrong passwords just before<input id="f-fails" type="number" min="0" max="10" value="0"></label>
+        <label class="check"><input id="f-correct" type="checkbox" checked> Password was correct this time</label>
+        <button class="btn primary" type="submit" id="f-go">Check this sign-in</button>
+        <p class="err" id="f-err"></p>
+      </form>
+      <div class="card verdict" id="verdict">
+        <p class="muted">Pick a story above to see Alibi's verdict.</p>
+      </div>
+    </div>
+    <div class="card"><div id="trip-map" class="trip-map"></div></div>
+  </section>
+
+  <section id="tab-news" class="tab" hidden>
+    <h2>What's happening in security</h2>
+    <p class="muted">Live headlines and videos from public feeds, refreshed every 30 minutes. Each one opens the original source.</p>
+    <div class="grid2">
+      <div class="card"><h3>Headlines</h3><ul class="feed" id="news-list"><li class="muted">Loading…</li></ul></div>
+      <div class="card"><h3>Videos</h3><ul class="feed" id="video-list"><li class="muted">Loading…</li></ul></div>
+    </div>
+  </section>
+
+  <section id="tab-results" class="tab" hidden>
+    <h2>Data and accuracy</h2>
+    <p class="muted">The account-takeover model was trained on the RBA login dataset (31.3 million logins, 4.3 million
+      users; Wiefling et al., 2022) and tested on two months of logins it never saw.</p>
+    <div class="kpis" id="model-kpis"></div>
+    <div class="card"><h3>In plain words</h3><p id="model-plain"></p></div>
+    <div class="card"><h3>Where every number comes from</h3><ul class="sources" id="sources"></ul></div>
+  </section>
+
+</main>
+<footer class="wrap foot">
+  Alibi is a portfolio project built on public data. <a href="/docs">API</a> · <a href="https://github.com/UtkarshOver9000/Aegis-Auth-Anomaly-Engine">Source code</a>
+</footer>
+<script src="/static/dashboard.js"></script>
 </body>
 </html>

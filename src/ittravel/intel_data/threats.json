@@ -1,0 +1,545 @@
+{
+ "malicious_ips": 8420,
+ "malicious_ips_on_hosting": 946,
+ "hosting_share_of_malicious_ips": 0.1126,
+ "hosting_share_of_internet": 0.1093,
+ "iot_botnet_ips": 4231,
+ "by_source": [
+  [
+   "URLhaus",
+   6037
+  ],
+  [
+   "ThreatFox",
+   2378
+  ],
+  [
+   "Feodo Tracker",
+   5
+  ]
+ ],
+ "what": [
+  [
+   "Malware download site",
+   6041
+  ],
+  [
+   "Botnet control server",
+   2379
+  ]
+ ],
+ "top_malware": [
+  [
+   "Mozi",
+   2668
+  ],
+  [
+   "mirai",
+   1530
+  ],
+  [
+   "unnamed",
+   1454
+  ],
+  [
+   "Cobalt Strike",
+   559
+  ],
+  [
+   "PureRAT",
+   326
+  ],
+  [
+   "Unknown malware",
+   269
+  ],
+  [
+   "AdaptixC2",
+   239
+  ],
+  [
+   "AsyncRAT",
+   162
+  ],
+  [
+   "DCRat",
+   92
+  ],
+  [
+   "Evilginx",
+   91
+  ],
+  [
+   "Remcos",
+   87
+  ],
+  [
+   "Havoc",
+   82
+  ],
+  [
+   "DanaBot",
+   62
+  ],
+  [
+   "Tsundere",
+   46
+  ],
+  [
+   "Jackskid",
+   36
+  ]
+ ],
+ "top_networks": [
+  {
+   "asn": 4837,
+   "network": "CHINA169-BACKBONE CHINA UNICOM China169 Backbone",
+   "count": 3430,
+   "hosting": false,
+   "criminal_network": false
+  },
+  {
+   "asn": 4134,
+   "network": "CHINANET-BACKBONE No.31,Jin-rong Street",
+   "count": 391,
+   "hosting": false,
+   "criminal_network": false
+  },
+  {
+   "asn": 37457,
+   "network": "Telkom-Internet",
+   "count": 158,
+   "hosting": false,
+   "criminal_network": false
+  },
+  {
+   "asn": 45090,
+   "network": "TENCENT-NET-AP Shenzhen Tencent Computer Systems Company Limited",
+   "count": 149,
+   "hosting": true,
+   "criminal_network": false
+  },
+  {
+   "asn": 9829,
+   "network": "BSNL-NIB National Internet Backbone",
+   "count": 148,
+   "hosting": false,
+   "criminal_network": false
+  },
+  {
+   "asn": 132199,
+   "network": "GLOBE-MOBILE-5TH-GEN-AS Globe Telecom Inc.",
+   "count": 140,
+   "hosting": false,
+   "criminal_network": false
+  },
+  {
+   "asn": 37963,
+   "network": "ALIBABA-CN-NET Hangzhou Alibaba Advertising Co.,Ltd.",
+   "count": 138,
+   "hosting": true,
+   "criminal_network": false
+  },
+  {
+   "asn": 14061,
+   "network": "DIGITALOCEAN-ASN",
+   "count": 134,
+   "hosting": true,
+   "criminal_network": false
+  },
+  {
+   "asn": 17816,
+   "network": "CHINA169-GZ China Unicom IP network China169 Guangdong province",
+   "count": 134,
+   "hosting": false,
+   "criminal_network": false
+  },
+  {
+   "asn": 7713,
+   "network": "TELKOMNET-AS-AP PT Telekomunikasi Indonesia",
+   "count": 128,
+   "hosting": false,
+   "criminal_network": false
+  },
+  {
+   "asn": 219502,
+   "network": "STORMCLOUD-AS - Storm Industries LLC",
+   "count": 85,
+   "hosting": false,
+   "criminal_network": true
+  },
+  {
+   "asn": 36352,
+   "network": "AS-COLOCROSSING",
+   "count": 80,
+   "hosting": true,
+   "criminal_network": false
+  },
+  {
+   "asn": 17813,
+   "network": "MTNL-AP Mahanagar Telephone Nigam Limited",
+   "count": 63,
+   "hosting": false,
+   "criminal_network": false
+  },
+  {
+   "asn": 23969,
+   "network": "TOT-NET TOT Public Company Limited",
+   "count": 57,
+   "hosting": false,
+   "criminal_network": false
+  },
+  {
+   "asn": 9541,
+   "network": "CYBERNET-AP Cyber Internet Services Pvt Ltd.",
+   "count": 51,
+   "hosting": false,
+   "criminal_network": false
+  }
+ ],
+ "top_countries": [
+  [
+   "CN",
+   4526
+  ],
+  [
+   "US",
+   979
+  ],
+  [
+   "IN",
+   257
+  ],
+  [
+   "HK",
+   200
+  ],
+  [
+   "GB",
+   194
+  ],
+  [
+   "ZA",
+   169
+  ],
+  [
+   "RU",
+   157
+  ],
+  [
+   "ID",
+   153
+  ],
+  [
+   "PH",
+   149
+  ],
+  [
+   "DE",
+   143
+  ],
+  [
+   "PK",
+   139
+  ],
+  [
+   "SC",
+   109
+  ],
+  [
+   "FR",
+   80
+  ],
+  [
+   "BR",
+   79
+  ],
+  [
+   "CA",
+   77
+  ]
+ ],
+ "threatfox_iocs_48h": 11005,
+ "threatfox_types": [
+  [
+   "Botnet control server",
+   4276
+  ],
+  [
+   "Malware download site",
+   3575
+  ],
+  [
+   "Malware file",
+   3152
+  ],
+  [
+   "Card-skimming site",
+   2
+  ]
+ ],
+ "threatfox_malware": [
+  [
+   "Unknown Loader",
+   2635
+  ],
+  [
+   "Mirai",
+   1706
+  ],
+  [
+   "AsyncRAT",
+   1378
+  ],
+  [
+   "Cobalt Strike",
+   1322
+  ],
+  [
+   "PureRAT",
+   619
+  ],
+  [
+   "Unknown malware",
+   458
+  ],
+  [
+   "IClickFix",
+   361
+  ],
+  [
+   "AdaptixC2",
+   274
+  ],
+  [
+   "ClearFake",
+   181
+  ],
+  [
+   "Vidar",
+   172
+  ],
+  [
+   "Unknown Stealer",
+   165
+  ],
+  [
+   "Unknown RAT",
+   132
+  ],
+  [
+   "DCRat",
+   124
+  ],
+  [
+   "Remcos",
+   115
+  ],
+  [
+   "Evilginx",
+   97
+  ]
+ ],
+ "urlhaus_urls_30d": 16398,
+ "urlhaus_online": 2252,
+ "spamhaus_drop_ranges": 1692,
+ "spamhaus_drop_addresses": 14616320,
+ "spamhaus_asn_drop": 430,
+ "spamhaus_asn_drop_countries": [
+  [
+   "UA",
+   58
+  ],
+  [
+   "IN",
+   49
+  ],
+  [
+   "US",
+   47
+  ],
+  [
+   "MD",
+   41
+  ],
+  [
+   "RU",
+   35
+  ],
+  [
+   "GB",
+   25
+  ],
+  [
+   "HK",
+   25
+  ],
+  [
+   "SC",
+   15
+  ],
+  [
+   "IR",
+   14
+  ],
+  [
+   "DE",
+   11
+  ]
+ ],
+ "ransomware": {
+  "victims": 100,
+  "from": "2026-09-29",
+  "to": "2026-10-03",
+  "by_country": [
+   [
+    "US",
+    40
+   ],
+   [
+    "DE",
+    10
+   ],
+   [
+    "FR",
+    4
+   ],
+   [
+    "MX",
+    3
+   ],
+   [
+    "BR",
+    3
+   ],
+   [
+    "CA",
+    3
+   ],
+   [
+    "GB",
+    3
+   ],
+   [
+    "AE",
+    2
+   ],
+   [
+    "IN",
+    2
+   ],
+   [
+    "AU",
+    2
+   ],
+   [
+    "KR",
+    2
+   ],
+   [
+    "SA",
+    1
+   ]
+  ],
+  "by_sector": [
+   [
+    "Manufacturing",
+    19
+   ],
+   [
+    "Healthcare",
+    16
+   ],
+   [
+    "Other",
+    12
+   ],
+   [
+    "Professional Services",
+    9
+   ],
+   [
+    "Technology",
+    9
+   ],
+   [
+    "Not Found",
+    8
+   ],
+   [
+    "Transportation",
+    6
+   ],
+   [
+    "Energy & Utilities",
+    4
+   ],
+   [
+    "Education",
+    4
+   ],
+   [
+    "Financial Services",
+    3
+   ],
+   [
+    "Retail & E-Commerce",
+    3
+   ],
+   [
+    "Agriculture and Food Production",
+    3
+   ]
+  ],
+  "by_group": [
+   [
+    "lamashtu",
+    10
+   ],
+   [
+    "Storm",
+    9
+   ],
+   [
+    "thegentlemen",
+    8
+   ],
+   [
+    "akira",
+    7
+   ],
+   [
+    "Booba Project",
+    6
+   ],
+   [
+    "krybit",
+    6
+   ],
+   [
+    "incransom",
+    6
+   ],
+   [
+    "qilin",
+    5
+   ],
+   [
+    "rhysida",
+    5
+   ],
+   [
+    "Wallstreet",
+    4
+   ],
+   [
+    "netrunner",
+    3
+   ],
+   [
+    "safepay",
+    3
+   ]
+  ]
+ }
+}
