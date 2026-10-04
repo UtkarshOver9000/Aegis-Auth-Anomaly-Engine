@@ -1,6 +1,6 @@
 # Alibi: who's breaking in, how, and from where
 
-![CI](https://github.com/UtkarshOver9000/Aegis-Auth-Anomaly-Engine/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/UtkarshOver9000/alibi/actions/workflows/ci.yml/badge.svg)
 
 Alibi gathers the world's public security data in one place, on a live 3D globe:
 - which companies lost their customers' data, and how it got out;
