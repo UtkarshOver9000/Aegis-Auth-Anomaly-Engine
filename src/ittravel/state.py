@@ -1,66 +1,71 @@
 """
-In-memory state store for user login history and API keys.
+In-memory state: per-user login history and demo API keys.
+
+State lives in process memory. On a serverless deployment it resets whenever
+a new instance starts, so treat the live demo as a sandbox, not a system of
+record.
 """
 
 from __future__ import annotations
 
+import os
 import secrets
+from collections import deque
 from datetime import datetime, timezone
+
+DEMO_MASTER_KEY = "demo-master-key-9000"
+HISTORY_LIMIT = 50
+
+
+def master_key() -> str:
+    """The admin key. Set AEGIS_API_KEY in production; the default is public and for the demo only."""
+    return os.getenv("AEGIS_API_KEY", DEMO_MASTER_KEY)
 
 
 class UserState:
     def __init__(self, user_id: str):
         self.user_id = user_id
+        self.login_count = 0
         self.last_ts: datetime | None = None
         self.last_lat: float | None = None
         self.last_lon: float | None = None
         self.last_city: str | None = None
         self.last_country: str | None = None
-        self.last_device_id: str | None = None
-        self.last_ip: str | None = None
-        self.known_devices: set[str] = set()
-        self.login_history: list[dict] = []
+        self.last_success: bool | None = None
+        self.recent_outcomes: deque[bool] = deque(maxlen=10)
+        self.seen: dict[str, set] = {k: set() for k in ("country", "asn", "ip", "ua", "browser", "os", "device")}
+        self.login_history: deque[dict] = deque(maxlen=HISTORY_LIMIT)
 
-    def update(
-        self,
-        ts: datetime,
-        lat: float,
-        lon: float,
-        city: str | None,
-        country: str | None,
-        device_id: str,
-        ip: str,
-    ):
+    @property
+    def known_devices(self) -> set:
+        return self.seen["ua"]
+
+    def record(self, event, ts: datetime) -> None:
+        self.login_count += 1
         self.last_ts = ts
-        self.last_lat = lat
-        self.last_lon = lon
-        self.last_city = city
-        self.last_country = country
-        self.last_device_id = device_id
-        self.last_ip = ip
-        self.known_devices.add(device_id)
-        self.login_history.append({
-            "ts": ts.isoformat(),
-            "lat": lat,
-            "lon": lon,
-            "city": city,
-            "country": country,
-            "device_id": device_id,
-            "ip": ip,
-        })
-        if len(self.login_history) > 50:
-            self.login_history.pop(0)
+        self.last_lat, self.last_lon = event.lat, event.lon
+        self.last_city, self.last_country = event.city, event.country
+        self.last_success = event.success
+        self.recent_outcomes.append(event.success)
+        for key, value in (
+            ("country", event.country),
+            ("asn", event.asn),
+            ("ip", event.ip),
+            ("ua", event.user_agent or event.device_id),
+            ("browser", event.browser),
+            ("os", event.os),
+            ("device", event.device_type),
+        ):
+            self.seen[key].add(value)
+        self.login_history.append(
+            {"ts": ts.isoformat(), "country": event.country, "ip": event.ip, "success": event.success}
+        )
 
 
 class StateStore:
     def __init__(self):
         self.users: dict[str, UserState] = {}
-        self.api_keys: dict[str, dict] = {
-            "demo-master-key-9000": {
-                "name": "Default Admin Key",
-                "created_at": datetime.now(timezone.utc).isoformat(),
-            }
-        }
+        self.api_keys: dict[str, dict] = {}
         self.anomaly_logs: list[dict] = []
 
     def get_user(self, user_id: str) -> UserState:
@@ -69,23 +74,23 @@ class StateStore:
         return self.users[user_id]
 
     def create_api_key(self, name: str) -> dict:
-        key = f"sk_live_{secrets.token_hex(16)}"
-        created_at = datetime.now(timezone.utc).isoformat()
-        info = {"name": name, "api_key": key, "created_at": created_at}
+        key = f"demo_{secrets.token_hex(16)}"
+        info = {"name": name, "api_key": key, "created_at": datetime.now(timezone.utc).isoformat()}
         self.api_keys[key] = info
         return info
 
-    def is_valid_api_key(self, key: str) -> bool:
-        return key in self.api_keys
+    def is_master_key(self, key: str) -> bool:
+        return secrets.compare_digest(key, master_key())
 
-    def log_anomaly(self, anomaly: dict):
+    def is_valid_api_key(self, key: str) -> bool:
+        return self.is_master_key(key) or key in self.api_keys
+
+    def log_anomaly(self, anomaly: dict) -> None:
         self.anomaly_logs.insert(0, anomaly)
-        if len(self.anomaly_logs) > 200:
-            self.anomaly_logs.pop()
+        del self.anomaly_logs[200:]
 
     def get_anomalies(self, limit: int = 50) -> list[dict]:
         return self.anomaly_logs[:limit]
 
 
-# Global singleton instance for app state
 store = StateStore()

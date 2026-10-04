@@ -1,39 +1,46 @@
 """
-Schema definitions for login events, evaluation requests, and API responses.
+Request and response models.
 """
 
 from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
-LOGIN_COLUMNS = ["user_id", "login_ts", "lat", "lon", "city", "country", "device_id", "ip"]
-
 
 class LoginEvent(BaseModel):
-    user_id: str = Field(
-        ..., description="Unique identifier for the user", json_schema_extra={"example": "usr_1001"}
+    user_id: str = Field(..., json_schema_extra={"example": "usr_1001"})
+    login_ts: str = Field(..., description="ISO-8601 timestamp", json_schema_extra={"example": "2026-08-02T15:30:00Z"})
+    ip: str = Field(..., json_schema_extra={"example": "198.51.100.45"})
+    device_id: str = Field(..., description="Device fingerprint", json_schema_extra={"example": "dev-macbook-pro"})
+    country: str | None = Field(
+        None, description="ISO country code from IP geolocation", json_schema_extra={"example": "NO"}
     )
-    login_ts: str = Field(
-        ...,
-        description="ISO-8601 timestamp of login attempt",
-        json_schema_extra={"example": "2026-08-02T15:30:00Z"},
+    city: str | None = Field(None, json_schema_extra={"example": "Oslo"})
+    asn: int | None = Field(
+        None, description="Autonomous system number of the IP", json_schema_extra={"example": 29695}
     )
-    lat: float = Field(..., description="Latitude of login IP", json_schema_extra={"example": 40.7128})
-    lon: float = Field(..., description="Longitude of login IP", json_schema_extra={"example": -74.0060})
-    city: str | None = Field(None, description="City name", json_schema_extra={"example": "New York"})
-    country: str | None = Field(None, description="Country code", json_schema_extra={"example": "US"})
-    device_id: str = Field(
-        ..., description="Unique device fingerprint", json_schema_extra={"example": "dev-macbook-pro"}
-    )
-    ip: str = Field(..., description="IPv4 or IPv6 address", json_schema_extra={"example": "198.51.100.45"})
+    lat: float | None = Field(None, description="Latitude, enables the impossible-travel check")
+    lon: float | None = Field(None, description="Longitude, enables the impossible-travel check")
+    user_agent: str | None = Field(None, description="Full user-agent string (defaults to device_id)")
+    browser: str | None = Field(None, json_schema_extra={"example": "Chrome 120.0"})
+    os: str | None = Field(None, json_schema_extra={"example": "Windows 10"})
+    device_type: str | None = Field(None, json_schema_extra={"example": "desktop"})
+    rtt_ms: float | None = Field(None, ge=0, description="Server-measured round-trip time")
+    success: bool = Field(True, description="Whether the password check succeeded")
 
 
 class EvaluationResult(BaseModel):
     user_id: str
     is_anomaly: bool
-    risk_score: float = Field(..., description="Risk score between 0.0 and 100.0")
-    risk_tier: str = Field(..., description="LOW, MEDIUM, HIGH, or CRITICAL")
+    risk_score: float = Field(..., description="Percentile (0-100) of real validation logins this login out-scores")
+    risk_tier: str = Field(..., description="LOW, MEDIUM, HIGH or CRITICAL")
+    recommended_action: str
+    ato_probability: float
+    attack_ip_probability: float
+    ato_percentile: float
+    attack_ip_percentile: float
     reasons: list[str]
+    features: dict
     velocity_kmph: float
     distance_km: float
     time_delta_hours: float
@@ -43,7 +50,7 @@ class EvaluationResult(BaseModel):
 
 
 class APIKeyCreate(BaseModel):
-    name: str = Field(..., description="Name for the API key owner/app")
+    name: str = Field(..., min_length=1, max_length=80)
 
 
 class APIKeyResponse(BaseModel):

@@ -1,687 +1,196 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aegis ITDR — Real-Time Identity Threat Detection & Auth Anomaly Platform</title>
-  <meta name="description" content="Aegis detects account takeover and impossible travel attacks in real time using geodesic physics and machine learning.">
-
-  <!-- Typography -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Plus Jakarta Sans', 'sans-serif'],
-            mono: ['JetBrains Mono', 'monospace'],
-          },
-          colors: {
-            brand: {
-              50: '#eff6ff',
-              100: '#dbeafe',
-              400: '#60a5fa',
-              500: '#3b82f6',
-              600: '#2563eb',
-              700: '#1d4ed8',
-            },
-            surface: {
-              950: '#090d16',
-              900: '#0e1422',
-              850: '#141c2e',
-              800: '#1a243a',
-              700: '#263452',
-            }
-          }
-        }
-      }
-    }
-  </script>
-
-  <!-- Leaflet Map CSS & JS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <!-- Custom CSS -->
-  <link rel="stylesheet" href="/static/dashboard.css">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Aegis: Login Risk Scoring</title>
+<style>
+  :root { --bg:#090d16; --panel:#0e1422; --alt:#141c2e; --border:#22304d; --text:#eef2ff; --dim:#9aa7c7; --muted:#64708f;
+          --accent:#60a5fa; --green:#22c55e; --amber:#f59e0b; --orange:#f97316; --red:#ef4444; --mono: Consolas, 'JetBrains Mono', monospace; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.55; padding: 28px 16px 60px; }
+  .wrap { max-width: 1060px; margin: 0 auto; }
+  h1 { font-size: 21px; } h2 { font-size: 15px; margin-bottom: 4px; }
+  .sub { color: var(--dim); margin: 4px 0 20px; max-width: 820px; font-size: 13.5px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 22px; }
+  .tile, .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; }
+  .tile { padding: 12px 14px; }
+  .label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .value { font-size: 20px; font-weight: 700; } .note { font-size: 11.5px; color: var(--dim); }
+  .panel { padding: 18px; margin-bottom: 18px; }
+  .hint { color: var(--dim); font-size: 12.5px; margin-bottom: 12px; }
+  .presets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  button { background: var(--alt); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; cursor: pointer; font-size: 13px; }
+  button.primary { background: var(--accent); color: #0b1020; border: 0; font-weight: 700; }
+  button:disabled { opacity: .5; cursor: default; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-bottom: 12px; }
+  label.f { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--dim); }
+  input, select { background: var(--alt); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 7px 9px; font-family: var(--mono); font-size: 12.5px; }
+  .result { display: none; margin-top: 16px; }
+  .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+  .badge { font-weight: 800; font-size: 12px; padding: 4px 12px; border-radius: 999px; }
+  .LOW { background: rgba(34,197,94,.12); color: var(--green); } .MEDIUM { background: rgba(245,158,11,.12); color: var(--amber); }
+  .HIGH { background: rgba(249,115,22,.12); color: var(--orange); } .CRITICAL { background: rgba(239,68,68,.12); color: var(--red); }
+  .mono { font-family: var(--mono); font-size: 12.5px; color: var(--dim); }
+  ul { margin-left: 18px; color: var(--text); font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  .err { color: var(--red); font-size: 13px; margin-top: 10px; }
+  details { margin-top: 10px; } summary { cursor: pointer; color: var(--dim); font-size: 12.5px; }
+  footer { color: var(--muted); font-size: 12px; margin-top: 24px; } a { color: var(--accent); text-decoration: none; }
+</style>
 </head>
-<body class="bg-surface-950 text-slate-100 font-sans antialiased min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
+<body>
+<div class="wrap">
+  <h1>Aegis: login risk scoring</h1>
+  <p class="sub">Each login is scored by two gradient-boosting models trained on the RBA login dataset (31.3M
+    logins, 4.3M users; Wiefling et al., 2022): one for account takeover, one for attack IPs. Features come from
+    the user's own history: new country, network or device, a country hop within an hour, recent failures, and
+    how busy the IP is. With coordinates, a physical impossible-travel check runs too. Every number on this page
+    comes from the live API.</p>
 
-  <!-- Top Global Header -->
-  <header class="border-b border-surface-800 bg-surface-900/90 backdrop-blur-md sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      
-      <!-- Brand Logo & Platform Title -->
-      <div class="flex items-center gap-8">
-        <a href="#" onclick="showSection('sandbox'); return false;" class="flex items-center gap-3 group">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-600 to-sky-400 p-[1px] shadow-lg shadow-brand-500/20 group-hover:shadow-brand-500/40 transition-all">
-            <div class="w-full h-full bg-surface-950 rounded-xl flex items-center justify-center">
-              <svg class="w-5 h-5 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                <path d="m9 12 2 2 4-4"/>
-              </svg>
-            </div>
-          </div>
-          <div>
-            <div class="flex items-center gap-2">
-              <span class="font-extrabold text-lg tracking-tight text-white">Aegis</span>
-              <span class="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20">ITDR</span>
-            </div>
-            <p class="text-[10px] text-slate-400 tracking-wide">Identity Threat Detection & Response</p>
-          </div>
-        </a>
-
-        <!-- Top Navigation Links -->
-        <nav class="hidden md:flex items-center gap-1 text-sm font-medium">
-          <button onclick="showSection('sandbox')" class="nav-tab active px-3.5 py-1.5 rounded-lg transition-all" data-nav="sandbox">
-            Interactive Sandbox
-          </button>
-          <button onclick="showSection('radar')" class="nav-tab px-3.5 py-1.5 rounded-lg transition-all" data-nav="radar">
-            Geodesic Radar Map
-          </button>
-          <button onclick="showSection('regions')" class="nav-tab px-3.5 py-1.5 rounded-lg transition-all" data-nav="regions">
-            Global Edge POPs
-          </button>
-          <button onclick="showSection('policy')" class="nav-tab px-3.5 py-1.5 rounded-lg transition-all" data-nav="policy">
-            Policy & Keys
-          </button>
-          <button onclick="showSection('audit')" class="nav-tab px-3.5 py-1.5 rounded-lg transition-all" data-nav="audit">
-            Audit Stream
-          </button>
-        </nav>
-      </div>
-
-      <!-- Right Utility Actions -->
-      <div class="flex items-center gap-3">
-        <div class="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-mono text-emerald-400">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>Engine: Online (<span id="latency-badge">3.2ms</span>)</span>
-        </div>
-
-        <a href="/docs" target="_blank" class="px-3 py-1.5 text-xs font-semibold text-slate-200 bg-surface-850 hover:bg-surface-800 border border-surface-700/80 rounded-lg transition-all flex items-center gap-1.5">
-          <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
-          <span>API Docs</span>
-        </a>
-
-        <a href="https://github.com/UtkarshOver9000/Aegis-Auth-Anomaly-Engine" target="_blank" class="px-3 py-1.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-500 rounded-lg shadow-sm shadow-brand-500/20 transition-all flex items-center gap-1.5">
-          <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-          <span class="hidden sm:inline">GitHub</span>
-        </a>
-      </div>
-    </div>
-  </header>
-
-  <!-- Main Viewport -->
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
-
-    <!-- ================= SECTION 1: INTERACTIVE SANDBOX ================= -->
-    <section id="section-sandbox" class="space-y-8">
-      
-      <!-- Human-friendly Intro Banner -->
-      <div class="relative overflow-hidden rounded-3xl bg-gradient-to-b from-surface-900 via-surface-900 to-surface-950 border border-surface-800 p-6 sm:p-10 shadow-2xl">
-        <div class="max-w-3xl space-y-4">
-          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-xs font-mono font-medium text-brand-400">
-            <span>⚡ REAL-TIME PROOF OF CONCEPT</span>
-          </div>
-          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-tight">
-            Stop account takeovers before they cause damage.
-          </h1>
-          <p class="text-base sm:text-lg text-slate-300 leading-relaxed">
-            If a user signs in from <strong>New York</strong> and then 10 minutes later from <strong>Tokyo</strong>, it is physically impossible. Aegis calculates the exact speed of travel between logins and flags attacks in milliseconds.
-          </p>
-          <div class="flex flex-wrap items-center gap-3 pt-2">
-            <span class="text-xs text-slate-400 font-mono">Quick test scenarios:</span>
-            <button onclick="pickPreset('nyc_tokyo')" class="px-3 py-1.5 rounded-lg bg-surface-850 hover:bg-surface-800 text-xs font-medium text-rose-300 border border-rose-500/30 transition-all flex items-center gap-1.5">
-              <span>🚨 NYC → Tokyo (5 mins)</span>
-            </button>
-            <button onclick="pickPreset('london_sydney')" class="px-3 py-1.5 rounded-lg bg-surface-850 hover:bg-surface-800 text-xs font-medium text-rose-300 border border-rose-500/30 transition-all flex items-center gap-1.5">
-              <span>🚨 London → Sydney (10 mins)</span>
-            </button>
-            <button onclick="pickPreset('frankfurt_zurich')" class="px-3 py-1.5 rounded-lg bg-surface-850 hover:bg-surface-800 text-xs font-medium text-amber-300 border border-amber-500/30 transition-all flex items-center gap-1.5">
-              <span>⚠️ Frankfurt → Zurich (15 mins)</span>
-            </button>
-            <button onclick="pickPreset('sf_commute')" class="px-3 py-1.5 rounded-lg bg-surface-850 hover:bg-surface-800 text-xs font-medium text-emerald-300 border border-emerald-500/30 transition-all flex items-center gap-1.5">
-              <span>✅ SF Local Commute (45 mins)</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Sandbox Interactive Testing Console -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        <!-- Left Column: Input Form (5 cols) -->
-        <div class="lg:col-span-5 rounded-2xl bg-surface-900 border border-surface-800 p-6 space-y-5 shadow-sm">
-          <div class="flex items-center justify-between border-b border-surface-800 pb-3">
-            <div>
-              <h2 class="text-base font-bold text-white tracking-tight">Simulate Login Attempt</h2>
-              <p class="text-xs text-slate-400">Configure parameters or select a scenario above</p>
-            </div>
-            <button onclick="resetSandboxInputs()" class="text-xs text-slate-400 hover:text-white transition-colors">Reset</button>
-          </div>
-
-          <form id="sandbox-form" onsubmit="runEvaluation(event)" class="space-y-4">
-            
-            <div>
-              <label class="block text-xs font-medium text-slate-300 mb-1">Simulated User Account</label>
-              <input type="text" id="sb-user" required value="alex.executive@acme.com" class="w-full bg-surface-950 border border-surface-700/80 rounded-lg px-3.5 py-2 text-xs font-mono text-white focus:outline-none focus:border-brand-500 transition-all">
-            </div>
-
-            <!-- Previous Login -->
-            <div class="p-3.5 rounded-xl bg-surface-950/80 border border-surface-800 space-y-2">
-              <div class="text-[11px] font-mono font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full bg-brand-400"></span>
-                <span>1. Baseline / Previous Login</span>
-              </div>
-              <div class="grid grid-cols-2 gap-2 text-xs font-mono">
-                <div>
-                  <span class="text-[10px] text-slate-500">City / Country</span>
-                  <input type="text" id="sb-prev-city" value="New York, US" class="w-full bg-surface-900 border border-surface-700/60 rounded px-2.5 py-1 text-slate-200">
-                </div>
-                <div>
-                  <span class="text-[10px] text-slate-500">Coordinates</span>
-                  <input type="text" id="sb-prev-coords" value="40.7128, -74.0060" class="w-full bg-surface-900 border border-surface-700/60 rounded px-2.5 py-1 text-slate-200">
-                </div>
-              </div>
-            </div>
-
-            <!-- Current Login -->
-            <div class="p-3.5 rounded-xl bg-surface-950/80 border border-surface-800 space-y-2">
-              <div class="text-[11px] font-mono font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full bg-rose-400 animate-ping"></span>
-                <span>2. New Inbound Login Attempt</span>
-              </div>
-              <div class="grid grid-cols-2 gap-2 text-xs font-mono">
-                <div>
-                  <span class="text-[10px] text-slate-500">City / Country</span>
-                  <input type="text" id="sb-curr-city" value="Tokyo, JP" class="w-full bg-surface-900 border border-surface-700/60 rounded px-2.5 py-1 text-slate-200">
-                </div>
-                <div>
-                  <span class="text-[10px] text-slate-500">Coordinates</span>
-                  <input type="text" id="sb-curr-coords" value="35.6762, 139.6503" class="w-full bg-surface-900 border border-surface-700/60 rounded px-2.5 py-1 text-slate-200">
-                </div>
-              </div>
-
-              <div class="grid grid-cols-2 gap-2 pt-1 text-xs font-mono">
-                <div>
-                  <span class="text-[10px] text-slate-500">Minutes Between Logins</span>
-                  <input type="number" id="sb-minutes" min="1" max="1440" value="5" class="w-full bg-surface-900 border border-surface-700/60 rounded px-2.5 py-1 text-slate-200">
-                </div>
-                <div>
-                  <span class="text-[10px] text-slate-500">Device Signature</span>
-                  <input type="text" id="sb-device" value="dev-ios-unverified-44" class="w-full bg-surface-900 border border-surface-700/60 rounded px-2.5 py-1 text-slate-200">
-                </div>
-              </div>
-            </div>
-
-            <button type="submit" id="btn-eval" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-brand-600 via-indigo-600 to-brand-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold text-xs tracking-wide shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2 transition-all">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-              <span>RUN REAL-TIME ANOMALY EVALUATION</span>
-            </button>
-
-          </form>
-        </div>
-
-        <!-- Right Column: Human Assessment Decision HUD (7 cols) -->
-        <div class="lg:col-span-7 space-y-5">
-          
-          <!-- Verdict Card with Human Touch -->
-          <div class="rounded-2xl bg-surface-900 border border-surface-800 p-6 space-y-6 shadow-sm">
-            <div class="flex items-center justify-between border-b border-surface-800 pb-3">
-              <div class="flex items-center gap-2">
-                <span class="text-xs font-mono uppercase tracking-wider text-slate-400 font-bold">Aegis Assessment Verdict</span>
-                <span id="human-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">CRITICAL THREAT</span>
-              </div>
-              <span class="text-xs font-mono text-slate-400" id="eval-runtime">Inference: 3.4ms</span>
-            </div>
-
-            <!-- Plain English Summary -->
-            <div class="p-5 rounded-2xl bg-surface-950 border border-surface-800 space-y-2" id="verdict-card">
-              <div class="text-sm font-bold text-white flex items-center gap-2" id="verdict-headline">
-                <span class="text-rose-400 text-lg">🚨</span>
-                <span>Access Denied: Impossible Physical Velocity</span>
-              </div>
-              <p class="text-xs sm:text-sm text-slate-300 leading-relaxed" id="verdict-narrative">
-                The user account was accessed in <strong>New York</strong> and then 5 minutes later from <strong>Tokyo</strong> (10,851.7 km apart). That requires traveling at an implied speed of <strong>130,220 km/h</strong> (over Mach 100), exceeding commercial flight speed boundaries by 140x.
-              </p>
-            </div>
-
-            <!-- Velocity Comparison Visual Bar -->
-            <div class="space-y-2">
-              <div class="flex justify-between items-center text-xs font-mono text-slate-400">
-                <span>Calculated Velocity: <strong class="text-white text-sm" id="hud-velocity">130,220 km/h</strong></span>
-                <span>Speed Boundary: <span class="text-brand-400 font-semibold">900 km/h (Mach .85)</span></span>
-              </div>
-              <div class="w-full bg-surface-950 rounded-full h-3 p-0.5 border border-surface-800 overflow-hidden relative">
-                <div id="velocity-bar" class="h-full rounded-full transition-all duration-700 bg-rose-500" style="width: 95%"></div>
-              </div>
-              <div class="flex justify-between text-[10px] font-mono text-slate-500">
-                <span>🚗 Car (100 km/h)</span>
-                <span>✈️ Commercial Jet (900 km/h)</span>
-                <span class="text-rose-400 font-bold">🚀 Impossible (&gt;900 km/h)</span>
-              </div>
-            </div>
-
-            <!-- Detailed Telemetry Metrics -->
-            <div class="grid grid-cols-3 gap-3 font-mono text-center">
-              <div class="p-3 bg-surface-950 rounded-xl border border-surface-800">
-                <div class="text-[10px] text-slate-400 uppercase">Risk Score</div>
-                <div class="text-xl sm:text-2xl font-black text-rose-400 mt-0.5" id="hud-score">94.2<span class="text-xs text-slate-500 font-normal">/100</span></div>
-              </div>
-              <div class="p-3 bg-surface-950 rounded-xl border border-surface-800">
-                <div class="text-[10px] text-slate-400 uppercase">Geodesic Dist</div>
-                <div class="text-xl sm:text-2xl font-black text-white mt-0.5" id="hud-distance">10,851 km</div>
-              </div>
-              <div class="p-3 bg-surface-950 rounded-xl border border-surface-800">
-                <div class="text-[10px] text-slate-400 uppercase">Enforced Action</div>
-                <div class="text-xs sm:text-sm font-bold text-rose-400 mt-2" id="hud-action">BLOCK & ALERT</div>
-              </div>
-            </div>
-
-            <!-- Explainable Reasons -->
-            <div class="space-y-1.5" id="reasons-list">
-              <div class="text-xs font-mono text-slate-400">Triggered Explanations:</div>
-              <div class="flex items-center gap-2 text-xs font-mono text-slate-200 p-2 rounded bg-surface-950 border border-surface-800">
-                <span class="text-rose-400 font-bold">✕</span>
-                <span>Impossible physical travel velocity (130,220 km/h &gt; 900 km/h limit)</span>
-              </div>
-              <div class="flex items-center gap-2 text-xs font-mono text-slate-200 p-2 rounded bg-surface-950 border border-surface-800">
-                <span class="text-amber-400 font-bold">!</span>
-                <span>Unverified device hardware fingerprint (dev-ios-unverified-44)</span>
-              </div>
-              <div class="flex items-center gap-2 text-xs font-mono text-slate-200 p-2 rounded bg-surface-950 border border-surface-800">
-                <span class="text-brand-400 font-bold">ℹ</span>
-                <span>New IP subnet jump across continental ASNs</span>
-              </div>
-            </div>
-
-          </div>
-
-          <!-- Code Snippet Generator Tab -->
-          <div class="rounded-2xl bg-surface-900 border border-surface-800 p-5 space-y-3">
-            <div class="flex items-center justify-between text-xs font-mono text-slate-400 border-b border-surface-800 pb-2.5">
-              <div class="flex items-center gap-3">
-                <button onclick="setLang('curl')" class="code-tab active text-brand-400 font-bold" data-lang="curl">cURL</button>
-                <button onclick="setLang('python')" class="code-tab hover:text-white" data-lang="python">Python</button>
-                <button onclick="setLang('node')" class="code-tab hover:text-white" data-lang="node">Node.js</button>
-              </div>
-              <button onclick="copySnippet()" class="text-brand-400 hover:text-brand-300 font-semibold flex items-center gap-1">
-                <span>Copy Snippet</span>
-              </button>
-            </div>
-            <pre class="text-xs font-mono text-slate-300 bg-surface-950 p-3 rounded-xl border border-surface-800 overflow-x-auto" id="snippet-display"><code>curl -X POST "https://impossible-travel-auth-anomaly-engi.vercel.app/v1/auth/evaluate" \
-     -H "Content-Type: application/json" \
-     -H "X-API-Key: demo-master-key-9000" \
-     -d '{"user_id": "alex@acme.com", "lat": 35.6762, "lon": 139.6503, "device_id": "dev-44", "ip": "203.0.113.15"}'</code></pre>
-          </div>
-
-        </div>
-
-      </div>
-
-    </section>
-
-    <!-- ================= SECTION 2: GEODESIC RADAR MAP ================= -->
-    <section id="section-radar" class="hidden space-y-6">
-      
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-surface-800 pb-5">
-        <div>
-          <h2 class="text-2xl font-extrabold text-white tracking-tight">Geodesic Radar & Vector Path</h2>
-          <p class="text-xs sm:text-sm text-slate-400">Click anywhere on the map to set coordinates or select different tile provider layers.</p>
-        </div>
-        
-        <!-- Map Layer Switcher (Human-friendly tile options) -->
-        <div class="flex items-center gap-2 p-1 bg-surface-900 rounded-xl border border-surface-800 text-xs font-mono">
-          <button onclick="changeMapLayer('dark')" class="layer-btn active px-3 py-1.5 rounded-lg bg-surface-800 text-white font-semibold transition-all" data-layer="dark">
-            🌙 Cyber Dark
-          </button>
-          <button onclick="changeMapLayer('satellite')" class="layer-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white font-semibold transition-all" data-layer="satellite">
-            🛰️ Satellite Recon
-          </button>
-          <button onclick="changeMapLayer('street')" class="layer-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white font-semibold transition-all" data-layer="street">
-            🗺️ Street Grid
-          </button>
-        </div>
-      </div>
-
-      <!-- Map Viewport -->
-      <div class="relative w-full h-[580px] rounded-3xl overflow-hidden border border-surface-800 shadow-2xl bg-surface-950">
-        <div id="radarMap" class="w-full h-full"></div>
-
-        <!-- Floating Vector Flight Info HUD -->
-        <div class="absolute bottom-5 left-5 z-[1000] p-4 rounded-2xl bg-surface-900/90 backdrop-blur-md border border-surface-700/80 shadow-2xl max-w-sm space-y-2 text-xs font-mono">
-          <div class="flex items-center justify-between border-b border-surface-800 pb-1.5">
-            <span class="font-bold text-white text-[11px] uppercase tracking-wider">Flight Trajectory Vector</span>
-            <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
-          </div>
-          <div class="space-y-1 text-slate-300">
-            <div class="flex justify-between">
-              <span class="text-slate-500">Origin:</span>
-              <span id="map-orig-txt" class="font-semibold text-white">New York City, US</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-slate-500">Destination:</span>
-              <span id="map-dest-txt" class="font-semibold text-white">Tokyo, JP</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-slate-500">Great-Circle:</span>
-              <span id="map-dist-txt" class="text-brand-400 font-bold">10,851.7 km</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-slate-500">Velocity:</span>
-              <span id="map-speed-txt" class="text-rose-400 font-bold">130,220 km/h</span>
-            </div>
-            <div class="flex justify-between pt-1 border-t border-surface-800 text-[10px]">
-              <span class="text-slate-500">Evaluation:</span>
-              <span class="text-rose-400 font-black">IMPOSSIBLE PHYSICAL TRAVEL</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </section>
-
-    <!-- ================= SECTION 3: GLOBAL EDGE POPS & REGIONS ================= -->
-    <section id="section-regions" class="hidden space-y-6">
-      
-      <div class="border-b border-surface-800 pb-5">
-        <h2 class="text-2xl font-extrabold text-white tracking-tight">Global Edge Gateway Network</h2>
-        <p class="text-xs sm:text-sm text-slate-400">Aegis evaluates login telemetry within single-digit milliseconds across globally distributed edge POPs.</p>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        
-        <!-- Region 1: US East -->
-        <div class="p-5 rounded-2xl bg-surface-900 border border-surface-800 space-y-3">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <span class="text-xl">🇺🇸</span>
-              <div>
-                <h3 class="font-bold text-sm text-white">US-East (N. Virginia)</h3>
-                <span class="text-[10px] font-mono text-slate-400">iad1 • AWS us-east-1</span>
-              </div>
-            </div>
-            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">PRIMARY</span>
-          </div>
-          <div class="pt-2 border-t border-surface-800 text-xs font-mono space-y-1">
-            <div class="flex justify-between text-slate-400">
-              <span>Edge Status:</span>
-              <span class="text-emerald-400 font-semibold">Active & Routing</span>
-            </div>
-            <div class="flex justify-between text-slate-400">
-              <span>Measured Latency:</span>
-              <span class="text-white font-bold" id="ping-iad1">4.2ms</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Region 2: US West -->
-        <div class="p-5 rounded-2xl bg-surface-900 border border-surface-800 space-y-3">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <span class="text-xl">🇺🇸</span>
-              <div>
-                <h3 class="font-bold text-sm text-white">US-West (Oregon)</h3>
-                <span class="text-[10px] font-mono text-slate-400">pdx1 • AWS us-west-2</span>
-              </div>
-            </div>
-            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">OPERATIONAL</span>
-          </div>
-          <div class="pt-2 border-t border-surface-800 text-xs font-mono space-y-1">
-            <div class="flex justify-between text-slate-400">
-              <span>Edge Status:</span>
-              <span class="text-emerald-400 font-semibold">Active & Routing</span>
-            </div>
-            <div class="flex justify-between text-slate-400">
-              <span>Measured Latency:</span>
-              <span class="text-white font-bold" id="ping-pdx1">28.4ms</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Region 3: Europe -->
-        <div class="p-5 rounded-2xl bg-surface-900 border border-surface-800 space-y-3">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <span class="text-xl">🇩🇪</span>
-              <div>
-                <h3 class="font-bold text-sm text-white">EU-Central (Frankfurt)</h3>
-                <span class="text-[10px] font-mono text-slate-400">fra1 • AWS eu-central-1</span>
-              </div>
-            </div>
-            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">OPERATIONAL</span>
-          </div>
-          <div class="pt-2 border-t border-surface-800 text-xs font-mono space-y-1">
-            <div class="flex justify-between text-slate-400">
-              <span>Edge Status:</span>
-              <span class="text-emerald-400 font-semibold">Active & Routing</span>
-            </div>
-            <div class="flex justify-between text-slate-400">
-              <span>Measured Latency:</span>
-              <span class="text-white font-bold" id="ping-fra1">84.1ms</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Region 4: Tokyo -->
-        <div class="p-5 rounded-2xl bg-surface-900 border border-surface-800 space-y-3">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <span class="text-xl">🇯🇵</span>
-              <div>
-                <h3 class="font-bold text-sm text-white">AP-Northeast (Tokyo)</h3>
-                <span class="text-[10px] font-mono text-slate-400">hnd1 • AWS ap-northeast-1</span>
-              </div>
-            </div>
-            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">OPERATIONAL</span>
-          </div>
-          <div class="pt-2 border-t border-surface-800 text-xs font-mono space-y-1">
-            <div class="flex justify-between text-slate-400">
-              <span>Edge Status:</span>
-              <span class="text-emerald-400 font-semibold">Active & Routing</span>
-            </div>
-            <div class="flex justify-between text-slate-400">
-              <span>Measured Latency:</span>
-              <span class="text-white font-bold" id="ping-hnd1">142.0ms</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Region 5: Singapore -->
-        <div class="p-5 rounded-2xl bg-surface-900 border border-surface-800 space-y-3">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <span class="text-xl">🇸🇬</span>
-              <div>
-                <h3 class="font-bold text-sm text-white">AP-Southeast (Singapore)</h3>
-                <span class="text-[10px] font-mono text-slate-400">sin1 • AWS ap-southeast-1</span>
-              </div>
-            </div>
-            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">OPERATIONAL</span>
-          </div>
-          <div class="pt-2 border-t border-surface-800 text-xs font-mono space-y-1">
-            <div class="flex justify-between text-slate-400">
-              <span>Edge Status:</span>
-              <span class="text-emerald-400 font-semibold">Active & Routing</span>
-            </div>
-            <div class="flex justify-between text-slate-400">
-              <span>Measured Latency:</span>
-              <span class="text-white font-bold" id="ping-sin1">178.6ms</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Region 6: São Paulo -->
-        <div class="p-5 rounded-2xl bg-surface-900 border border-surface-800 space-y-3">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <span class="text-xl">🇧🇷</span>
-              <div>
-                <h3 class="font-bold text-sm text-white">SA-East (São Paulo)</h3>
-                <span class="text-[10px] font-mono text-slate-400">gru1 • AWS sa-east-1</span>
-              </div>
-            </div>
-            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">OPERATIONAL</span>
-          </div>
-          <div class="pt-2 border-t border-surface-800 text-xs font-mono space-y-1">
-            <div class="flex justify-between text-slate-400">
-              <span>Edge Status:</span>
-              <span class="text-emerald-400 font-semibold">Active & Routing</span>
-            </div>
-            <div class="flex justify-between text-slate-400">
-              <span>Measured Latency:</span>
-              <span class="text-white font-bold" id="ping-gru1">118.2ms</span>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-    </section>
-
-    <!-- ================= SECTION 4: POLICY & API KEYS ================= -->
-    <section id="section-policy" class="hidden space-y-6">
-      
-      <div class="border-b border-surface-800 pb-5">
-        <h2 class="text-2xl font-extrabold text-white tracking-tight">Security Policy & Tenant Credentials</h2>
-        <p class="text-xs sm:text-sm text-slate-400">Customize physical velocity tolerance thresholds and provision microservice bearer keys.</p>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        <!-- Policy Tuner -->
-        <div class="p-6 rounded-2xl bg-surface-900 border border-surface-800 space-y-5">
-          <h3 class="text-base font-bold text-white tracking-tight">Velocity Physics Rule Engine</h3>
-          
-          <div class="space-y-3">
-            <div class="flex justify-between text-xs font-mono">
-              <span class="text-slate-300">Max Physical Speed Threshold:</span>
-              <span class="text-brand-400 font-bold" id="slider-val">900 km/h (Commercial Air)</span>
-            </div>
-            <input type="range" id="velocity-slider" min="100" max="2500" step="50" value="900" oninput="updateSlider(this.value)" class="w-full accent-brand-500 cursor-pointer">
-            <div class="flex justify-between text-[10px] font-mono text-slate-500">
-              <span>100 km/h (Car)</span>
-              <span>900 km/h (Jetliner)</span>
-              <span>2500 km/h (Supersonic)</span>
-            </div>
-          </div>
-
-          <div class="pt-4 border-t border-surface-800 space-y-3">
-            <div class="text-xs font-medium text-slate-300">Automated Remediation Action</div>
-            <div class="grid grid-cols-3 gap-2 text-xs font-mono">
-              <label class="p-3 rounded-xl bg-surface-950 border border-surface-800 cursor-pointer hover:border-brand-500/50 flex flex-col items-center gap-1.5 text-center">
-                <input type="radio" name="policy_action" value="block" checked class="accent-brand-500">
-                <span class="font-bold text-rose-400">Strict Block</span>
-                <span class="text-[10px] text-slate-500">Reject token</span>
-              </label>
-              <label class="p-3 rounded-xl bg-surface-950 border border-surface-800 cursor-pointer hover:border-brand-500/50 flex flex-col items-center gap-1.5 text-center">
-                <input type="radio" name="policy_action" value="stepup" class="accent-brand-500">
-                <span class="font-bold text-amber-400">Passkey MFA</span>
-                <span class="text-[10px] text-slate-500">WebAuthn challenge</span>
-              </label>
-              <label class="p-3 rounded-xl bg-surface-950 border border-surface-800 cursor-pointer hover:border-brand-500/50 flex flex-col items-center gap-1.5 text-center">
-                <input type="radio" name="policy_action" value="log" class="accent-brand-500">
-                <span class="font-bold text-slate-300">Audit Only</span>
-                <span class="text-[10px] text-slate-500">Silent monitor</span>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <!-- API Key Portal -->
-        <div class="p-6 rounded-2xl bg-surface-900 border border-surface-800 space-y-5">
-          <h3 class="text-base font-bold text-white tracking-tight">Provision Service API Key</h3>
-          <p class="text-xs text-slate-400">Generate a cryptographically randomized bearer key to authenticate your backend microservices with Aegis.</p>
-
-          <form onsubmit="createKey(event)" class="space-y-3">
-            <input type="text" id="key-label-input" required placeholder="Service Label (e.g. NextAuth-Prod-Gateway)" class="w-full bg-surface-950 border border-surface-700/80 rounded-lg px-3.5 py-2 text-xs font-mono text-white focus:outline-none focus:border-brand-500 transition-all">
-            <button type="submit" class="w-full py-2.5 px-4 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs transition-all shadow-md shadow-brand-500/20">
-              Generate Service API Key
-            </button>
-          </form>
-
-          <div id="key-result-box" class="hidden p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 space-y-2">
-            <div class="text-xs font-bold text-emerald-400 font-mono">TOKEN GENERATED</div>
-            <div class="flex items-center gap-2 bg-surface-950 p-2.5 rounded-lg border border-surface-800 text-xs font-mono text-brand-400">
-              <span id="key-text" class="flex-1 break-all">sk_live_...</span>
-              <button onclick="copyGeneratedToken()" class="px-2 py-1 rounded bg-surface-800 text-white hover:text-brand-300 text-xs">Copy</button>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-    </section>
-
-    <!-- ================= SECTION 5: AUDIT STREAM ================= -->
-    <section id="section-audit" class="hidden space-y-6">
-      
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-surface-800 pb-5">
-        <div>
-          <h2 class="text-2xl font-extrabold text-white tracking-tight">Security Incident Audit Trail</h2>
-          <p class="text-xs sm:text-sm text-slate-400">Chronological ledger of suspicious authentication events and velocity anomalies.</p>
-        </div>
-        <div class="flex items-center gap-2">
-          <button onclick="exportCsv()" class="px-3.5 py-2 rounded-lg bg-surface-850 hover:bg-surface-800 border border-surface-700/80 text-xs font-medium text-slate-200 flex items-center gap-2 transition-all">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-            <span>Export CSV</span>
-          </button>
-        </div>
-      </div>
-
-      <div class="rounded-2xl bg-surface-900 border border-surface-800 overflow-hidden shadow-sm">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs font-mono">
-            <thead class="bg-surface-950 text-slate-400 border-b border-surface-800 uppercase tracking-wider text-[10px]">
-              <tr>
-                <th class="py-3.5 px-4">Timestamp</th>
-                <th class="py-3.5 px-4">User</th>
-                <th class="py-3.5 px-4">Verdict Tier</th>
-                <th class="py-3.5 px-4">Score</th>
-                <th class="py-3.5 px-4">Velocity</th>
-                <th class="py-3.5 px-4">Vector</th>
-                <th class="py-3.5 px-4">Rationale</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-surface-800/60" id="audit-rows">
-              <!-- Dynamically populated -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-    </section>
-
-  </main>
-
-  <!-- Clean Footer -->
-  <footer class="border-t border-surface-800 bg-surface-950 py-8 text-center text-xs font-mono text-slate-500">
-    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-      <div>
-        <span>Aegis ITDR Platform</span> • <span>Engine v2.4.0</span> • <span>Enterprise Identity Threat Detection</span>
-      </div>
-      <div class="flex items-center gap-4">
-        <a href="https://github.com/UtkarshOver9000/Aegis-Auth-Anomaly-Engine" target="_blank" class="hover:text-white transition-colors">GitHub Repository</a>
-        <a href="/docs" target="_blank" class="hover:text-white transition-colors">API Documentation</a>
-      </div>
-    </div>
-  </footer>
-
-  <!-- Toast -->
-  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 px-4 py-3 rounded-xl bg-surface-900 border border-surface-700 shadow-2xl text-xs font-mono flex items-center gap-3">
-    <span id="toast-icon">✅</span>
-    <span id="toast-msg" class="text-white">Success</span>
+  <div class="tiles">
+    <div class="tile"><div class="label">Account takeover: test ROC-AUC</div><div class="value" id="t-ato-auc">—</div><div class="note">held-out period</div></div>
+    <div class="tile"><div class="label">Takeovers caught at 1% alerts</div><div class="value" id="t-ato-rec">—</div><div class="note" id="t-ato-cnt">test period</div></div>
+    <div class="tile"><div class="label">Attack-IP: test ROC-AUC</div><div class="value" id="t-atk-auc">—</div><div class="note">held-out period</div></div>
+    <div class="tile"><div class="label">Attack-IP logins caught at 1% alerts</div><div class="value" id="t-atk-rec">—</div><div class="note" id="t-atk-prec">precision</div></div>
   </div>
 
-  <script src="/static/dashboard.js"></script>
+  <div class="panel">
+    <h2>Try a scenario</h2>
+    <p class="hint">Each run creates a fresh demo user, sends that user's history (normal logins from the "usual"
+      country, network and device over the previous days), then the login being tested. The verdict below is the
+      API's response to that last login.</p>
+    <div class="presets">
+      <button data-preset="normal">Usual login</button>
+      <button data-preset="newcountry">New country, network and device</button>
+      <button data-preset="hop">Country hop within 10 minutes</button>
+      <button data-preset="stuffing">Burst of failed logins from one IP</button>
+      <button data-preset="travel">NYC → Tokyo in 5 minutes (with coordinates)</button>
+    </div>
+    <form id="form">
+      <div class="grid">
+        <label class="f">Usual country<input id="home-country" value="NO" maxlength="3"></label>
+        <label class="f">Login country<input id="country" value="NO" maxlength="3"></label>
+        <label class="f">Network (ASN)<select id="asn"><option value="same">usual network</option><option value="new">new network</option></select></label>
+        <label class="f">Device<select id="device"><option value="same">usual device</option><option value="new">new device</option></select></label>
+        <label class="f">Minutes since last login<input id="minutes" type="number" min="1" value="600"></label>
+        <label class="f">Failed attempts just before<input id="fails" type="number" min="0" max="10" value="0"></label>
+        <label class="f">Other attempts from this IP in the last hour<input id="ip-attempts" type="number" min="0" max="200" value="0"></label>
+        <label class="f">This attempt<select id="success"><option value="true">password correct</option><option value="false">password wrong</option></select></label>
+        <label class="f">Previous lat, lon (optional)<input id="prev-coords" placeholder="59.91, 10.75"></label>
+        <label class="f">Login lat, lon (optional)<input id="coords" placeholder="59.91, 10.75"></label>
+      </div>
+      <button class="primary" id="go" type="submit">Score this login</button>
+    </form>
+    <div class="err" id="error"></div>
+    <div class="result" id="result">
+      <div class="row"><span class="badge" id="tier">—</span><span class="mono" id="headline"></span></div>
+      <ul id="reasons"></ul>
+      <details><summary>Model features for this login</summary><pre class="mono" id="features"></pre></details>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Logins scored in this browser session</h2>
+    <table><thead><tr><th>Time</th><th>Scenario</th><th>Tier</th><th>Risk percentile</th><th>Takeover p</th><th>Attack-IP p</th></tr></thead>
+      <tbody id="log"><tr><td colspan="6" class="mono">Nothing scored yet.</td></tr></tbody></table>
+  </div>
+
+  <footer><a href="/docs">API docs</a> · <a href="/v1/model">Model card</a> ·
+    <a href="https://github.com/UtkarshOver9000/Aegis-Auth-Anomaly-Engine">Source on GitHub</a> ·
+    Demo key: <span class="mono">demo-master-key-9000</span> (public, sandbox only)</footer>
+</div>
+<script>
+const KEY = "demo-master-key-9000";
+const USUAL = { asn: 29695, device: "dev-usual-laptop", ua: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0", browser: "Chrome 120.0", os: "Windows 10", type: "desktop", ip: "84.208.20.10" };
+const NEW = { asn: 9009, device: "dev-unseen-phone", ua: "Mozilla/5.0 (Linux; Android 10) Chrome/96.0 Mobile", browser: "Chrome Mobile 96.0", os: "Android 10", type: "mobile", ip: "185.220.101.7" };
+const PRESETS = {
+  normal:     { home: "NO", country: "NO", asn: "same", device: "same", minutes: 600, fails: 0, ip: 0, success: "true", prev: "", cur: "" },
+  newcountry: { home: "NO", country: "RU", asn: "new", device: "new", minutes: 600, fails: 0, ip: 0, success: "true", prev: "", cur: "" },
+  hop:        { home: "NO", country: "US", asn: "new", device: "same", minutes: 10, fails: 0, ip: 0, success: "true", prev: "", cur: "" },
+  stuffing:   { home: "NO", country: "NO", asn: "new", device: "new", minutes: 600, fails: 6, ip: 30, success: "false", prev: "", cur: "" },
+  travel:     { home: "US", country: "JP", asn: "new", device: "new", minutes: 5, fails: 0, ip: 0, success: "true", prev: "40.7128, -74.0060", cur: "35.6762, 139.6503" },
+};
+let lastPreset = "custom";
+const $ = id => document.getElementById(id);
+const pct = (v, d = 1) => (v * 100).toFixed(d) + "%";
+const coords = s => { const p = s.split(",").map(x => parseFloat(x)); return p.length === 2 && p.every(Number.isFinite) ? p : [null, null]; };
+
+async function post(event) {
+  const res = await fetch("/v1/auth/evaluate", { method: "POST", headers: { "Content-Type": "application/json", "X-API-Key": KEY }, body: JSON.stringify(event) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail));
+  return data;
+}
+
+function login(user, ts, country, net, dev, success, ip, lat, lon) {
+  return { user_id: user, login_ts: new Date(ts).toISOString(), ip: ip || net.ip, device_id: dev.device, country,
+           asn: net.asn, user_agent: dev.ua, browser: dev.browser, os: dev.os, device_type: dev.type,
+           rtt_ms: 420, success, lat, lon };
+}
+
+async function run(e) {
+  if (e) e.preventDefault();
+  $("error").textContent = ""; $("go").disabled = true;
+  const user = "demo-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const now = Date.now(), minutes = Math.max(1, +$("minutes").value || 1);
+  const net = $("asn").value === "new" ? NEW : USUAL, dev = $("device").value === "new" ? NEW : USUAL;
+  const [plat, plon] = coords($("prev-coords").value), [lat, lon] = coords($("coords").value);
+  const home = $("home-country").value.trim().toUpperCase() || "NO", country = $("country").value.trim().toUpperCase() || home;
+  const fails = Math.min(10, Math.max(0, +$("fails").value || 0)), ipAttempts = Math.min(200, Math.max(0, +$("ip-attempts").value || 0));
+  try {
+    // History: five normal logins on earlier days, then one `minutes` before the test login.
+    for (let d = 5; d >= 1; d--) await post(login(user, now - minutes * 60000 - d * 86400000, home, USUAL, USUAL, true));
+    await post(login(user, now - minutes * 60000, home, USUAL, USUAL, true, null, plat, plon));
+    for (let i = 0; i < fails; i++) await post(login(user, now - (fails - i) * 20000, country, net, dev, false));
+    for (let i = 0; i < ipAttempts; i++) await post(login("other-" + user + i, now - 3000000 + i * 1000, country, net, NEW, i % 4 === 0));
+    const r = await post(login(user, now, country, net, dev, $("success").value === "true", null, lat, lon));
+    show(r);
+  } catch (err) { $("error").textContent = "Request failed: " + err.message; }
+  finally { $("go").disabled = false; }
+}
+
+function show(r) {
+  $("result").style.display = "block";
+  $("tier").textContent = r.risk_tier; $("tier").className = "badge " + r.risk_tier;
+  $("headline").textContent = `riskier than ${r.risk_score.toFixed(2)}% of validation logins · recommended: ${r.recommended_action}` +
+    (r.velocity_kmph ? ` · ${Math.round(r.distance_km).toLocaleString()} km at ${Math.round(r.velocity_kmph).toLocaleString()} km/h` : "");
+  $("reasons").replaceChildren(...r.reasons.map(t => { const li = document.createElement("li"); li.textContent = t; return li; }));
+  $("features").textContent = JSON.stringify({ ato_probability: r.ato_probability, ato_percentile: r.ato_percentile,
+    attack_ip_probability: r.attack_ip_probability, attack_ip_percentile: r.attack_ip_percentile, ...r.features }, null, 2);
+  const tr = document.createElement("tr");
+  [new Date().toLocaleTimeString(), lastPreset, r.risk_tier, r.risk_score.toFixed(2), r.ato_probability.toExponential(2), r.attack_ip_probability.toExponential(2)]
+    .forEach(v => { const td = document.createElement("td"); td.textContent = v; tr.appendChild(td); });
+  const log = $("log"); if (log.querySelector("td[colspan]")) log.innerHTML = "";
+  log.prepend(tr);
+}
+
+function applyPreset(name) {
+  const p = PRESETS[name]; lastPreset = name;
+  $("home-country").value = p.home; $("country").value = p.country; $("asn").value = p.asn; $("device").value = p.device;
+  $("minutes").value = p.minutes; $("fails").value = p.fails; $("ip-attempts").value = p.ip; $("success").value = p.success;
+  $("prev-coords").value = p.prev; $("coords").value = p.cur;
+  run();
+}
+
+async function loadModel() {
+  try {
+    const m = await (await fetch("/v1/model")).json();
+    const a = m.test_metrics.ato, k = m.test_metrics.attack_ip;
+    $("t-ato-auc").textContent = a.roc_auc.toFixed(3);
+    $("t-ato-rec").textContent = pct(a.recall);
+    $("t-ato-cnt").textContent = `${a.confusion_matrix.tp} of ${a.positives} takeovers, ${a.logins.toLocaleString()} test logins`;
+    $("t-atk-auc").textContent = k.roc_auc.toFixed(3);
+    $("t-atk-rec").textContent = pct(k.recall);
+    $("t-atk-prec").textContent = `precision ${pct(k.precision)} on ${k.logins.toLocaleString()} test logins`;
+  } catch (e) { /* tiles keep their placeholders */ }
+}
+
+document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => applyPreset(b.dataset.preset)));
+$("form").addEventListener("submit", e => { lastPreset = "custom"; run(e); });
+loadModel();
+</script>
 </body>
 </html>

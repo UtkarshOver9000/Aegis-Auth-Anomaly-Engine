@@ -1,0 +1,291 @@
+{
+  "dataset": {
+    "name": "Login Data Set for Risk-Based Authentication (Wiefling et al., 2022)",
+    "source": "https://zenodo.org/records/6782156",
+    "note": "Synthesized by its authors from 33M+ real logins at a Norwegian SSO service; feature values are artificial but keep real per-user statistics.",
+    "logins": 31269264,
+    "users": 4304857,
+    "account_takeovers": 141,
+    "attack_ip_logins": 3096977,
+    "from": "2020-02-03 12:43:30.772000",
+    "to": "2021-02-28 23:59:58.756000"
+  },
+  "features": [
+    "log_prior_logins",
+    "log_secs_since_prev",
+    "new_country",
+    "new_asn",
+    "new_ip",
+    "new_ua",
+    "new_browser",
+    "new_os",
+    "new_device",
+    "country_hop_1h",
+    "prev_failed",
+    "fails_prev10",
+    "success",
+    "log_rtt_ms",
+    "rtt_missing",
+    "hour",
+    "weekday",
+    "ip_attempts_1h",
+    "ip_failures_1h"
+  ],
+  "alert_budget": 0.01,
+  "targets": {
+    "ato": {
+      "periods": {
+        "train": [
+          "2020-02-01 00:00:00",
+          "2020-08-01 00:00:00"
+        ],
+        "validation": [
+          "2020-08-01 00:00:00",
+          "2020-10-01 00:00:00"
+        ],
+        "test": [
+          "2020-10-01 00:00:00",
+          "2020-12-01 00:00:00"
+        ]
+      },
+      "training_rows": {
+        "positives": 86,
+        "sampled_negatives": 3000000,
+        "negative_weight": 4.319
+      },
+      "best_round": 39,
+      "model_test": {
+        "logins": 5403650,
+        "positives": 22,
+        "roc_auc": 0.978,
+        "pr_auc": 0.0038,
+        "log_loss": 4e-05,
+        "brier": 4e-06,
+        "threshold": 3e-05,
+        "accuracy": 0.992354,
+        "precision": 0.0003,
+        "recall": 0.6364,
+        "alert_rate": 0.00765,
+        "alerts_per_10k_logins": 76.5,
+        "confusion_matrix": {
+          "tn": 5362321,
+          "fp": 41307,
+          "fn": 8,
+          "tp": 14
+        }
+      },
+      "model_test_at_0.1pct_budget": {
+        "logins": 5403650,
+        "positives": 22,
+        "roc_auc": 0.978,
+        "pr_auc": 0.0038,
+        "log_loss": 4e-05,
+        "brier": 4e-06,
+        "threshold": 0.00044,
+        "accuracy": 0.999319,
+        "precision": 0.0022,
+        "recall": 0.3636,
+        "alert_rate": 0.00068,
+        "alerts_per_10k_logins": 6.8,
+        "confusion_matrix": {
+          "tn": 5399964,
+          "fp": 3664,
+          "fn": 14,
+          "tp": 8
+        }
+      },
+      "rules_test": {
+        "new_country_or_new_asn": {
+          "logins": 5403650,
+          "positives": 22,
+          "roc_auc": 0.8233,
+          "pr_auc": 0.0001,
+          "log_loss": 0.56044,
+          "brier": 0.035154,
+          "threshold": 0.5,
+          "accuracy": 0.964846,
+          "precision": 0.0001,
+          "recall": 0.6818,
+          "alert_rate": 0.03516,
+          "alerts_per_10k_logins": 351.6,
+          "confusion_matrix": {
+            "tn": 5213673,
+            "fp": 189955,
+            "fn": 7,
+            "tp": 15
+          }
+        },
+        "country_hop_within_1h": {
+          "logins": 5403650,
+          "positives": 22,
+          "roc_auc": 0.3501,
+          "pr_auc": 0.0,
+          "log_loss": 5.50444,
+          "brier": 0.345271,
+          "threshold": 0.5,
+          "accuracy": 0.654729,
+          "precision": 0.0,
+          "recall": 0.0455,
+          "alert_rate": 0.34527,
+          "alerts_per_10k_logins": 3452.7,
+          "confusion_matrix": {
+            "tn": 3537926,
+            "fp": 1865702,
+            "fn": 21,
+            "tp": 1
+          }
+        },
+        "new_device_and_new_country": {
+          "logins": 5403650,
+          "positives": 22,
+          "roc_auc": 0.5906,
+          "pr_auc": 0.0003,
+          "log_loss": 0.00844,
+          "brier": 0.000529,
+          "threshold": 0.5,
+          "accuracy": 0.999471,
+          "precision": 0.0014,
+          "recall": 0.1818,
+          "alert_rate": 0.00053,
+          "alerts_per_10k_logins": 5.3,
+          "confusion_matrix": {
+            "tn": 5400786,
+            "fp": 2842,
+            "fn": 18,
+            "tp": 4
+          }
+        }
+      }
+    },
+    "attack_ip": {
+      "periods": {
+        "train": [
+          "2020-02-03 12:43:30.772000",
+          "2020-11-03 13:25:02.360800"
+        ],
+        "validation": [
+          "2020-11-03 13:25:02.360800",
+          "2021-01-01 06:42:30.558400"
+        ],
+        "test": [
+          "2021-01-01 06:42:30.558400",
+          "2021-02-28 23:59:59.756000"
+        ]
+      },
+      "training_rows": {
+        "positives": 1890713,
+        "sampled_negatives": 3000000,
+        "negative_weight": 5.973
+      },
+      "best_round": 37,
+      "model_test": {
+        "logins": 5279379,
+        "positives": 604413,
+        "roc_auc": 0.7487,
+        "pr_auc": 0.2358,
+        "log_loss": 0.31809,
+        "brier": 0.094343,
+        "threshold": 0.251389,
+        "accuracy": 0.879019,
+        "precision": 0.2876,
+        "recall": 0.0384,
+        "alert_rate": 0.01529,
+        "alerts_per_10k_logins": 152.9,
+        "confusion_matrix": {
+          "tn": 4617471,
+          "fp": 57495,
+          "fn": 581207,
+          "tp": 23206
+        }
+      },
+      "model_test_at_0.1pct_budget": {
+        "logins": 5279379,
+        "positives": 604413,
+        "roc_auc": 0.7487,
+        "pr_auc": 0.2358,
+        "log_loss": 0.31809,
+        "brier": 0.094343,
+        "threshold": 0.264664,
+        "accuracy": 0.884933,
+        "precision": 0.1269,
+        "recall": 0.0009,
+        "alert_rate": 0.00078,
+        "alerts_per_10k_logins": 7.8,
+        "confusion_matrix": {
+          "tn": 4671376,
+          "fp": 3590,
+          "fn": 603891,
+          "tp": 522
+        }
+      },
+      "rules_test": {
+        "new_country_or_new_asn": {
+          "logins": 5279379,
+          "positives": 604413,
+          "roc_auc": 0.4925,
+          "pr_auc": 0.1136,
+          "log_loss": 2.23937,
+          "brier": 0.140466,
+          "threshold": 0.5,
+          "accuracy": 0.859534,
+          "precision": 0.0636,
+          "recall": 0.0165,
+          "alert_rate": 0.02977,
+          "alerts_per_10k_logins": 297.7,
+          "confusion_matrix": {
+            "tn": 4527806,
+            "fp": 147160,
+            "fn": 594414,
+            "tp": 9999
+          }
+        },
+        "country_hop_within_1h": {
+          "logins": 5279379,
+          "positives": 604413,
+          "roc_auc": 0.4902,
+          "pr_auc": 0.1126,
+          "log_loss": 6.21834,
+          "brier": 0.390051,
+          "threshold": 0.5,
+          "accuracy": 0.609949,
+          "precision": 0.1088,
+          "recall": 0.3348,
+          "alert_rate": 0.35223,
+          "alerts_per_10k_logins": 3522.3,
+          "confusion_matrix": {
+            "tn": 3017778,
+            "fp": 1657188,
+            "fn": 402039,
+            "tp": 202374
+          }
+        },
+        "new_device_and_new_country": {
+          "logins": 5279379,
+          "positives": 604413,
+          "roc_auc": 0.4999,
+          "pr_auc": 0.1145,
+          "log_loss": 1.83004,
+          "brier": 0.114791,
+          "threshold": 0.5,
+          "accuracy": 0.885209,
+          "precision": 0.0452,
+          "recall": 0.0001,
+          "alert_rate": 0.00034,
+          "alerts_per_10k_logins": 3.4,
+          "confusion_matrix": {
+            "tn": 4673275,
+            "fp": 1691,
+            "fn": 604333,
+            "tp": 80
+          }
+        }
+      }
+    }
+  },
+  "environment": {
+    "python": "3.11.9",
+    "scikit_learn": "1.9.1",
+    "duckdb": "1.5.6"
+  },
+  "runtime_seconds": 2172.4
+}

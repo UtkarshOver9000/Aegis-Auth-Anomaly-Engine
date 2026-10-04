@@ -1,29 +1,27 @@
-﻿# Aegis ITDR Security Model
+# Security notes
 
-## API Authentication
+## API keys
 
-All endpoints (except `/v1/health`) require an `X-API-Key` HTTP header. Keys are issued via `POST /v1/keys/generate` and stored in the in-memory StateStore ring.
+- `POST /v1/auth/evaluate`, `/v1/anomalies` and `/v1/stats` need an `X-API-Key` header.
+- The master key comes from the `AEGIS_API_KEY` environment variable. If it is not set,
+  the public demo key `demo-master-key-9000` is used. **Always set `AEGIS_API_KEY` outside
+  the demo.**
+- `POST /v1/keys/generate` issues extra keys and requires the master key. Issued keys
+  (`demo_...`) can evaluate logins but cannot issue keys.
+- Keys are compared in constant time and held in memory only; they do not survive a restart.
 
-In production, keys should be:
-- Stored in **HashiCorp Vault** or **AWS Secrets Manager**
-- Rotated every 90 days
-- Issued per-microservice (least privilege)
+## Not provided by this project
 
-## Threat Model
+- Rate limiting: enforce it at the gateway or CDN.
+- Persistent or shared state: history is per process (see ARCHITECTURE.md).
+- CORS is open (`*`) for the demo page; restrict it for real deployments.
 
-| Threat Actor | Attack Vector | Aegis Response |
-|---|---|---|
-| Account Takeover | Stolen session cookie replayed from different continent | CRITICAL block via velocity physics |
-| Credential Stuffing | Bulk credential replay across many accounts | Per-user IsolationForest outlier detection |
-| SIM-Swap + 2FA Bypass | New device login post-SIM swap | Device entropy novelty flag → Step-up challenge |
-| Tor / VPN Pivoting | IP subnet jump via anonymizing proxies | Subnet ASN jump detection |
+## Data handling
 
-## Rate Limiting
+Login events sent to the demo are kept only in that server instance's memory (the last 50
+per user and the last 200 HIGH/CRITICAL results) and are lost when the instance stops.
+Do not send real user data to the public demo.
 
-Aegis does not enforce rate limiting internally — this should be enforced at the edge CDN/API Gateway layer (e.g., Cloudflare, AWS API Gateway throttling).
+## Reporting a problem
 
-## Data Privacy
-
-- No PII is logged in plain text in the audit ring buffer.
-- Login telemetry (coordinates, IP, device) is stored **in-memory only** and purged on process restart.
-- For GDPR compliance, implement Redis with TTL-based expiry (e.g., `EXPIRE user:{id} 86400`).
+Open a GitHub issue using the bug template; don't include real credentials or personal data.

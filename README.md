@@ -1,213 +1,172 @@
-<div align="center">
+# Aegis: login risk scoring
 
-# 🛡️ Aegis ITDR
+![CI](https://github.com/UtkarshOver9000/Aegis-Auth-Anomaly-Engine/actions/workflows/ci.yml/badge.svg)
 
-### Enterprise Identity Threat Detection & Geotime Anomaly Engine
-**Next-generation account takeover prevention fusing unsupervised machine learning with geodesic velocity physics.**
+Scores every login attempt for **account takeover** and **attack-IP** risk. Two
+gradient-boosting models are trained on the full **RBA login dataset**: 31,269,264 logins
+from 4,304,857 users. They are evaluated on months of logins they never saw. When a login
+includes coordinates, a physical **impossible-travel** check runs on top.
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel%20Production-000?style=for-the-badge&logo=vercel&logoColor=white)](https://impossible-travel-auth-anomaly-engi.vercel.app/)
-[![API Docs](https://img.shields.io/badge/Swagger-Interactive%20API-499C54?style=for-the-badge&logo=swagger&logoColor=white)](https://impossible-travel-auth-anomaly-engi.vercel.app/docs)
-[![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://github.com/UtkarshOver9000/Aegis-Auth-Anomaly-Engine)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
+**Live demo:** https://impossible-travel-auth-anomaly-engi.vercel.app
+**API docs:** https://impossible-travel-auth-anomaly-engi.vercel.app/docs
 
-<br/>
+## Results
 
-[**Explore Live Dashboard**](https://impossible-travel-auth-anomaly-engi.vercel.app/) • [**Interactive Sandbox**](https://impossible-travel-auth-anomaly-engi.vercel.app/#sandbox) • [**API Reference**](#-api-reference) • [**Architecture**](#-architecture) • [**Deployment**](#-deployment-guide)
+### Account takeover: test period 2020-10-01 → 2020-11-30
 
-</div>
+5,403,650 logins, 22 of them confirmed account takeovers.
 
----
+| Method | Takeovers caught | Logins challenged | ROC-AUC |
+|---|---|---|---|
+| **Model, 1% alert budget** | **14 of 22 (63.64%)** | 0.77% (76.5 per 10,000) | **0.978** |
+| Model, 0.1% alert budget | 8 of 22 (36.36%) | 0.07% (6.8 per 10,000) | 0.978 |
+| Rule: new country *or* new network for the user | 15 of 22 (68.18%) | 3.52% (351.6 per 10,000) | 0.823 |
+| Rule: new device *and* new country | 4 of 22 (18.18%) | 0.05% (5.3 per 10,000) | 0.591 |
+| Rule: country changed within 1 hour | 1 of 22 (4.55%) | 34.53% (3,452.7 per 10,000) | 0.350 |
 
-## 💡 The Problem: Credential Stuffing & Impossible Travel
+**In business terms:** sending 0.77% of logins to a step-up check (e.g. a one-time code)
+stops 14 of the 22 takeovers. The best simple rule needs 4.6× as many challenges to catch
+one more takeover.
 
-Modern attackers bypass password authentication by exploiting compromised session cookies, stolen tokens, and credential dumps. When an attacker in Eastern Europe logs into an account five minutes after the legitimate user logged in from California, conventional rule engines struggle:
+With only 22 takeovers in the test window, the uncertainty is wide: the 95% confidence
+interval for the 63.64% recall is 42.95% to 80.27%.
 
-* **Static IP blocklists** fail because attackers route traffic through commercial VPNs and residential proxies.
-* **Simple geo-fencing** generates immense false positives for traveling executives and remote employees.
-* **Black-box neural nets** cannot explain *why* a login was intercepted to SOC compliance auditors.
+Full model metrics at the 1% budget:
 
-**Aegis** solves this by establishing mathematical ground-truth bounds. By measuring geodesic Haversine distance over precise $\Delta t$ time intervals alongside user baseline behavioral isolation, Aegis calculates implied physical velocity:
+| Metric | Value |
+|---|---|
+| ROC-AUC | 0.978 |
+| PR-AUC | 0.0038 (933× the 0.0004% base rate) |
+| Precision | 0.03% (14 true alerts among 41,321) |
+| Recall | 63.64% |
+| Accuracy | 99.24% |
+| Log loss | 0.00004 |
+| Brier score | 0.000004 |
 
-$$\text{Velocity} = \frac{\text{Haversine}(\text{Coord}_1, \text{Coord}_2)}{\Delta t}$$
+The confusion matrix: 5,362,321 TN, 41,307 FP, 8 FN, 14 TP. Takeovers are so rare that
+precision is tiny for any method. That's normal for this problem, and it's why the action
+is a step-up challenge, not a block.
 
-If implied travel speed exceeds the physical limits of commercial aerospace ($> 900\text{ km/h}$ or Mach $0.85$), the event is instantly flagged as **Impossible Travel** with explainable rationale tags and step-up auth triggers.
+### Attack-IP logins: test period 2021-01-01 → 2021-02-28
 
----
+5,279,379 logins; 604,413 (11.45%) came from IPs on a known-attacker list.
 
-## ⚡ Key Highlights & Capabilities
+| Method | ROC-AUC | PR-AUC | Precision | Recall | Logins flagged |
+|---|---|---|---|---|---|
+| **Model** | **0.7487** | **0.2358** | 28.76% | 3.84% | 1.53% |
+| Rule: new country or new network | 0.4925 | n/a | 6.36% | 1.65% | 2.98% |
+| Rule: country changed within 1 hour | 0.4902 | n/a | 10.88% | 33.48% | 35.22% |
 
-| Feature | Description | Enterprise Impact |
-| :--- | :--- | :--- |
-| **Sub-5ms Inference** | Optimized in-memory evaluation pipeline designed for inline auth middleware. | Zero perceptible lag during user login. |
-| **Hybrid Ensemble Model** | Fuses unsupervised `IsolationForest` scoring with deterministic geodesic physics. | High precision ($96.6\%$) with $100\%$ attack recall. |
-| **Explainable AI (XAI)** | Transparent reason trees returned alongside every numeric risk score. | Clear SOC audit trail and compliance defense. |
-| **Multi-Factor Entropy** | Ingests device hardware hashes, IP subnet jumps, and historical coordinate vectors. | Detects session hijacking even across proxy hops. |
-| **Interactive Geodesic Radar** | Real-time Leaflet spatial mapping with Dark-Matter, Satellite, and Street layers. | Visual verification of suspicious flight vectors. |
-| **Multi-Cloud Ready** | Zero-downtime containerized service with Docker, Kubernetes, and Serverless support. | Drops cleanly into AWS, GCP, Azure, or Vercel. |
+The attack-IP model ranks logins better than chance (ROC-AUC 0.7487, PR-AUC about twice the
+base rate), but at a 1-2% alert rate it catches only 3.84% of attack-IP logins. These
+features describe user behaviour. Attack IPs are labelled from an external blocklist,
+which those behaviours only partly reveal. Treat this model as a weak supporting signal.
 
----
+![Training curves](reports/figures/rba_training_curves.png)
+![Precision-recall](reports/figures/rba_precision_recall.png)
 
-## 🏗️ Architecture & Signal Pipeline
+## Data
 
-```mermaid
-flowchart TD
-    A[Client Authentication Attempt] -->|POST /v1/auth/evaluate| B[FastAPI Gateway]
-    B --> C[Tenant API Key Verification]
-    C --> D[Aegis State Engine]
-    
-    subgraph Ensemble Detection Pipeline
-        D -->|Coordinate Vector & Δt| E[Geodesic Haversine Physics Engine]
-        D -->|Feature Distribution| F[Unsupervised IsolationForest ML]
-        D -->|Hardware Signature| G[Device Entropy Analyzer]
-        D -->|Network Octets| H[Subnet Jump Detector]
-        
-        E -->|Implied Velocity Score| I[Composite Weighted Ensemble]
-        F -->|Statistical Outlier Score| I
-        G -->|Novelty Weight| I
-        H -->|Subnet Delta Weight| I
-    end
-    
-    I --> J{Risk Scoring Engine}
-    J -->|Score: 0 - 35| K[LOW: Frictionless Pass]
-    J -->|Score: 36 - 79| L[HIGH: Step-Up MFA Challenge]
-    J -->|Score: 80 - 100| M[CRITICAL: Immediate Block & SOC PagerDuty]
-    
-    J --> N[In-Memory Ring Audit Ledger]
-    J --> O[Live Radar Map & Dashboard]
-```
+| | |
+|---|---|
+| Dataset | *Login Data Set for Risk-Based Authentication*, Wiefling, Jørgensen, Thunem and Lo Iacono (2022), [Zenodo record 6782156](https://zenodo.org/records/6782156), CC BY 4.0 |
+| File | `rba-dataset.zip`, 1.1 GB (9.05 GB CSV inside), MD5 `cc1b1078b3929650e6c08678caffcc57` (verified) |
+| Contents | 31,269,264 login attempts, 4,304,857 users, 2020-02-03 → 2021-02-28: IP, country, ASN, user agent, browser, OS, device type, round-trip time, success, attack-IP and account-takeover labels |
+| Labels | 141 account takeovers (confirmed by the service's incident team; all fall between February and November 2020), 3,096,977 attack-IP logins |
 
----
+**Read this before quoting the numbers.** Per-user and per-population statistics come
+from 33M+ real logins at a large Norwegian single-sign-on service. The individual values
+were then synthesized by the dataset's authors to protect privacy, and they call the
+values artificial. Two consequences:
+- **Cities in this dataset are random**, so geographic travel speed can't be computed
+  from it. The impossible-travel check therefore isn't evaluated here.
+- Country changes are unusually common: 34.53% of takeover-period test logins come from
+  a different country than the same user's attempt less than an hour earlier. That's why
+  the "country changed within 1 hour" rule performs badly in the tables above.
 
-## 🚀 Live Demo & Interactive Sandbox
+## How it works
 
-A fully functional production deployment is accessible at:
-👉 **[https://impossible-travel-auth-anomaly-engi.vercel.app/](https://impossible-travel-auth-anomaly-engi.vercel.app/)**
+**Features.** 19 per login, all from the user's and the IP's *earlier* activity only:
+- Account age and time since the last attempt.
+- First time seen with this country, network (ASN), IP, user agent, browser, OS or device
+  type.
+- Country hop within an hour.
+- Failed attempts among the user's last 10.
+- The round-trip time and this attempt's success.
+- Hour and weekday.
+- How many attempts (and failures) the IP made in the last hour, across all users.
 
-### 1-Click Interactive Scenarios:
-1. **Tokyo Impossible Jump**: NYC to Tokyo in 10 seconds ($>2,000,000\text{ km/h}$) $\rightarrow$ Flags `CRITICAL` risk and triggers automated block.
-2. **Tor Subnet Hop**: Fast jump across European datacenters with unknown hardware $\rightarrow$ Triggers `HIGH` risk step-up MFA.
-3. **Office Commute**: San Francisco local movement over 45 minutes $\rightarrow$ Evaluates as `LOW` risk safe login.
+They're computed in DuckDB with window functions over all 31M rows
+(`src/ittravel/rba/features.py`). The live engine (`src/ittravel/engine.py`) computes the
+same 19 values from in-memory history; a test checks the column order matches.
 
----
+**Training** (`src/ittravel/rba/train.py`):
+- Takeover labels stop in November 2020, so that model uses train 2020-02 → 07,
+  validation 08-09 and test 10-11.
+- The attack-IP model uses the full period: first 70% train, next 15% validation, last
+  15% test.
+- Training keeps every positive plus a random 3,000,000 negatives, re-weighted to the
+  true class balance.
+- Gradient boosting records weighted log loss every round. Validation picks the round
+  (takeover model: 39; attack-IP model: 37) and the alert threshold.
+- The whole run (DuckDB feature build included) took 36 minutes on a laptop.
 
-## 🛠️ Quickstart & Local Installation
+**Scoring.**
+- Each probability becomes a percentile of validation-period logins.
+- Tiers: ≥ 99.9 is CRITICAL (block and alert), ≥ 99 is HIGH (step-up authentication),
+  ≥ 90 is MEDIUM (allow and log), anything lower is LOW.
+- If coordinates are sent and the implied speed exceeds 900 km/h over more than 100 km,
+  the login is raised to at least HIGH.
 
-### Prerequisites
-* Python 3.10, 3.11, or 3.12
-* `git` and `pip`
+## API
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/UtkarshOver9000/Aegis-Auth-Anomaly-Engine.git
-cd Aegis-Auth-Anomaly-Engine
-
-# 2. Install dependencies
-pip install -r requirements.txt
-pip install -e .
-
-# 3. Launch local development server
-python -m uvicorn ittravel.api.app:app --reload --port 8000
+curl -X POST https://impossible-travel-auth-anomaly-engi.vercel.app/v1/auth/evaluate \
+  -H "Content-Type: application/json" -H "X-API-Key: demo-master-key-9000" \
+  -d '{"user_id":"u1","login_ts":"2026-10-04T10:00:00Z","ip":"203.0.113.15","device_id":"dev-1","country":"NO","asn":29695}'
 ```
 
-Open your browser at `http://localhost:8000` to interact with the dashboard.
-API documentation (OpenAPI / Swagger) is available at `http://localhost:8000/docs`.
+| Endpoint | Purpose |
+|---|---|
+| `POST /v1/auth/evaluate` | score a login and update that user's history (needs `X-API-Key`) |
+| `GET /v1/model` | test metrics of the deployed models |
+| `GET /v1/anomalies`, `GET /v1/stats` | recent HIGH/CRITICAL results of this server instance |
+| `POST /v1/keys/generate` | issue an extra key (needs the master key) |
 
----
+- The demo key is public. Set `AEGIS_API_KEY` for any real deployment.
+- History lives in memory, and on Vercel each instance has its own, so the hosted demo is
+  a sandbox.
+- More detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
+  [docs/SECURITY.md](docs/SECURITY.md).
 
-## 🧪 Comprehensive Quality Gates & Tests
-
-Aegis includes an automated test suite comprising **84+ unit, integration, ML, and CLI regression tests**:
+## Run it
 
 ```bash
-# Run pytest with coverage
-pytest tests/ -v --cov=src --cov-report=term-missing
-
-# Run CLI verification
-python -m ittravel.cli --user admin_01 --lat 35.6762 --lon 139.6503 --device macbook_pro --ip 203.0.113.15
+pip install -r requirements-dev.txt
+PYTHONPATH=src uvicorn ittravel.api.app:app --reload --port 8000     # dashboard at http://localhost:8000
+PYTHONPATH=src python -m ittravel.cli events.jsonl                    # score a JSON Lines file in order
+docker compose up                                                     # same API in Docker
 ```
 
----
+Retrain from scratch (downloads 1.1 GB; needs about 3 GB of disk for DuckDB):
 
-## 📚 API Reference
-
-### Real-Time Evaluation
-```http
-POST /v1/auth/evaluate
-Content-Type: application/json
-X-API-Key: demo-master-key-9000
-```
-
-#### Request Payload
-```json
-{
-  "user_id": "usr_executive_9000",
-  "login_ts": "2026-09-30T18:30:00Z",
-  "lat": 35.6762,
-  "lon": 139.6503,
-  "city": "Tokyo",
-  "country": "JP",
-  "device_id": "dev-unregistered-ios",
-  "ip": "203.0.113.15"
-}
-```
-
-#### Response Payload
-```json
-{
-  "user_id": "usr_executive_9000",
-  "is_anomaly": true,
-  "risk_score": 93.6,
-  "risk_tier": "CRITICAL",
-  "reasons": [
-    "Impossible physical travel velocity (2,123,052 km/h > 900 km/h)",
-    "Unrecognized device fingerprint (dev-unregistered-ios)",
-    "Login from new IP subnet"
-  ],
-  "velocity_kmph": 2123052.7,
-  "distance_km": 10851.7,
-  "time_delta_hours": 0.005,
-  "previous_location": {
-    "city": "New York",
-    "country": "US",
-    "lat": 40.7128,
-    "lon": -74.0060
-  },
-  "current_location": {
-    "city": "Tokyo",
-    "country": "JP",
-    "lat": 35.6762,
-    "lon": 139.6503
-  },
-  "timestamp": "2026-09-30T18:30:00Z"
-}
-```
-
----
-
-## 🐳 Docker & Production Deployment
-
-### Docker Container
 ```bash
-# Build the enterprise production container
-docker build -t aegis-engine:latest .
-
-# Run with local port mapping
-docker run -p 8000:8000 aegis-engine:latest
+curl -L -o data/rba-dataset.zip "https://zenodo.org/records/6782156/files/rba-dataset.zip?download=1"
+PYTHONPATH=src python -m ittravel.rba.load --zip data/rba-dataset.zip --db data/rba.duckdb
+PYTHONPATH=src python -m ittravel.rba.train --db data/rba.duckdb
 ```
 
-### Docker Compose
-```bash
-docker compose up -d
-```
+## Tests
 
----
+`pytest --cov=src`: 29 tests, 70% line coverage. CI runs lint and tests on Python 3.11 to
+3.13. The tests check:
+- The DuckDB feature SQL on hand-checked rows (no look-ahead).
+- That the live engine's features match the training columns.
+- Novelty, failure and IP-burst counting.
+- Impossible travel and the tier mapping.
+- API authentication and key issuing.
+- The CLI, and the alert-budget and metric maths.
 
-## 📄 License
+## License
 
-Distributed under the **MIT License**. See `LICENSE` for more information.
-
----
-
-<div align="center">
-  <b>Built by <a href="https://github.com/UtkarshOver9000">Utkarsh</a> for modern enterprise identity security.</b>
-</div>
+MIT for the code. The RBA dataset is CC BY 4.0 (Wiefling et al., 2022).

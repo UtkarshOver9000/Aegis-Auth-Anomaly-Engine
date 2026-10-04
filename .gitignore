@@ -1,9 +1,13 @@
 .venv/
 __pycache__/
-*.pyc
+*.py[cod]
 .pytest_cache/
-data/*.csv
-models/
-*.log
+.ruff_cache/
 .coverage
 htmlcov/
+*.egg-info/
+*.log
+
+# The RBA dataset (1.1 GB zip, 9 GB CSV) and its DuckDB copy are downloaded, never committed
+data/*
+!data/.gitkeep

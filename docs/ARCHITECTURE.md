@@ -1,43 +1,44 @@
-# Aegis ITDR — System Architecture
+# Aegis architecture
 
-Aegis is designed for high-throughput, inline, low-latency authentication evaluation at enterprise scale.
-
-## Core Components
-
-1. **API Gateway (FastAPI)**: Handles incoming `POST /v1/auth/evaluate` requests. Authenticates microservice callers via `X-API-Key` header verification.
-2. **Tenant State Engine (StateStore)**: Maintains an in-memory per-user ring buffer of the last known location, IP octets, device fingerprint, and timestamp. Redis-backed in production.
-3. **Ensemble ML Engine (IsolationForest)**: A pre-trained unsupervised IsolationForest model trained on synthetic feature distributions (velocity, device novelty, subnet entropy). Scores each login event as an outlier probability.
-4. **Geodesic Physics Engine (Haversine)**: Calculates the great-circle distance between consecutive coordinate pairs using the Haversine formula, then divides by the time delta to produce an implied physical velocity in km/h.
-5. **Composite Risk Scorer**: Weighted ensemble combining ML outlier score (40%) + heuristic velocity physics (60%). Outputs a canonical 0–100 risk score with tier classification and human-readable rationale tags.
-6. **Web Dashboard (Leaflet + Chart.js)**: Real-time browser-based interface with interactive geodesic radar map, attack simulator sandbox, global edge POP status, and SOC audit trail.
-
-## Scoring Signal Pipeline
+## Offline: training on the RBA dataset
 
 ```
-Login Event (user_id, lat, lon, device_id, ip, timestamp)
-        │
-        ▼
-┌──────────────────────────────────────────────────────┐
-│          Aegis Composite Risk Scoring Engine          │
-│  ┌─────────────────────────────────────────────────┐ │
-│  │ Haversine(prev_coord, curr_coord) / Δt → km/h   │ │
-│  │ IsolationForest.score_samples(features)          │ │
-│  │ device_id ∈ known_devices? (entropy novelty)     │ │
-│  │ ip_prefix_changed? (subnet jump detection)       │ │
-│  └─────────────────────────────────────────────────┘ │
-│  Final Score = 0.6 × heuristic + 0.4 × ML score     │
-└──────────────────────────────────────────────────────┘
-        │
-        ▼
-  Risk Tier Decision:
-  0–35   → LOW    (Frictionless allow)
-  36–79  → HIGH   (Step-up Passkey / WebAuthn challenge)
-  80–100 → CRITICAL (Immediate block + PagerDuty SOC alert)
+rba-dataset.zip (Zenodo, 9 GB CSV inside)
+   └─ rba/load.py       stream the CSV out of the zip in 1M-row chunks into DuckDB (31,269,264 rows)
+      └─ rba/features.py  SQL window functions over each user's (and each IP's) earlier logins
+         └─ rba/train.py    time split → gradient boosting per target → artifacts/ + reports/
 ```
 
-## Future Scalability
+Features per login, all from **earlier** activity only:
 
-- Replace in-memory StateStore with **Redis Streams** for distributed state across Kubernetes replicas.
-- Add **Apache Kafka** ingestion layer for high-volume auth telemetry (> 1M events/day).
-- Integrate **HashiCorp Vault** for production API key management.
-- Add **PostgreSQL** persistent audit log for GDPR/SOC2 compliance.
+| Feature | Meaning |
+|---|---|
+| `log_prior_logins`, `log_secs_since_prev` | how established the account is, time since last attempt |
+| `new_country`, `new_asn`, `new_ip`, `new_ua`, `new_browser`, `new_os`, `new_device` | first time this user is seen with that value |
+| `country_hop_1h` | country differs from the previous attempt less than an hour ago |
+| `prev_failed`, `fails_prev10`, `success` | recent failed password attempts, this attempt's outcome |
+| `log_rtt_ms`, `rtt_missing` | server-measured round-trip time |
+| `hour`, `weekday` | time of day and week |
+| `ip_attempts_1h`, `ip_failures_1h` | how busy this IP has been across all users in the last hour |
+
+Two binary targets, both labelled by the original online service: `ato` (account
+takeover confirmed by its incident team) and `attack_ip` (IP found in an attacker data set).
+
+## Online: the API
+
+```
+POST /v1/auth/evaluate
+   └─ engine.RiskEngine
+        ├─ state.UserState     per-user history (seen countries/networks/devices, recent outcomes)
+        ├─ per-IP 1-hour window
+        ├─ same 19 features as training → both models → probabilities
+        ├─ probability → percentile of validation-period logins → tier
+        └─ optional: great-circle distance / time > 900 km/h → at least HIGH
+```
+
+Tiers: percentile ≥ 99.9 → CRITICAL (block and alert), ≥ 99 → HIGH (step-up
+authentication), ≥ 90 → MEDIUM (allow and log), otherwise LOW.
+
+State is in process memory. On Vercel each instance has its own memory and is recycled,
+so the hosted demo is a sandbox; a production deployment would keep user history in a
+shared store.
