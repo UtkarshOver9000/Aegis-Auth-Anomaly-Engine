@@ -8,7 +8,7 @@ version = "3.0.0"
 description = "Login risk scoring (account takeover, attack IPs, impossible travel) trained on the 31M-login RBA dataset"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
   "numpy>=1.26",
   "pandas>=2.2",
@@ -35,7 +35,7 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 120
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]

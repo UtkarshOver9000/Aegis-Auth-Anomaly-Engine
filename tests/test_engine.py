@@ -1,6 +1,6 @@
 """Engine tests against the committed model artifacts (trained on the RBA dataset)."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -9,7 +9,7 @@ from ittravel.rba.features import FEATURE_COLUMNS
 from ittravel.schema import LoginEvent
 from ittravel.state import StateStore
 
-T0 = datetime(2026, 8, 3, 9, 0, tzinfo=timezone.utc)
+T0 = datetime(2026, 8, 3, 9, 0, tzinfo=UTC)
 HOME = dict(
     ip="84.208.20.10",
     device_id="dev-laptop",
@@ -101,7 +101,7 @@ def test_impossible_travel_forces_at_least_high(engine):
 
 
 def test_weekday_matches_duckdb_convention(engine):
-    sunday = datetime(2026, 8, 2, 12, tzinfo=timezone.utc)
+    sunday = datetime(2026, 8, 2, 12, tzinfo=UTC)
     feats = engine.features(engine.store.get_user("w"), login("w"), sunday)
     assert feats["weekday"] == 0
 

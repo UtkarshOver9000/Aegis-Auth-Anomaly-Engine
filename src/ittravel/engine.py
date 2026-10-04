@@ -20,7 +20,7 @@ import json
 import math
 import os
 from collections import deque
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import joblib
@@ -106,7 +106,7 @@ class RiskEngine:
     def evaluate_event(self, event: LoginEvent) -> EvaluationResult:
         now = datetime.fromisoformat(event.login_ts.replace("Z", "+00:00"))
         if now.tzinfo is None:
-            now = now.replace(tzinfo=timezone.utc)
+            now = now.replace(tzinfo=UTC)
         user = self.store.get_user(event.user_id)
         feats = self.features(user, event, now)
         x = np.array([[feats[c] for c in FEATURE_COLUMNS]], dtype=np.float32)

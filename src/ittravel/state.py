@@ -11,7 +11,7 @@ from __future__ import annotations
 import os
 import secrets
 from collections import deque
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 DEMO_MASTER_KEY = "demo-master-key-9000"
 HISTORY_LIMIT = 50
@@ -75,7 +75,7 @@ class StateStore:
 
     def create_api_key(self, name: str) -> dict:
         key = f"demo_{secrets.token_hex(16)}"
-        info = {"name": name, "api_key": key, "created_at": datetime.now(timezone.utc).isoformat()}
+        info = {"name": name, "api_key": key, "created_at": datetime.now(UTC).isoformat()}
         self.api_keys[key] = info
         return info
 
