@@ -130,3 +130,4 @@ tbody tr.click:hover td { background: var(--accent-soft); }
 button.link { border: 0; background: none; color: var(--accent); cursor: pointer; font: 500 0.85rem Inter, sans-serif; padding: 0; }
 .globe-card .legend { color: #e8ecef; }
 .place { background: var(--accent-soft); border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; font-size: 0.9rem; }
+.globe-tip.floating { position: absolute; pointer-events: none; z-index: 3; max-width: 260px; }

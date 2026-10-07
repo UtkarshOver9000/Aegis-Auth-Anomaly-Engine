@@ -72,7 +72,7 @@ function world() {
       f.properties.c = byNumeric[+f.id];
       if (f.properties.c) centers[f.properties.c.a2] = center(f);
     });
-    return { features, data, centers };
+    return { features, data, centers, topo };
   });
   return worldPromise;
 }
@@ -100,39 +100,45 @@ loaders.home = async () => {
 // ---------- live globe ----------
 const METRICS = {
   malicious_ips: {
-    heat: "malware",
+    unit: "malware servers",
+    state: "m",
     title: "Malware and botnet servers right now",
     explain: "Servers that security researchers caught spreading malware or controlling botnets in the last few days. Most are not rented servers but hacked home routers, cameras and other devices, which is why countries with huge numbers of home connections lead this list.",
     source: "malware",
   },
   ransomware_victims: {
+    unit: "ransomware victims this week",
     title: "Ransomware victims this week",
     explain: "Businesses that ransomware gangs posted on their leak sites this week, by the victim's country. Gangs post victims who refuse to pay, so the real number of attacks is higher.",
     source: "ransomware",
   },
   confirmed_blocks: {
+    unit: "websites confirmed blocked",
     title: "Websites confirmed blocked, last 30 days",
     explain: "Volunteers running OONI Probe test whether websites and apps load. A confirmed block means the test hit a known government or ISP block page. More volunteers means more tests, so a high number means heavy blocking or a lot of testing, and often both.",
     source: "censorship",
   },
   hosting_ipv4: {
+    unit: "hosting / VPN addresses",
     title: "Addresses on hosting / VPN networks",
     explain: "IPv4 addresses that belong to cloud, hosting and VPN companies. Real customers rarely sign in from a data center, but bots, scrapers and people hiding behind VPNs do, so Alibi treats these networks with extra care.",
     source: "network",
   },
   dns_resolvers: {
-    heat: "dns",
+    unit: "public DNS servers",
+    state: "d",
     title: "Working public DNS servers",
     explain: "DNS servers turn names like google.com into addresses. Open public ones are useful, but attackers also misuse them to flood websites with traffic, and governments block them to enforce censorship.",
     source: "dns",
   },
   cable_landings: {
-    heat: "landings",
+    unit: "undersea cable landing stations",
     title: "Undersea cable landing stations",
     explain: "Where undersea internet cables come ashore. Almost all traffic between continents runs through these cables, so countries with few landings can be cut off by a single fault or attack.",
     source: "cables",
   },
   tor_exits: {
+    unit: "Tor exits",
     title: "Tor exit relays",
     explain: "Tor hides where a person really is by bouncing their traffic around the world. Exit relays are where that traffic comes back out, so a sign-in from one could be anyone, anywhere.",
     source: "tor",
@@ -150,53 +156,98 @@ const IMG = "https://cdn.jsdelivr.net/npm/three-globe@2/example/img/"; // NASA B
 const HEAT = d3.interpolateRgbBasis(["#2b83ba", "#66c2a5", "#ffffbf", "#fdae61", "#d7191c"]);
 const HEAT_CSS = "linear-gradient(90deg, #2b83ba, #66c2a5, #ffffbf, #fdae61, #d7191c)";
 const withAlpha = (color, a) => { const c = d3.color(color); c.opacity = a; return c.formatRgb(); };
-let states = [], heat = {}, cablePaths = [], landings = [], stateLines = [], hovered = null, countryColor = () => "rgba(0,0,0,0)";
+// Everything (state colours, state and country borders) is painted into ONE globe texture: no extra 3D objects, no lag.
+const TW = 4096, TH = 2048;
+let states = [], heat = {}, cablePaths = [], landings = [], tex, baseImg, borders, selState = null;
+
+const toXY = (lng, lat) => [((lng + 180) / 360) * TW, ((90 - lat) / 180) * TH];
+
+function traceRing(ctx, ring) {
+  const crosses = ring.some((p, i) => i && Math.abs(p[1] - ring[i - 1][1]) > 180); // straddles the date line
+  for (const shift of crosses ? [0, -TW] : [0]) {
+    ring.forEach(([lat, lng], i) => {
+      const [x, y] = toXY(crosses && lng < 0 ? lng + 360 : lng, lat);
+      i ? ctx.lineTo(x + shift, y) : ctx.moveTo(x + shift, y);
+    });
+    ctx.closePath();
+  }
+}
+
+function stateValue(s) {
+  const m = METRICS[metric];
+  return m.state ? s[m.state] || 0 : globe.__data.countries[s.c]?.[metric] || 0;
+}
+
+function paintTexture() {
+  const mat = globe.globeMaterial();
+  if (!mat.map || !baseImg?.complete) return setTimeout(paintTexture, 300); // wait for the Earth image
+  const ctx = tex.getContext("2d");
+  ctx.drawImage(baseImg, 0, 0, TW, TH);
+  const vals = states.map(stateValue);
+  const top = Math.log1p(Math.max(...vals, 1));
+  states.forEach((s, i) => {
+    if (!vals[i]) return; // no recorded activity: leave the real Earth showing
+    ctx.beginPath();
+    s.r.forEach((r) => traceRing(ctx, r));
+    ctx.fillStyle = withAlpha(HEAT(Math.log1p(vals[i]) / top), 0.62);
+    ctx.fill("evenodd");
+  });
+  ctx.beginPath();
+  states.forEach((s) => s.r.forEach((r) => traceRing(ctx, r)));
+  ctx.strokeStyle = "rgba(255,255,255,0.45)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  const path = d3.geoPath(d3.geoEquirectangular().scale(TW / (2 * Math.PI)).translate([TW / 2, TH / 2]), ctx);
+  ctx.beginPath();
+  path(borders);
+  ctx.strokeStyle = "rgba(255,255,255,0.95)";
+  ctx.lineWidth = 2.2;
+  ctx.stroke();
+  if (selState) {
+    ctx.beginPath();
+    selState.r.forEach((r) => traceRing(ctx, r));
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 5;
+    ctx.stroke();
+  }
+  mat.map.image = tex;
+  mat.map.needsUpdate = true;
+}
 
 loaders.globe = async () => {
-  const [{ features, data, centers }, cab, st, ht] = await Promise.all([
+  const [{ features, data, centers, topo }, cab, st, ht] = await Promise.all([
     world(), api("/v1/intel/cables"), api("/v1/intel/states"), api("/v1/intel/heat")]);
   if (!data.totals.tor_exit_relays) $('[data-metric="tor_exits"]').remove(); // Tor list unreachable when the snapshot was built
   states = st;
   heat = ht;
-  stateLines = st.flatMap((s) => s.r.map((ring) => ({ kind: "state", coords: ring })));
-  cablePaths = cab.cables.flatMap((c) => c.paths.map((p) => ({ kind: "cable", name: c.name, color: c.color, coords: p })));
+  borders = topojson.mesh(topo, topo.objects.countries);
+  cablePaths = cab.cables.flatMap((c) => c.paths.map((p) => ({ name: c.name, color: c.color, coords: p })));
   landings = cab.landings;
+  tex = document.createElement("canvas");
+  tex.width = TW;
+  tex.height = TH;
+  baseImg = new Image();
+  baseImg.crossOrigin = "anonymous";
+  baseImg.src = `${IMG}earth-blue-marble.jpg`;
   const el = $("#globe");
-  globe = Globe({ animateIn: true })(el)
+  globe = Globe({ animateIn: true, rendererConfig: { antialias: true, powerPreference: "high-performance" } })(el)
     .globeImageUrl(`${IMG}earth-blue-marble.jpg`).bumpImageUrl(`${IMG}earth-topology.png`)
     .backgroundImageUrl(`${IMG}night-sky.png`)
     .showAtmosphere(true).atmosphereColor("#9ec9ff").atmosphereAltitude(0.16)
-    // countries: heat colour for country-level data, otherwise clear (hover and click only), crisp borders
-    .polygonsData(features)
-    .polygonAltitude((f) => (f === selected ? 0.008 : 0.004))
-    .polygonCapColor((f) => (f === selected ? "rgba(255,255,255,0.3)" : f === hovered ? "rgba(255,255,255,0.15)" : countryColor(f)))
-    .polygonSideColor(() => "rgba(0,0,0,0)")
-    .polygonStrokeColor(() => "rgba(255,255,255,0.75)")
-    .polygonLabel((f) => countryTip(f.properties.c))
-    .onPolygonHover((f) => { hovered = f; globe.polygonCapColor(globe.polygonCapColor()); })
-    .onPolygonClick((f, _e, at) => selectCountry(f, at))
+    .onGlobeReady(() => paintTexture())
     .onGlobeClick((at) => pickAt(features, at))
-    // flat heatmap of exact places (malware servers, DNS servers, cable landings)
-    .heatmapPointLat((p) => p[0]).heatmapPointLng((p) => p[1]).heatmapPointWeight((p) => Math.log1p(p[2]))
-    .heatmapBandwidth(0.55).heatmapColorSaturation(4).heatmapBaseAltitude(0.006)
-    .heatmapColorFn(() => (t) => withAlpha(HEAT(t), t < 0.02 ? 0 : Math.min(0.95, 0.45 + t)))
-    // state borders (thin) and, when switched on, undersea cables
-    .pathsData(stateLines).pathPoints("coords").pathPointLat((p) => p[0]).pathPointLng((p) => p[1])
-    .pathPointAlt(0.0045).pathStroke(null)
-    .pathColor((p) => (p.kind === "state" ? "rgba(255,255,255,0.28)" : p.color))
-    .pathLabel((p) => (p.kind === "cable" ? `<div class="globe-tip">Undersea cable: ${esc(p.name)}</div>` : ""))
-    .pathDashLength((p) => (p.kind === "cable" ? 0.08 : 1)).pathDashGap((p) => (p.kind === "cable" ? 0.01 : 0))
-    .pathDashAnimateTime((p) => (p.kind === "cable" ? 16000 : 0)).pathTransitionDuration(0)
+    .pathPoints("coords").pathPointLat((p) => p[0]).pathPointLng((p) => p[1]).pathPointAlt(0.004)
+    .pathColor((p) => p.color).pathDashLength(0.08).pathDashGap(0.01).pathDashAnimateTime(16000).pathTransitionDuration(0)
+    .pathLabel((p) => `<div class="globe-tip">Undersea cable: ${esc(p.name)}</div>`)
     .onPathClick((_p, _e, at) => pickAt(features, at))
-    .pointLat("lat").pointLng("lng").pointAltitude(0.006).pointRadius(0.12).pointColor(() => "#ffd27a")
-    .pointLabel((p) => `<div class="globe-tip">Cable landing: ${esc(p.name)}</div>`)
-    .onPointClick((_p, _e, at) => pickAt(features, at))
+    .pointLat("lat").pointLng("lng").pointAltitude(0.005).pointRadius(0.12).pointColor(() => "#ffd27a").pointsMerge(true)
     .arcsData([]).arcColor("color").arcStroke(0.8).arcDashLength(0.5).arcDashGap(0.15).arcDashAnimateTime(1600)
     .arcAltitudeAutoScale(0.45).arcLabel((a) => `<div class="globe-tip">${esc(a.label)}</div>`)
     .labelsData([]).labelLat("lat").labelLng("lng").labelText("text").labelSize(1.1).labelDotRadius(0.45)
     .labelColor(() => "#ffffff").labelResolution(2);
+  globe.renderer().setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
   globe.pointOfView({ lat: 22, lng: 40, altitude: 2 });
-  Object.assign(globe.controls(), { autoRotate: true, autoRotateSpeed: 0.35, minDistance: 115, maxDistance: 520 });
+  Object.assign(globe.controls(), { autoRotate: true, autoRotateSpeed: 0.35, minDistance: 112, maxDistance: 520 });
   $("#reset-view").addEventListener("click", () => globe.pointOfView({ lat: 22, lng: 40, altitude: 2 }, 800));
   el.addEventListener("pointerdown", () => (globe.controls().autoRotate = false), { once: true });
   sizeGlobe();
@@ -204,6 +255,25 @@ loaders.globe = async () => {
   globe.__centers = centers;
   globe.__data = data;
   globe.__features = features;
+
+  // hover: which state is under the mouse (looked up on the 2D data, not with 3D objects)
+  const tip = $("#globe-tip");
+  let frame = 0;
+  el.addEventListener("mousemove", (e) => {
+    if (frame) return;
+    frame = requestAnimationFrame(() => {
+      frame = 0;
+      const box = el.getBoundingClientRect();
+      const at = globe.toGlobeCoords(e.clientX - box.left, e.clientY - box.top);
+      const s = at && stateAt(at);
+      if (!s) return void (tip.hidden = true);
+      tip.hidden = false;
+      tip.style.left = `${Math.min(e.clientX - box.left + 14, box.width - 260)}px`;
+      tip.style.top = `${e.clientY - box.top + 14}px`;
+      tip.innerHTML = stateTip(s);
+    });
+  });
+  el.addEventListener("mouseleave", () => (tip.hidden = true));
 
   $$("[data-metric]").forEach((b) => b.addEventListener("click", () => {
     metric = b.dataset.metric;
@@ -213,7 +283,7 @@ loaders.globe = async () => {
   }));
   $("#show-cables").addEventListener("change", () => {
     const on = $("#show-cables").checked;
-    globe.pathsData(on ? [...stateLines, ...cablePaths] : stateLines).pointsData(on ? landings : []);
+    globe.pathsData(on ? cablePaths : []).pointsData(on ? landings : []);
   });
   $$("[data-journey]").forEach((b) => b.addEventListener("click", () => {
     journey = b.dataset.journey.split(",");
@@ -239,46 +309,37 @@ function stateAt(at) {
 }
 
 function pickAt(features, at) {
-  // clicks that land on a border, a cable or the sea still pick the country underneath
   const f = at && features.find((x) => d3.geoContains(x, [at.lng, at.lat]));
   if (f) selectCountry(f, at);
 }
 
-function countryTip(c) {
-  if (!c) return "";
-  return `<div class="globe-tip"><b>${esc(c.name)}</b><br>${fmt(c.malicious_ips)} malware servers now
-    <br>${fmt(c.ransomware_victims)} ransomware victims this week<br>${fmt(c.confirmed_blocks)} websites confirmed blocked
-    <br>${fmt(c.dns_resolvers)} public DNS servers</div>`;
+function stateTip(s) {
+  const c = globe.__data.countries[s.c];
+  const m = METRICS[metric];
+  return `<b>${esc(s.n)}</b> <span class="muted">${esc(s.t)}${c ? `, ${esc(c.name)}` : ""}</span>
+    <br>${fmt(s.m)} malware servers · ${fmt(s.d)} public DNS servers here` +
+    (c && !m.state ? `<br>${esc(c.name)}: ${fmt(c[metric])} ${esc(m.unit)}` : "");
 }
 
 function paint() {
   const data = globe.__data;
   const m = METRICS[metric];
-  const max = Math.max(...Object.values(data.countries).map((c) => c[metric]), 1);
-  if (m.heat) {
-    // exact places: a flat heatmap, countries left clear
-    countryColor = () => "rgba(0,0,0,0)";
-    globe.heatmapsData([heat[m.heat]]);
-  } else {
-    // only known per country: colour the whole country, log scale so one giant doesn't wash out the rest
-    countryColor = (f) => {
-      const v = f.properties.c?.[metric] || 0;
-      return v > 0 ? withAlpha(HEAT(Math.log1p(v) / Math.log1p(max)), 0.62) : "rgba(0,0,0,0)";
-    };
-    globe.heatmapsData([]);
-  }
-  globe.polygonCapColor(globe.polygonCapColor());
-  const top = Object.values(data.countries).filter((c) => c[metric] > 0).sort((a, b) => b[metric] - a[metric]).slice(0, 10);
+  paintTexture();
+  const rows = m.state
+    ? states.filter((s) => s[m.state] > 0).sort((a, b) => b[m.state] - a[m.state]).slice(0, 10)
+      .map((s) => [`${s.n}, ${data.countries[s.c]?.name || s.c}`, s[m.state]])
+    : Object.values(data.countries).filter((c) => c[metric] > 0).sort((a, b) => b[metric] - a[metric]).slice(0, 10)
+      .map((c) => [c.name, c[metric]]);
   $("#legend-bar").style.background = HEAT_CSS;
-  $("#legend-max").textContent = m.heat ? "high (exact places, log scale)" : `${compact(max)} per country (log scale)`;
-  $("#top-title").textContent = `Top 10: ${m.title.toLowerCase()}`;
-  $("#top-list").innerHTML = top.map((c) => `<li><span>${esc(c.name)}</span><b>${fmt(c[metric])}</b></li>`).join("");
+  $("#legend-max").textContent = m.state ? "high, per state (log scale)" : "high, per country (log scale)";
+  $("#top-title").textContent = `Top 10 ${m.state ? "states and provinces" : "countries"}: ${m.title.toLowerCase()}`;
+  $("#top-list").innerHTML = rows.map(([n, v]) => `<li><span>${esc(n)}</span><b>${fmt(v)}</b></li>`).join("");
   $("#metric-explain").textContent = m.explain;
   const s = data.sources[m.source];
-  const located = m.heat === "malware" || m.heat === "dns"
-    ? ` ${fmt(heat[`${m.heat}_located`])} of ${fmt(heat[`${m.heat}_total`])} placed on the map by IP geolocation (IP Geolocation by <a href="https://db-ip.com" target="_blank" rel="noopener">DB-IP</a>, CC BY 4.0), accurate to roughly city level.`
-    : "";
-  $("#map-sources").innerHTML = s ? `Source: <a href="${s.url}" target="_blank" rel="noopener">${esc(s.name)}</a> (${esc(s.license)}).${located}` : "";
+  const located = m.state
+    ? ` All ${fmt(heat[`${m.state === "m" ? "malware" : "dns"}_located`])} servers are placed in their state by IP geolocation (IP Geolocation by <a href="https://db-ip.com" target="_blank" rel="noopener">DB-IP</a>, CC BY 4.0), accurate to roughly city level.`
+    : " This number is only known per country, so every state in a country shares its colour.";
+  $("#map-sources").innerHTML = s ? `Source: <a href="${s.url}" target="_blank" rel="noopener">${esc(s.name)}</a> (${esc(s.license)}).${located} Data as of ${day(data.as_of)}; refreshed daily.` : "";
 }
 
 async function selectCountry(f, at) {
@@ -286,9 +347,10 @@ async function selectCountry(f, at) {
   if (!c) return;
   selected = f;
   globe.__lastAt = at;
-  globe.polygonAltitude(globe.polygonAltitude()).polygonCapColor(globe.polygonCapColor());
-  const [lng, lat] = globe.__centers[c.a2];
   const st = stateAt(at);
+  selState = st && st.c === c.a2 ? st : null;
+  paintTexture();
+  const [lng, lat] = globe.__centers[c.a2];
   globe.controls().autoRotate = false;
   globe.pointOfView(at ? { lat: at.lat, lng: at.lng, altitude: 1.2 } : { lat, lng, altitude: 1.5 }, 900);
   const facts = [
@@ -300,14 +362,17 @@ async function selectCountry(f, at) {
     ["Undersea cable landings", fmt(c.cable_landings)],
   ];
   if (globe.__data.totals.tor_exit_relays) facts.push(["Tor exits", fmt(c.tor_exits)]);
-  const inState = st && st.c === c.a2
-    ? `<div class="place"><b>${esc(st.t)}: ${esc(st.n)}</b><br>${fmt(st.m)} malware servers · ${fmt(st.d)} public DNS servers located here</div>` : "";
-  const layer = METRICS[metric].heat === "dns" ? "dns" : "malware";
+  const key = METRICS[metric].state === "d" ? "d" : "m";
+  const label = key === "d" ? "public DNS servers" : "malware servers";
+  const topStates = states.filter((s) => s.c === c.a2 && s[key] > 0).sort((a, b) => b[key] - a[key]).slice(0, 6);
+  const layer = key === "d" ? "dns" : "malware";
   const spots = heat.places?.[c.a2]?.[layer] || [];
-  const hotspots = spots.length
-    ? `<p class="fineprint"><b>${layer === "dns" ? "Most public DNS servers" : "Malware hotspots"} in ${esc(c.name)}:</b> ${spots.map(([city, n]) => `${esc(city)} (${fmt(n)})`).join(" · ")}</p>` : "";
-  $("#country-panel").innerHTML = `${inState}<h3>${esc(c.name)}</h3>
-    <div class="facts">${facts.map(([k, v]) => `<div><b>${k}</b>${v}</div>`).join("")}</div>${hotspots}
+  $("#country-panel").innerHTML = `${selState ? `<div class="place"><b>${esc(selState.t)}: ${esc(selState.n)}</b><br>
+      ${fmt(selState.m)} malware servers · ${fmt(selState.d)} public DNS servers located here</div>` : ""}
+    <h3>${esc(c.name)}</h3>
+    <div class="facts">${facts.map(([k, v]) => `<div><b>${k}</b>${v}</div>`).join("")}</div>
+    ${topStates.length ? `<p class="fineprint"><b>States with the most ${label}:</b> ${topStates.map((s) => `${esc(s.n)} (${fmt(s[key])})`).join(" · ")}</p>` : ""}
+    ${spots.length ? `<p class="fineprint"><b>Top cities:</b> ${spots.slice(0, 6).map(([city, n]) => `${esc(city)} (${fmt(n)})`).join(" · ")}</p>` : ""}
     <p class="fineprint" id="country-nets">Looking up its networks…</p>
     <button class="btn" id="add-journey" ${journey.length >= 3 ? "disabled" : ""}>Add to journey</button>`;
   $("#add-journey").addEventListener("click", () => {

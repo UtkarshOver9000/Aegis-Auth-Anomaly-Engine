@@ -19,11 +19,11 @@ alibi: does this look like the real person, from their usual place, network and 
 
 ## What it shows
 
-All figures below come from the data snapshot of **4 October 2026**. The app shows the same numbers live.
+All figures below come from the data snapshot of **4 October 2026**. A GitHub Action ([refresh-intel.yml](.github/workflows/refresh-intel.yml)) re-downloads every source and rebuilds the data every day, so the app always shows the latest numbers.
 
 | Module | What you see | Headline numbers |
 |---|---|---|
-| **Live globe** | Real Earth (NASA Blue Marble) with every country and 4,596 state / province borders, and a blue-to-red heatmap. Malware and DNS servers are pinned to their real cities by IP geolocation; data known only per country colours the whole country. Click anywhere for that state's and country's numbers and the country's hotspot cities. 733 undersea cables show how countries are wired together. Chain 2 or 3 countries into a sign-in journey and the model scores each hop. | 179 countries with censorship tests, 1,927 cable landing stations |
+| **Live globe** | Real Earth (NASA Blue Marble) with every country and all 4,596 states and provinces outlined, each state coloured blue (low) to red (high). Malware and DNS servers are counted per state from their real cities (IP geolocation); data known only per country colours all its states. Hover any state for its numbers; click for top states and cities. 733 undersea cables show how countries are wired together. Chain 2 or 3 countries into a sign-in journey and the model scores each hop. | 179 countries with censorship tests, 1,927 cable landing stations |
 | **Breaches** | Every breach published by Have I Been Pwned, the biggest company breaches, and **how each one happened** (read from HIBP's own write-up). | 1,020 breaches, **16.29 billion** accounts; 102 breaches and 478.7 million accounts in the last 12 months |
 | **Attacks** | Live malware and botnet servers, the networks hosting them, criminal networks, and this week's ransomware victims by industry, country and gang. | **8,420** malware / botnet servers; 11,005 threat indicators in 48 hours; 430 criminal networks; 100 ransomware victims (29 Sep to 3 Oct 2026) |
 | **Exploited flaws** | CISA's list of vulnerabilities confirmed as exploited in real attacks. | 1,733 flaws; 39 added in the last 30 days; 361 used by ransomware |

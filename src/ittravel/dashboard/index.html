@@ -13,7 +13,7 @@
 <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/globe.gl@2.46.2/dist/globe.gl.min.js"></script>
-<link rel="stylesheet" href="/static/dashboard.css">
+<link rel="stylesheet" href="/static/dashboard.css?v=5">
 </head>
 <body>
 <header class="top">
@@ -59,10 +59,9 @@
 
   <section id="tab-globe" class="tab" hidden>
     <h2>The live globe</h2>
-    <p class="muted">The real Earth, with every country and state border. Drag to spin, scroll to zoom, click anywhere to
-      see what's happening there. Blue means low, red means high. Malware and DNS servers are pinned to their real
-      cities; data only known per country colours the whole country. Switch on the undersea cables to see how
-      countries are physically wired together.</p>
+    <p class="muted">The real Earth with every country and state outlined. Each state is coloured by the number
+      you pick: blue is low, red is high, uncoloured means nothing recorded. Hover a state for its numbers, click it for
+      the details. Data refreshes daily from public sources.</p>
     <div class="chips" id="metric-chips">
       <button data-metric="malicious_ips" class="on">Malware servers now</button>
       <button data-metric="ransomware_victims">Ransomware victims this week</button>
@@ -73,7 +72,7 @@
       <button data-metric="tor_exits">Tor exits</button>
     </div>
     <div class="globe-layout">
-      <div class="card globe-card"><div id="globe"></div>
+      <div class="card globe-card"><div id="globe"></div><div id="globe-tip" class="globe-tip floating" hidden></div>
         <div class="toggle"><label><input type="checkbox" id="show-cables"> Undersea cables</label><button class="link" id="reset-view">Reset view</button></div>
         <div class="legend"><span>low</span><i id="legend-bar"></i><span id="legend-max"></span></div>
       </div>
@@ -222,6 +221,6 @@
 <footer class="wrap foot">
   Alibi is a portfolio project built on public data. <a href="/docs">API</a> · <a href="https://github.com/UtkarshOver9000/alibi">Source code</a>
 </footer>
-<script src="/static/dashboard.js"></script>
+<script src="/static/dashboard.js?v=5"></script>
 </body>
 </html>

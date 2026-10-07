@@ -1,0 +1,30 @@
+name: Refresh intel data
+
+# Re-downloads every public source and rebuilds the snapshot once a day, so the
+# breaches, malware servers, ransomware and flaw numbers stay current.
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install ".[snapshot]" pytest httpx
+      - run: bash scripts/fetch_intel.sh
+      - run: PYTHONPATH=src python -m ittravel.intel.snapshot --raw data/intel
+      - run: ALIBI_OFFLINE=1 pytest -q tests/test_intel.py
+      - name: Commit the new snapshot
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/ittravel/intel_data
+          if git diff --cached --quiet; then echo "no changes"; else git commit -m "Refresh intel data $(date -u +%F)" && git push; fi

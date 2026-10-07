@@ -19,7 +19,7 @@ get spamhaus_asndrop.json     https://www.spamhaus.org/drop/asndrop.json
 get ransomware_recent.json    https://api.ransomware.live/v2/recentvictims
 get cable_geo.json            https://www.submarinecablemap.com/api/v3/cable/cable-geo.json
 get landing_points.json       https://www.submarinecablemap.com/api/v3/landing-point/landing-point-geo.json
-get dbip-city-lite.csv.gz     "https://download.db-ip.com/free/dbip-city-lite-$(date -u +%Y-%m).csv.gz"
+get dbip-city-lite.csv.gz     "https://download.db-ip.com/free/dbip-city-lite-$(date -u +%Y-%m).csv.gz" \n  || get dbip-city-lite.csv.gz "https://download.db-ip.com/free/dbip-city-lite-$(date -u -d 'last month' +%Y-%m).csv.gz"
 get ne_10m_admin1.geojson     https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_1_states_provinces.geojson
 # Optional: torproject.org is blocked on some networks. Without it, the app fetches the exit list live.
 get onionoo_exits.json "https://onionoo.torproject.org/details?flag=Exit&running=true&fields=exit_addresses,country" \
