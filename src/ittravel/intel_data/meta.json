@@ -80,5 +80,11 @@
     "ooni_countries": 179,
     "ooni_measurements": 50419717
   },
-  "window_ooni": "last 30 days to fetch date"
+  "window_ooni": "last 30 days to fetch date",
+  "heat": {
+    "malware_located": 8420,
+    "malware_total": 8420,
+    "dns_located": 62607,
+    "dns_total": 62607
+  }
 }

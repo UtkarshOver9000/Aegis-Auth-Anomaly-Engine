@@ -144,6 +144,12 @@ async def intel_states():
     return FileResponse(str(service.DATA / "states.json"), media_type="application/json")
 
 
+@app.get("/v1/intel/heat", tags=["Intel"])
+async def intel_heat():
+    """City-level hotspots of malware servers and public DNS servers (located with DB-IP, CC BY 4.0)."""
+    return FileResponse(str(service.DATA / "heat.json"), media_type="application/json")
+
+
 @app.get("/v1/intel/news", tags=["Intel"])
 async def intel_news():
     """Latest security headlines and videos from public feeds (cached for 30 minutes)."""

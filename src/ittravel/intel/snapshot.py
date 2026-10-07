@@ -15,6 +15,7 @@ Sources (all public, credited in the app and README):
 * ransomware.live recent victims (aggregate counts only) -> threats.json
 * TeleGeography Submarine Cable Map (CC BY-NC-SA 3.0)   -> cables.json (the globe's connections)
 * Natural Earth admin-1 states and provinces (public domain) -> states.json (borders + click lookup)
+* DB-IP IP to City Lite (CC BY 4.0)                     -> heat.json (city-level hotspots, per-state counts)
 """
 
 from __future__ import annotations
@@ -26,7 +27,7 @@ import html
 import ipaddress
 import json
 import re
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -515,6 +516,86 @@ def build_states(raw: Path) -> dict:
     return {"states_provinces": len(out)}
 
 
+def _geolocate(raw: Path, ips: set[str]) -> dict[str, tuple[float, float, str, str]]:
+    """ip -> (lat, lon, city, state) from DB-IP City Lite, in one pass over its sorted ranges."""
+    wanted = []
+    for ip in ips:
+        try:
+            wanted.append((int(ipaddress.IPv4Address(ip)), ip))
+        except ValueError:
+            continue
+    wanted.sort()
+    out, k = {}, 0
+    with gzip.open(raw / "dbip-city-lite.csv.gz", "rt", encoding="utf-8", errors="replace") as fh:
+        for row in csv.reader(fh):
+            if k >= len(wanted):
+                break
+            if ":" in row[0]:
+                continue
+            start, end = int(ipaddress.IPv4Address(row[0])), int(ipaddress.IPv4Address(row[1]))
+            while k < len(wanted) and wanted[k][0] < start:
+                k += 1
+            while k < len(wanted) and wanted[k][0] <= end:
+                out[wanted[k][1]] = (float(row[6]), float(row[7]), row[5], row[4])
+                k += 1
+    return out
+
+
+def build_heat(raw: Path) -> dict:
+    """City-level hotspots for malware servers and public DNS servers, plus counts per state and per city."""
+    import shapely
+    from shapely.geometry import Polygon
+
+    bad = json.loads((OUT / "bad_ips.json").read_text())
+    with open(raw / "public_dns_nameservers.csv", encoding="utf-8", errors="replace") as fh:
+        dns = {
+            r["ip_address"]: r["country_code"].upper()
+            for r in csv.DictReader(fh)
+            if not r.get("error") and "." in r["ip_address"]
+        }
+    geo = _geolocate(raw, set(bad) | set(dns))
+
+    states = json.loads((OUT / "states.json").read_text(encoding="utf-8"))
+    owner, polys = [], []  # one polygon per ring, each mapped back to its state
+    for i, st in enumerate(states):
+        for r in st["r"]:
+            owner.append(i)
+            polys.append(shapely.make_valid(Polygon([(lng, lat) for lat, lng in r])))
+    tree = shapely.STRtree(polys)
+
+    heat, places = {}, defaultdict(dict)
+    for layer, ips, cc_of in (
+        ("malware", list(bad), lambda ip: bad[ip].get("country", "")),
+        ("dns", list(dns), lambda ip: dns[ip]),
+    ):
+        located = [ip for ip in ips if ip in geo]
+        pts = shapely.points([geo[ip][1] for ip in located], [geo[ip][0] for ip in located])
+        hit_pt, hit_state = tree.query(pts, predicate="intersects")
+        first: dict[int, int] = {}  # a point on a shared border counts once
+        for p_i, s_i in zip(hit_pt.tolist(), hit_state.tolist(), strict=True):
+            first.setdefault(p_i, owner[s_i])
+        per_state = Counter(first.values())
+        for i, s in enumerate(states):
+            s[layer[0]] = per_state.get(i, 0)
+        spots = Counter((round(geo[ip][0], 1), round(geo[ip][1], 1)) for ip in located)
+        heat[layer] = [[lat, lng, n] for (lat, lng), n in spots.items()]
+        cities: dict[str, Counter] = defaultdict(Counter)
+        for ip in located:
+            if geo[ip][2]:
+                cities[cc_of(ip)][f"{geo[ip][2]}, {geo[ip][3]}" if geo[ip][3] else geo[ip][2]] += 1
+        for cc, counter in cities.items():
+            places[cc][layer] = counter.most_common(8)
+        heat[f"{layer}_located"] = len(located)
+        heat[f"{layer}_total"] = len(ips)
+
+    landings = json.loads((OUT / "cables.json").read_text())["landings"]
+    heat["landings"] = [[p["lat"], p["lng"], 1] for p in landings]
+    heat["places"] = places
+    (OUT / "heat.json").write_text(json.dumps(heat, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    (OUT / "states.json").write_text(json.dumps(states, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    return {k: heat[k] for k in ("malware_located", "malware_total", "dns_located", "dns_total")}
+
+
 def build_countries(
     raw: Path, hosting_ips: Counter, bad_by_country: Counter, rw_by_country: Counter, landings: Counter
 ) -> dict:
@@ -598,6 +679,7 @@ def main() -> None:
     meta["threats_fetched_at"] = (args.raw / "fetched_at_threats.txt").read_text().strip()
     meta["cables"], landings = build_cables(args.raw)
     meta["states"] = build_states(args.raw)
+    meta["heat"] = build_heat(args.raw)
     meta["countries"] = build_countries(args.raw, hosting_ips, bad_by_country, rw_by_country, landings)
     meta["window_ooni"] = "last 30 days to fetch date"
     (OUT / "meta.json").write_text(json.dumps(meta, indent=2))

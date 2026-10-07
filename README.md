@@ -23,7 +23,7 @@ All figures below come from the data snapshot of **4 October 2026**. The app sho
 
 | Module | What you see | Headline numbers |
 |---|---|---|
-| **Live globe** | Real Earth (NASA Blue Marble) with every country and 4,596 state / province borders. Data nodes rise from each country, 733 undersea cables show how countries are wired together, and a click anywhere shows that place. Chain 2 or 3 countries into a sign-in journey and the model scores each hop. | 179 countries with censorship tests, 1,927 cable landing stations |
+| **Live globe** | Real Earth (NASA Blue Marble) with every country and 4,596 state / province borders, and a blue-to-red heatmap. Malware and DNS servers are pinned to their real cities by IP geolocation; data known only per country colours the whole country. Click anywhere for that state's and country's numbers and the country's hotspot cities. 733 undersea cables show how countries are wired together. Chain 2 or 3 countries into a sign-in journey and the model scores each hop. | 179 countries with censorship tests, 1,927 cable landing stations |
 | **Breaches** | Every breach published by Have I Been Pwned, the biggest company breaches, and **how each one happened** (read from HIBP's own write-up). | 1,020 breaches, **16.29 billion** accounts; 102 breaches and 478.7 million accounts in the last 12 months |
 | **Attacks** | Live malware and botnet servers, the networks hosting them, criminal networks, and this week's ransomware victims by industry, country and gang. | **8,420** malware / botnet servers; 11,005 threat indicators in 48 hours; 430 criminal networks; 100 ransomware victims (29 Sep to 3 Oct 2026) |
 | **Exploited flaws** | CISA's list of vulnerabilities confirmed as exploited in real attacks. | 1,733 flaws; 39 added in the last 30 days; 361 used by ransomware |
@@ -168,6 +168,7 @@ it. Country hops are unusually common, which is why the "country changed within 
 | Censorship tests | [OONI](https://explorer.ooni.org) | CC BY-NC-SA 4.0 | globe |
 | Public DNS servers | [public-dns.info](https://public-dns.info) | public list, counts only | globe |
 | Undersea cables | [TeleGeography Submarine Cable Map](https://www.submarinecablemap.com) | CC BY-NC-SA 3.0, as TeleGeography published its open data (not re-confirmed on their site, Oct 2026) | globe connections |
+| City-level IP locations | IP Geolocation by [DB-IP](https://db-ip.com) (IP to City Lite, Oct 2026) | CC BY 4.0 | heatmap hotspots, per-state counts |
 | States and provinces | [Natural Earth](https://www.naturalearthdata.com) admin-1 | public domain | globe borders, click lookup |
 | Country shapes | Natural Earth via [world-atlas](https://github.com/topojson/world-atlas) | public domain | globe |
 | Earth imagery | NASA Blue Marble via [three-globe](https://github.com/vasturiano/three-globe) | public domain (NASA) | globe |
@@ -208,7 +209,7 @@ pip install -r requirements-dev.txt
 PYTHONPATH=src uvicorn ittravel.api.app:app --reload --port 8000     # app at http://localhost:8000
 ```
 
-Refresh the intel snapshot (about 60 MB of downloads; `pip install pycountry shapely` for the build):
+Refresh the intel snapshot (about 150 MB of downloads; `pip install pycountry shapely` for the build):
 
 ```bash
 bash scripts/fetch_intel.sh

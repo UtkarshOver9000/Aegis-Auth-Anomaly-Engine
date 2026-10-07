@@ -44,6 +44,11 @@ SOURCES = {
         "url": "https://www.submarinecablemap.com",
         "license": "CC BY-NC-SA 3.0",
     },
+    "geolocation": {
+        "name": "IP Geolocation by DB-IP (IP to City Lite)",
+        "url": "https://db-ip.com",
+        "license": "CC BY 4.0",
+    },
     "states": {
         "name": "Natural Earth admin-1 states and provinces",
         "url": "https://www.naturalearthdata.com",

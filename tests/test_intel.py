@@ -75,6 +75,7 @@ def test_intel_endpoints():
         "/v1/intel/countries",
         "/v1/intel/cables",
         "/v1/intel/states",
+        "/v1/intel/heat",
         "/v1/intel/sources",
     ):
         assert client.get(path).status_code == 200, path

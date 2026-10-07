@@ -129,3 +129,4 @@ tbody tr.click:hover td { background: var(--accent-soft); }
 .globe-card .toggle label { display: flex; gap: 6px; align-items: center; }
 button.link { border: 0; background: none; color: var(--accent); cursor: pointer; font: 500 0.85rem Inter, sans-serif; padding: 0; }
 .globe-card .legend { color: #e8ecef; }
+.place { background: var(--accent-soft); border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; font-size: 0.9rem; }
