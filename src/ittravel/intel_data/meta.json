@@ -1,17 +1,17 @@
 {
-  "fetched_at": "2026-10-04T11:14:58Z",
+  "fetched_at": "2026-10-07T04:30:57Z",
   "network": {
-    "ranges": 458519,
-    "networks": 79119,
+    "ranges": 458893,
+    "networks": 79170,
     "hosting_networks": 195
   },
   "breaches": {
-    "breaches": 1020,
-    "accounts": 16285303406,
+    "breaches": 1021,
+    "accounts": 16292068460,
     "how": [
       [
         "Hacked, method not disclosed",
-        766
+        767
       ],
       [
         "Ransomware / extortion",
@@ -52,39 +52,39 @@
     ]
   },
   "flaws": {
-    "flaws": 1733,
-    "catalog_version": "2026.10.02",
-    "released": "2026-10-02T15:19:38.2945Z"
+    "flaws": 1734,
+    "catalog_version": "2026.10.04",
+    "released": "2026-10-04T18:52:56.0635Z"
   },
   "threats": {
-    "malicious_ips": 8420,
-    "threatfox_iocs_48h": 11005,
-    "urlhaus_urls_30d": 16398,
-    "spamhaus_drop_ranges": 1692,
-    "spamhaus_asn_drop": 430
+    "malicious_ips": 8659,
+    "threatfox_iocs_48h": 8955,
+    "urlhaus_urls_30d": 30991,
+    "spamhaus_drop_ranges": 1641,
+    "spamhaus_asn_drop": 426
   },
-  "threats_fetched_at": "2026-10-04T11:24:00Z",
+  "threats_fetched_at": "2026-10-07T04:30:57Z",
   "cables": {
     "cables": 733,
-    "landing_points": 1927,
+    "landing_points": 1926,
     "landings_without_country": 29
   },
   "states": {
     "states_provinces": 4596
   },
-  "countries": {
-    "tor_in_snapshot": false,
-    "tor_exit_relays": 0,
-    "tor_exit_ips": 0,
-    "dns_resolvers": 62530,
-    "ooni_countries": 179,
-    "ooni_measurements": 50419717
-  },
-  "window_ooni": "last 30 days to fetch date",
   "heat": {
-    "malware_located": 8420,
-    "malware_total": 8420,
+    "malware_located": 8659,
+    "malware_total": 8659,
     "dns_located": 62607,
     "dns_total": 62607
-  }
+  },
+  "countries": {
+    "tor_in_snapshot": true,
+    "tor_exit_relays": 2723,
+    "tor_exit_ips": 1191,
+    "dns_resolvers": 62530,
+    "ooni_countries": 178,
+    "ooni_measurements": 50915406
+  },
+  "window_ooni": "last 30 days to fetch date"
 }
