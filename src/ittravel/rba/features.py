@@ -89,4 +89,6 @@ FROM w
 
 def build_features(con: duckdb.DuckDBPyConnection) -> int:
     con.execute(FEATURE_SQL)
-    return con.execute("SELECT count(*) FROM features").fetchone()[0]
+    row = con.execute("SELECT count(*) FROM features").fetchone()
+    assert row is not None
+    return row[0]

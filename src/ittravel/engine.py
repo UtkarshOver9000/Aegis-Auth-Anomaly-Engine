@@ -125,7 +125,7 @@ class RiskEngine:
         proba = {t: float(m.predict_proba(x)[0, 1]) for t, m in self.models.items()}
         pct = {t: round(self._percentile(t, p), 2) for t, p in proba.items()}
 
-        tier = max((tier_for(p) for p in pct.values()), key=TIER_RANK.get)
+        tier = max((tier_for(p) for p in pct.values()), key=TIER_RANK.__getitem__)
         reasons = self._reasons(feats, event, user)
 
         distance_km = velocity = hours = 0.0
@@ -143,24 +143,24 @@ class RiskEngine:
                     f"Impossible travel: {distance_km:,.0f} km in {hours * 60:.0f} min "
                     f"= {velocity:,.0f} km/h (> {_velocity_threshold():.0f} km/h)",
                 )
-                tier = max(tier, "HIGH", key=TIER_RANK.get)
+                tier = max(tier, "HIGH", key=TIER_RANK.__getitem__)
         if net.threat:
             reasons.insert(0, f"This IP is a known malware server: {net.threat}")
             tier = "CRITICAL"
         elif net.criminal_network:
             owner = net.network or "unknown"
             reasons.insert(0, f"The IP belongs to a network Spamhaus lists as run by criminals ({owner})")
-            tier = max(tier, "HIGH", key=TIER_RANK.get)
+            tier = max(tier, "HIGH", key=TIER_RANK.__getitem__)
         if net.tor_exit:
             reasons.insert(0, "Signed in through Tor, a network built to hide where people really are")
-            tier = max(tier, "HIGH", key=TIER_RANK.get)
+            tier = max(tier, "HIGH", key=TIER_RANK.__getitem__)
         elif net.hosting:
             reasons.insert(0, f"Came from a hosting / VPN network ({net.network}), where VPNs, proxies and bots run")
             # a VPN the owner always uses is fine; a data-center network new to this account gets a code
-            tier = max(tier, "HIGH" if feats["new_asn"] else "MEDIUM", key=TIER_RANK.get)
+            tier = max(tier, "HIGH" if feats["new_asn"] else "MEDIUM", key=TIER_RANK.__getitem__)
         if feats["fails_prev10"] >= GUESSING_FAILS:
             reasons.insert(0, f"{feats['fails_prev10']} wrong passwords just before this: someone may be guessing")
-            tier = max(tier, "HIGH", key=TIER_RANK.get)
+            tier = max(tier, "HIGH", key=TIER_RANK.__getitem__)
         if net.country and event.country and net.country != event.country:
             reasons.append(f"The IP is registered in {net.country}, but the login claims {event.country}")
         if not reasons:

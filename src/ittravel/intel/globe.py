@@ -45,7 +45,7 @@ METRICS = {
 
 
 def _rgb(hex_color: str) -> tuple[int, int, int]:
-    return tuple(int(hex_color[i : i + 2], 16) for i in (1, 3, 5))
+    return int(hex_color[1:3], 16), int(hex_color[3:5], 16), int(hex_color[5:7], 16)
 
 
 def state_values(metric: str) -> list[float | None]:
@@ -176,7 +176,7 @@ def _country_lines() -> list[list[list[float]]]:
 @lru_cache(maxsize=2)
 def _earth(width: int) -> Image.Image:
     img = Image.open(VENDOR / "img" / "earth-blue-marble.jpg").convert("RGB")
-    return img if img.width == width else img.resize((width, width // 2), Image.LANCZOS)
+    return img if img.width == width else img.resize((width, width // 2), Image.Resampling.LANCZOS)
 
 
 @lru_cache(maxsize=len(METRICS) * len(SIZES))

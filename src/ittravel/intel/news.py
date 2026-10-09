@@ -128,7 +128,7 @@ def parse_feed(xml_bytes: bytes, source: str, limit: int = 12) -> list[dict]:
                 "published": _date(entry.findtext(f"{ATOM}published") or entry.findtext(f"{ATOM}updated")),
             }
         )
-    return [i for i in items if i["title"] and i["url"].startswith("http")][:limit]
+    return [i for i in items if i["title"] and (i["url"] or "").startswith("http")][:limit]
 
 
 _last_good: dict[str, list[dict]] = {}  # feed url -> its last non-empty result

@@ -80,7 +80,7 @@ def breaches_summary() -> dict:
     today = snapshot_date()
     year_ago = (today - timedelta(days=365)).isoformat()
     recent = [r for r in rows if r["breach_date"] >= year_ago]
-    by_year = Counter()
+    by_year: Counter = Counter()
     for r in rows:
         by_year[r["breach_date"][:4]] += r["accounts"]
     data_types = Counter(d for r in rows for d in r["data"])

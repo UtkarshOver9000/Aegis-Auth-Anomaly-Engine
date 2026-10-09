@@ -81,7 +81,7 @@ class StateStore:
 
     def is_master_key(self, key: str) -> bool:
         admin = master_key()
-        return bool(admin) and secrets.compare_digest(key, admin)
+        return admin is not None and secrets.compare_digest(key, admin)
 
     def is_valid_api_key(self, key: str) -> bool:
         return self.is_master_key(key) or key in self.api_keys

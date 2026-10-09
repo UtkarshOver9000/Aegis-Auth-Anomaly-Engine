@@ -125,8 +125,8 @@ def build_network(raw: Path) -> tuple[dict, Counter]:
     hosting_ips: Counter = Counter()
     with gzip.open(raw / "ip2asn-v4.tsv.gz", "rt", encoding="utf-8", errors="replace") as fh:
         for line in fh:
-            start, end, asn, cc, desc = line.rstrip("\n").split("\t")
-            asn = int(asn)
+            start, end, asn_text, cc, desc = line.rstrip("\n").split("\t")
+            asn = int(asn_text)
             if asn == 0:
                 continue
             s, e = int(ipaddress.IPv4Address(start)), int(ipaddress.IPv4Address(end))
@@ -507,7 +507,8 @@ def build_cables(raw: Path) -> tuple[dict, Counter]:
             "Moldova": "MD",
         }
     )
-    points, per_country = [], Counter()
+    points: list[dict] = []
+    per_country: Counter = Counter()
     for f in landings["features"]:
         name = f["properties"]["name"]
         cc = by_name.get(name.rsplit(",", 1)[-1].strip(), "")
@@ -625,7 +626,8 @@ def build_heat(raw: Path) -> dict:
             polys.append(shapely.make_valid(Polygon([(lng, lat) for lat, lng in r])))
     tree = shapely.STRtree(polys)
 
-    heat, places = {}, defaultdict(dict)
+    heat: dict = {}
+    places: defaultdict[str, dict] = defaultdict(dict)
     for layer, ips, cc_of in (
         ("malware", list(bad), lambda ip: bad[ip].get("country", "")),
         ("dns", list(dns), lambda ip: dns[ip]),

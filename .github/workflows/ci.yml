@@ -27,5 +27,8 @@ jobs:
       - name: Lint
         run: ruff check .
 
+      - name: Type check
+        run: mypy src/ittravel
+
       - name: Tests (use the committed model artifacts)
         run: pytest --cov=src --cov-report=term-missing

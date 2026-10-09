@@ -233,7 +233,8 @@ def main() -> None:
     ).fetchone()
     bounds = period_bounds(con)
 
-    report = {
+    assert totals is not None
+    report: dict = {
         "dataset": {
             "name": "Login Data Set for Risk-Based Authentication (Wiefling et al., 2022)",
             "source": "https://zenodo.org/records/6782156",
@@ -250,7 +251,8 @@ def main() -> None:
         "alert_budget": ALERT_BUDGET,
         "targets": {},
     }
-    curves, models = {}, {}
+    curves: dict = {}
+    models: dict = {}
     for target in ("ato", "attack_ip"):
         print(f"training {target}...", flush=True)
         target_bounds = ATO_BOUNDS if target == "ato" else bounds
