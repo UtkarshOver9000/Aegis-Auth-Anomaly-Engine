@@ -672,6 +672,12 @@ function renderVerdict(v, usual, ip, home, there, fails) {
     <p class="fineprint">The model rates it riskier than ${v.risk_score}% of sign-ins in the real test data. Alibi would ${esc(v.recommended_action)}.</p>
     <p class="fineprint tiers">LOW is below the 90th percentile · MEDIUM is the 90th or above · HIGH the 99th or above ·
       CRITICAL the 99.9th or above. A rule (malware server, Tor, new VPN, impossible travel, password guessing) can raise the tier.</p>
+    <details class="howto"><summary>How to read this</summary>
+      <p>The percentile compares this sign-in with ${fmt(5403650)} real sign-ins from the model's test data. Riskier than
+      99% means only 1 sign-in in 100 looked riskier to the model. The tier turns that into an action: LOW lets the
+      person in, MEDIUM lets them in and logs it, HIGH asks for a one-time code, CRITICAL blocks and alerts the owner.
+      The two models look at different things: the takeover model at this account's own history, the attack-IP model
+      at how the IP behaves across all accounts.</p></details>
     <h3>Why</h3><ul>${reasons.map((r) => `<li>${esc(r)}</li>`).join("")}</ul>
     <div class="facts">${facts.map(([k, val]) => `<div><b>${k}</b>${val}</div>`).join("")}</div>
     <p class="fineprint">History sent first: 7 sign-ins over two weeks from ${esc(usual.network)} in ${CITIES[home][0]}${fails ? `, then ${fails} wrong passwords` : ""}.</p>`;
