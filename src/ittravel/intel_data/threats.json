@@ -1,17 +1,17 @@
 {
- "malicious_ips": 8659,
- "malicious_ips_on_hosting": 948,
- "hosting_share_of_malicious_ips": 0.1099,
+ "malicious_ips": 8907,
+ "malicious_ips_on_hosting": 982,
+ "hosting_share_of_malicious_ips": 0.1106,
  "hosting_share_of_internet": 0.1092,
- "iot_botnet_ips": 4368,
+ "iot_botnet_ips": 4402,
  "by_source": [
   [
    "URLhaus",
-   6273
+   6490
   ],
   [
    "ThreatFox",
-   2381
+   2412
   ],
   [
    "Feodo Tracker",
@@ -21,178 +21,178 @@
  "what": [
   [
    "Malware download site",
-   6273
+   6493
   ],
   [
    "Botnet control server",
-   2386
+   2414
   ]
  ],
  "top_malware": [
   [
    "Mozi",
-   2704
-  ],
-  [
-   "mirai",
-   1634
+   2741
   ],
   [
    "unnamed",
-   1537
+   1718
+  ],
+  [
+   "mirai",
+   1632
   ],
   [
    "Cobalt Strike",
-   548
+   554
   ],
   [
    "PureRAT",
-   323
+   331
   ],
   [
    "Unknown malware",
-   254
+   258
   ],
   [
    "AdaptixC2",
-   236
+   245
   ],
   [
    "AsyncRAT",
-   160
+   166
   ],
   [
    "Remcos",
-   107
-  ],
-  [
-   "Evilginx",
-   89
+   109
   ],
   [
    "DCRat",
-   85
+   88
+  ],
+  [
+   "Evilginx",
+   86
   ],
   [
    "Havoc",
-   83
+   85
   ],
   [
    "DanaBot",
-   61
+   59
   ],
   [
    "Jackskid",
-   56
+   54
   ],
   [
-   "Potassium",
-   47
+   "Tsundere",
+   43
   ]
  ],
  "top_networks": [
   {
    "asn": 4837,
    "network": "CHINA169-BACKBONE CHINA UNICOM China169 Backbone",
-   "count": 3548,
+   "count": 3667,
    "hosting": false,
    "criminal_network": false
   },
   {
    "asn": 4134,
    "network": "CHINANET-BACKBONE No.31,Jin-rong Street",
-   "count": 418,
+   "count": 438,
    "hosting": false,
    "criminal_network": false
   },
   {
    "asn": 37457,
    "network": "Telkom-Internet",
-   "count": 175,
+   "count": 179,
    "hosting": false,
    "criminal_network": false
   },
   {
    "asn": 9829,
    "network": "BSNL-NIB National Internet Backbone",
-   "count": 163,
-   "hosting": false,
-   "criminal_network": false
-  },
-  {
-   "asn": 17816,
-   "network": "CHINA169-GZ China Unicom IP network China169 Guangdong province",
-   "count": 150,
+   "count": 167,
    "hosting": false,
    "criminal_network": false
   },
   {
    "asn": 14061,
    "network": "DIGITALOCEAN-ASN",
-   "count": 147,
+   "count": 163,
    "hosting": true,
    "criminal_network": false
   },
   {
-   "asn": 132199,
-   "network": "GLOBE-MOBILE-5TH-GEN-AS Globe Telecom Inc.",
-   "count": 143,
+   "asn": 17816,
+   "network": "CHINA169-GZ China Unicom IP network China169 Guangdong province",
+   "count": 157,
    "hosting": false,
    "criminal_network": false
   },
   {
    "asn": 45090,
    "network": "TENCENT-NET-AP Shenzhen Tencent Computer Systems Company Limited",
-   "count": 142,
+   "count": 146,
    "hosting": true,
+   "criminal_network": false
+  },
+  {
+   "asn": 132199,
+   "network": "GLOBE-MOBILE-5TH-GEN-AS Globe Telecom Inc.",
+   "count": 144,
+   "hosting": false,
    "criminal_network": false
   },
   {
    "asn": 37963,
    "network": "ALIBABA-CN-NET Hangzhou Alibaba Advertising Co.,Ltd.",
-   "count": 135,
+   "count": 139,
    "hosting": true,
    "criminal_network": false
   },
   {
    "asn": 7713,
    "network": "TELKOMNET-AS-AP PT Telekomunikasi Indonesia",
-   "count": 129,
+   "count": 132,
    "hosting": false,
    "criminal_network": false
   },
   {
    "asn": 219502,
    "network": "STORMCLOUD-AS - Storm Industries LLC",
-   "count": 84,
+   "count": 83,
    "hosting": false,
    "criminal_network": true
   },
   {
    "asn": 36352,
    "network": "AS-COLOCROSSING",
-   "count": 72,
+   "count": 77,
    "hosting": true,
    "criminal_network": false
   },
   {
    "asn": 17813,
    "network": "MTNL-AP Mahanagar Telephone Nigam Limited",
-   "count": 72,
+   "count": 73,
    "hosting": false,
    "criminal_network": false
   },
   {
    "asn": 23969,
    "network": "TOT-NET TOT Public Company Limited",
-   "count": 65,
+   "count": 63,
    "hosting": false,
    "criminal_network": false
   },
   {
    "asn": 140293,
    "network": "CHINATELECOM-JIANGSU-CHANGZHOU-5G-NETWORK CHINATELECOM Jiangsu province Changzhou 5G network",
-   "count": 56,
+   "count": 58,
    "hosting": false,
    "criminal_network": false
   }
@@ -200,147 +200,151 @@
  "top_countries": [
   [
    "CN",
-   4688
+   4850
   ],
   [
    "US",
-   985
+   1022
   ],
   [
    "IN",
-   282
+   288
   ],
   [
    "HK",
-   193
-  ],
-  [
-   "GB",
-   193
+   201
   ],
   [
    "ZA",
    184
   ],
   [
+   "GB",
+   170
+  ],
+  [
    "RU",
-   166
+   163
   ],
   [
    "ID",
-   154
+   156
   ],
   [
    "PH",
-   152
-  ],
-  [
-   "PK",
-   138
+   153
   ],
   [
    "DE",
-   136
+   142
+  ],
+  [
+   "PK",
+   140
   ],
   [
    "SC",
-   110
+   124
   ],
   [
    "BR",
-   79
+   82
   ],
   [
    "CA",
-   75
+   79
   ],
   [
    "FR",
-   73
+   69
   ]
  ],
- "threatfox_iocs_48h": 8955,
+ "threatfox_iocs_48h": 6754,
  "threatfox_types": [
   [
    "Botnet control server",
-   4246
+   4275
   ],
   [
    "Malware download site",
-   2933
+   1771
   ],
   [
    "Malware file",
-   1776
+   703
+  ],
+  [
+   "Card-skimming site",
+   5
   ]
  ],
  "threatfox_malware": [
   [
-   "Unknown Loader",
-   1787
-  ],
-  [
    "Cobalt Strike",
-   1295
+   1290
   ],
   [
-   "Mirai",
-   973
-  ],
-  [
-   "ClearFake",
-   764
+   "Unknown Loader",
+   742
   ],
   [
    "PureRAT",
-   611
+   621
   ],
   [
-   "IClickFix",
-   469
+   "ClearFake",
+   414
   ],
   [
    "Unknown malware",
-   437
-  ],
-  [
-   "AsyncRAT",
    396
   ],
   [
-   "AdaptixC2",
-   255
+   "AsyncRAT",
+   390
   ],
   [
-   "Vidar",
+   "Unknown Stealer",
+   287
+  ],
+  [
+   "AdaptixC2",
+   264
+  ],
+  [
+   "IClickFix",
+   236
+  ],
+  [
+   "Mirai",
    202
   ],
   [
+   "Vidar",
+   199
+  ],
+  [
    "Remcos",
-   136
+   133
   ],
   [
    "DCRat",
-   113
+   115
+  ],
+  [
+   "php.shin_webshell",
+   111
   ],
   [
    "Havoc",
-   95
-  ],
-  [
-   "Evilginx",
-   95
-  ],
-  [
-   "Potassium",
-   76
+   98
   ]
  ],
- "urlhaus_urls_30d": 30991,
- "urlhaus_online": 16170,
- "spamhaus_drop_ranges": 1641,
- "spamhaus_drop_addresses": 14585856,
- "spamhaus_asn_drop": 426,
+ "urlhaus_urls_30d": 33013,
+ "urlhaus_online": 16812,
+ "spamhaus_drop_ranges": 1684,
+ "spamhaus_drop_addresses": 14901248,
+ "spamhaus_asn_drop": 431,
  "spamhaus_asn_drop_countries": [
   [
    "UA",
@@ -364,19 +368,19 @@
   ],
   [
    "GB",
-   25
+   27
   ],
   [
    "HK",
-   25
+   27
+  ],
+  [
+   "IR",
+   15
   ],
   [
    "SC",
    15
-  ],
-  [
-   "IR",
-   14
   ],
   [
    "DE",
@@ -384,158 +388,93 @@
   ]
  ],
  "ransomware": {
-  "victims": 100,
-  "from": "2026-09-23",
-  "to": "2026-10-07",
-  "by_country": [
+  "victims": 214,
+  "from": "2026-10-02",
+  "to": "2026-10-09",
+  "by_day": [
    [
-    "US",
-    30
-   ],
-   [
-    "ES",
+    "2026-10-02",
     4
    ],
    [
-    "DE",
-    4
-   ],
-   [
-    "TR",
-    3
-   ],
-   [
-    "BR",
-    3
-   ],
-   [
-    "IN",
-    3
-   ],
-   [
-    "CA",
-    3
-   ],
-   [
-    "AU",
-    2
-   ],
-   [
-    "IT",
-    2
-   ],
-   [
-    "AE",
-    2
-   ],
-   [
-    "NL",
-    2
-   ],
-   [
-    "CZ",
-    2
-   ]
-  ],
-  "by_sector": [
-   [
-    "Manufacturing",
-    19
-   ],
-   [
-    "Professional Services",
-    13
-   ],
-   [
-    "Other",
-    13
-   ],
-   [
-    "Technology",
-    13
-   ],
-   [
-    "Healthcare",
+    "2026-10-03",
     9
    ],
    [
-    "Transportation",
-    7
+    "2026-10-04",
+    14
    ],
    [
-    "Not Found",
-    7
+    "2026-10-05",
+    41
    ],
    [
-    "Education",
-    5
+    "2026-10-06",
+    45
    ],
    [
-    "Retail & E-Commerce",
-    5
+    "2026-10-07",
+    40
    ],
    [
-    "Financial Services",
-    4
+    "2026-10-08",
+    26
    ],
    [
-    "Agriculture and Food Production",
-    4
-   ],
-   [
-    "Energy & Utilities",
-    1
+    "2026-10-09",
+    35
    ]
   ],
   "by_group": [
    [
+    "the gentlemen",
+    38
+   ],
+   [
     "qilin",
-    17
+    23
+   ],
+   [
+    "nightspire",
+    23
    ],
    [
     "safepay",
     10
    ],
    [
-    "krybit",
+    "umbra",
+    9
+   ],
+   [
+    "inc ransom",
+    9
+   ],
+   [
+    "byod",
+    8
+   ],
+   [
+    "leakeddata",
     7
+   ],
+   [
+    "akira",
+    5
    ],
    [
     "everest",
     5
    ],
    [
-    "Booba Project",
-    5
-   ],
-   [
-    "SilentRansomGroup",
+    "interlock",
     4
    ],
    [
-    "lamashtu",
+    "black x",
     4
-   ],
-   [
-    "BYOD",
-    4
-   ],
-   [
-    "Panzer",
-    3
-   ],
-   [
-    "akira",
-    3
-   ],
-   [
-    "emperador",
-    3
-   ],
-   [
-    "N0n",
-    3
    ]
-  ]
+  ],
+  "source": "RansomLook (CC BY 4.0)"
  }
 }

@@ -541,6 +541,21 @@ def _geolocate(raw: Path, ips: set[str]) -> dict[str, tuple[float, float, str, s
     return out
 
 
+def _ipv4_by_place(raw: Path) -> Counter:
+    """Total IPv4 addresses DB-IP places at each (lat, lon), rounded to 0.01 degrees."""
+    out: Counter = Counter()
+    with gzip.open(raw / "dbip-city-lite.csv.gz", "rt", encoding="utf-8", errors="replace") as fh:
+        for row in csv.reader(fh):
+            if ":" in row[0]:
+                continue
+            a, b = row[0].split("."), row[1].split(".")
+            start = (int(a[0]) << 24) | (int(a[1]) << 16) | (int(a[2]) << 8) | int(a[3])
+            end = (int(b[0]) << 24) | (int(b[1]) << 16) | (int(b[2]) << 8) | int(b[3])
+            if row[3] != "ZZ":  # skip reserved space
+                out[(round(float(row[6]), 2), round(float(row[7]), 2))] += end - start + 1
+    return out
+
+
 def build_heat(raw: Path) -> dict:
     """City-level hotspots for malware servers and public DNS servers, plus counts per state and per city."""
     import shapely
@@ -588,12 +603,31 @@ def build_heat(raw: Path) -> dict:
         heat[f"{layer}_located"] = len(located)
         heat[f"{layer}_total"] = len(ips)
 
+    # IPv4 addresses located in each state, so counts can be shown per million addresses
+    addresses = _ipv4_by_place(raw)
+    keys = list(addresses)
+    pts = shapely.points([k[1] for k in keys], [k[0] for k in keys])
+    hit_pt, hit_state = tree.query(pts, predicate="intersects")
+    first = {}
+    for p_i, s_i in zip(hit_pt.tolist(), hit_state.tolist(), strict=True):
+        first.setdefault(p_i, owner[s_i])
+    per_state_ip: Counter = Counter()
+    for p_i, s_i in first.items():
+        per_state_ip[s_i] += addresses[keys[p_i]]
+    for i, s in enumerate(states):
+        s["ip"] = per_state_ip.get(i, 0)
+    heat["ipv4_located"] = sum(per_state_ip.values())
+    heat["ipv4_total"] = sum(addresses.values())
+
     landings = json.loads((OUT / "cables.json").read_text())["landings"]
     heat["landings"] = [[p["lat"], p["lng"], 1] for p in landings]
     heat["places"] = places
     (OUT / "heat.json").write_text(json.dumps(heat, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     (OUT / "states.json").write_text(json.dumps(states, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    return {k: heat[k] for k in ("malware_located", "malware_total", "dns_located", "dns_total")}
+    return {
+        k: heat[k]
+        for k in ("malware_located", "malware_total", "dns_located", "dns_total", "ipv4_located", "ipv4_total")
+    }
 
 
 def build_countries(

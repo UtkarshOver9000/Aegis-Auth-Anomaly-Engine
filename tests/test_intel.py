@@ -169,3 +169,25 @@ def test_sources_yaml_lists_every_raw_file_the_snapshot_reads():
         assert required <= f.keys(), f["id"]
     read = set(re.findall(r'raw / "([^"]+)"', (root / "src/ittravel/intel/snapshot.py").read_text(encoding="utf-8")))
     assert read - {"fetched_at.txt", "fetched_at_threats.txt"} <= {f["file"] for f in feeds}
+
+
+def test_globe_textures_bins_and_pick_map():
+    from io import BytesIO
+
+    from PIL import Image
+
+    from ittravel.intel import globe
+
+    for metric in globe.METRICS:
+        lg = client.get(f"/v1/intel/globe/{metric}/legend").json()
+        assert lg["bins"][0]["label"] == "0" and 2 <= len(lg["bins"]) <= 7
+    rates = [v for v in globe.state_values("malicious_ips") if v is not None]
+    assert rates and min(rates) >= 0
+    res = client.get("/v1/intel/globe/malicious_ips.jpg", params={"w": 2048})
+    assert res.status_code == 200 and "max-age" in res.headers["cache-control"]
+    assert Image.open(BytesIO(res.content)).size == (2048, 1024)
+    assert client.get("/v1/intel/globe/nope.jpg").status_code == 404
+    pick = Image.open(BytesIO(client.get("/v1/intel/globe/pick.png").content)).convert("RGB")
+    rows = client.get("/v1/intel/globe/places").json()["rows"]
+    r, g, _ = pick.getpixel((int((75.5 + 180) / 360 * 2048), int((90 - 19.2) / 180 * 1024)))  # inside Maharashtra
+    assert rows[(r << 8 | g) - 1][0] == "Maharashtra"

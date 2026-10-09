@@ -7,7 +7,7 @@ from __future__ import annotations
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import Depends, FastAPI, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
@@ -15,7 +15,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .. import __version__
 from ..engine import get_engine
-from ..intel import news, service
+from ..intel import globe, news, service
 from ..intel.network import lookup, malware_ip, sample_ips, tor_exits
 from ..schema import APIKeyCreate, APIKeyResponse, DemoStory, EvaluationResult, LoginEvent
 from ..state import store
@@ -45,7 +45,8 @@ if DASHBOARD_DIR.exists():
 async def dashboard():
     index_file = DASHBOARD_DIR / "index.html"
     if index_file.exists():
-        return FileResponse(str(index_file), media_type="text/html")
+        # always revalidate the page so a new deploy shows up at once (assets are versioned with ?v=)
+        return FileResponse(str(index_file), media_type="text/html", headers={"Cache-Control": "no-cache"})
     return HTMLResponse("<h1>Alibi API</h1><p>See <a href='/docs'>/docs</a></p>")
 
 
@@ -150,6 +151,46 @@ async def intel_states():
 async def intel_heat():
     """City-level hotspots of malware servers and public DNS servers (located with DB-IP, CC BY 4.0)."""
     return FileResponse(str(service.DATA / "heat.json"), media_type="application/json")
+
+
+# Globe images change only when the snapshot does: let browsers keep them an hour and the CDN a day.
+GLOBE_CACHE = {"Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400"}
+
+
+@app.get("/v1/intel/globe/pick.png", tags=["Globe"])
+async def globe_pick():
+    """State lookup image: each state's pixels hold its index + 1 as red * 256 + green."""
+    return Response(globe.pick_map(), media_type="image/png", headers=GLOBE_CACHE)
+
+
+@app.get("/v1/intel/globe/places", tags=["Globe"])
+async def globe_places():
+    """Per state, in pick-image order: name, country, type, malware servers, DNS servers, IPv4 addresses."""
+    return {"columns": ["name", "country", "type", "malware", "dns", "ipv4"], "rows": globe.places()}
+
+
+@app.get("/v1/intel/globe/state/{index}", tags=["Globe"])
+async def globe_state(index: int):
+    """One state's outline, for highlighting it."""
+    if not 0 <= index < len(globe.places()):
+        raise HTTPException(404, "No such state")
+    return globe.state(index)
+
+
+@app.get("/v1/intel/globe/{metric}.jpg", tags=["Globe"])
+async def globe_texture(metric: str, w: int = Query(4096)):
+    """Earth texture with every state coloured by this metric (2048 or 4096 pixels wide)."""
+    if metric not in globe.METRICS or w not in globe.SIZES:
+        raise HTTPException(404, f"metric must be one of {sorted(globe.METRICS)}, w one of {globe.SIZES}")
+    return Response(globe.texture(metric, w), media_type="image/jpeg", headers=GLOBE_CACHE)
+
+
+@app.get("/v1/intel/globe/{metric}/legend", tags=["Globe"])
+async def globe_legend(metric: str):
+    """Colour classes, units and the top 10 places for one globe metric."""
+    if metric not in globe.METRICS:
+        raise HTTPException(404, f"metric must be one of {sorted(globe.METRICS)}")
+    return {**globe.legend(metric), "top": globe.top(metric), "as_of": service.meta()["fetched_at"]}
 
 
 @app.get("/v1/intel/news", tags=["Intel"])

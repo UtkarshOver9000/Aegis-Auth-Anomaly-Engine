@@ -17,6 +17,7 @@ dependencies = [
   "fastapi>=0.110",
   "uvicorn>=0.29",
   "pydantic>=2.6",
+  "pillow>=10.3",
 ]
 
 [project.optional-dependencies]
