@@ -58,8 +58,10 @@ def tier_for(percentile: float) -> str:
 class RiskEngine:
     def __init__(self, state_store: StateStore | None = None, artifact_dir: Path = ARTIFACT_DIR):
         self.store = state_store if state_store is not None else store
-        self.models = joblib.load(artifact_dir / "rba_models.joblib")
-        self.card = json.loads((artifact_dir / "rba_model_card.json").read_text())
+        models, card = artifact_dir / "rba_models.joblib", artifact_dir / "rba_model_card.json"
+        # Without the model files the engine still answers, from the network and travel rules alone.
+        self.models = joblib.load(models) if models.exists() else None
+        self.card = json.loads(card.read_text()) if card.exists() and self.models is not None else {}
         self.ip_history: dict[str, deque] = {}
 
     # --- features -------------------------------------------------------
@@ -122,8 +124,11 @@ class RiskEngine:
             event = event.model_copy(update={"country": net.country})
         feats = self.features(user, event, now)
         x = np.array([[feats[c] for c in FEATURE_COLUMNS]], dtype=np.float32)
-        proba = {t: float(m.predict_proba(x)[0, 1]) for t, m in self.models.items()}
-        pct = {t: round(self._percentile(t, p), 2) for t, p in proba.items()}
+        if self.models is None:
+            proba, pct = {"ato": 0.0, "attack_ip": 0.0}, {"ato": 0.0, "attack_ip": 0.0}
+        else:
+            proba = {t: float(m.predict_proba(x)[0, 1]) for t, m in self.models.items()}
+            pct = {t: round(self._percentile(t, p), 2) for t, p in proba.items()}
 
         tier = max((tier_for(p) for p in pct.values()), key=TIER_RANK.__getitem__)
         reasons = self._reasons(feats, event, user)
@@ -163,6 +168,8 @@ class RiskEngine:
             tier = max(tier, "HIGH", key=TIER_RANK.__getitem__)
         if net.country and event.country and net.country != event.country:
             reasons.append(f"The IP is registered in {net.country}, but the login claims {event.country}")
+        if self.models is None:
+            reasons.append("Model unavailable on this server: verdict from network and travel rules only")
         if not reasons:
             reasons.append("Nothing unusual for this user")
 

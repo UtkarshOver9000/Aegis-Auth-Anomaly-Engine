@@ -115,3 +115,14 @@ def test_percentiles_are_monotonic(engine):
     lo = engine._percentile("ato", 1e-9)
     hi = engine._percentile("ato", 0.5)
     assert 0 <= lo <= hi <= 100
+
+
+def test_engine_falls_back_to_rules_without_model_files(tmp_path):
+    from ittravel.engine import RiskEngine
+    from ittravel.intel.network import malware_ip
+    from ittravel.schema import LoginEvent
+    from ittravel.state import StateStore
+
+    eng = RiskEngine(StateStore(), artifact_dir=tmp_path)
+    v = eng.evaluate_event(LoginEvent(user_id="r", login_ts="2026-10-01T10:00:00Z", ip=malware_ip("IN"), device_id="d"))
+    assert v.risk_tier == "CRITICAL" and any("Model unavailable" in r for r in v.reasons)

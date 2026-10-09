@@ -199,7 +199,8 @@ loaders.home = async () => {
     kpi(compact(o.accounts_exposed_last_12_months), `accounts exposed in ${o.breaches_last_12_months} breaches, 12 mo`),
     kpi(fmt(o.criminal_networks), "networks run by criminals (Spamhaus)"),
     kpi(fmt(o.countries_with_confirmed_blocking), "countries with confirmed website blocking, 30 d"),
-    kpi(`${tk.caught}/${tk.of}`, `takeovers caught at a ${pct(tk.challenge_rate)} challenge rate (2020 test data)`),
+    tk ? kpi(`${tk.caught}/${tk.of}`, `takeovers caught at a ${pct(tk.challenge_rate)} challenge rate (2020 test data)`)
+      : kpi("rules only", "takeover model not deployed on this server"),
   ].join("");
   const max = Math.max(...act.per_hour, 1);
   $("#home-activity").innerHTML = act.per_hour.map((n, i) => `<i style="height:${(n / max) * 100}%" title="${n} reported, ${47 - i} h before snapshot"></i>`).join("");

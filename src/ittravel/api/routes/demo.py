@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 from ...engine import get_engine
 from ...schema import DemoStory
@@ -39,4 +39,6 @@ async def demo_check(story: DemoStory):
 async def model_card():
     """Test-period metrics of the deployed models, from their model card."""
     card = get_engine().card
+    if not card:
+        raise HTTPException(503, "Model files are not deployed here; verdicts use the network and travel rules only")
     return {k: card[k] for k in ("dataset", "alert_budget", "test_metrics", "thresholds", "scikit_learn")}

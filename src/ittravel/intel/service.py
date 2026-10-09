@@ -156,14 +156,16 @@ def cables() -> dict:
 
 def overview(model_card: dict) -> dict:
     b, f, c = breaches_summary(), flaws_summary(), _load("countries.json")
-    ato = model_card["test_metrics"]["ato"]
+    ato = model_card.get("test_metrics", {}).get("ato")
     return {
         "takeovers_caught": {
             "caught": ato["confusion_matrix"]["tp"],
             "of": ato["positives"],
             "challenge_rate": ato["alert_rate"],
             "roc_auc": ato["roc_auc"],
-        },
+        }
+        if ato
+        else None,
         "accounts_exposed_last_12_months": b["last_12_months"]["accounts"],
         "breaches_last_12_months": b["last_12_months"]["breaches"],
         "exploited_flaws_last_30_days": f["added_last_30_days"],
