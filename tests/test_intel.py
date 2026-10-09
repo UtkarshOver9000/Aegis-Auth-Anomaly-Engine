@@ -127,3 +127,30 @@ def test_demo_story_verdicts():
     travel = _story(sample_ips("GB", hosting=False, n=1)[0]["ip"], "GB", minutes=10, lat=51.51, lon=-0.13)
     assert travel["verdict"]["risk_tier"] in ("HIGH", "CRITICAL") and travel["verdict"]["velocity_kmph"] > 900
     assert len(travel["timeline"]) == 8
+
+
+def test_a_failed_feed_refresh_serves_the_last_good_copy(monkeypatch):
+    rss = b"<rss><channel><item><title>Kept</title><link>https://example.org/k</link></item></channel></rss>"
+
+    class Resp:
+        def __init__(self, body):
+            self.body = body
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self):
+            return self.body
+
+    monkeypatch.setattr(news.urllib.request, "urlopen", lambda req, timeout: Resp(rss))
+    assert news._fetch("Blog", "https://example.org/feed")[0]["title"] == "Kept"
+
+    def down(req, timeout):
+        raise OSError("feed down")
+
+    monkeypatch.setattr(news.urllib.request, "urlopen", down)
+    assert news._fetch("Blog", "https://example.org/feed")[0]["title"] == "Kept"
+    assert news._fetch("Other", "https://example.org/never-worked") == []

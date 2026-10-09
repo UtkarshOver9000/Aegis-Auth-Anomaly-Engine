@@ -696,12 +696,13 @@ function renderVerdict(v, usual, ip, home, there, fails) {
 loaders.news = async () => {
   const { news, videos } = await api("/v1/intel/news");
   $("#news-list").innerHTML = news.map((n) => `<li><a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.title)}</a>
-    <small>${esc(n.source)} · ${ago(n.published)}</small></li>`).join("") || '<li class="muted">The news feeds could not be reached right now.</li>';
+    <small>${esc(n.source)} · ${ago(n.published)}</small></li>`).join("") || '<li class="muted">Headlines are refreshing. Check back in a few minutes.</li>';
   $("#video-list").innerHTML = videos.map((v) => {
     const id = new URL(v.url).searchParams.get("v");
     return `<li class="vid">${id ? `<img src="https://i.ytimg.com/vi/${esc(id)}/mqdefault.jpg" alt="" loading="lazy">` : "<span></span>"}
       <div><a href="${esc(v.url)}" target="_blank" rel="noopener">${esc(v.title)}</a><small>${esc(v.source)} · ${ago(v.published)}</small></div></li>`;
-  }).join("") || '<li class="muted">The video feeds could not be reached right now.</li>';
+  }).join("");
+  $("#video-list").closest(".card").hidden = !videos.length; // no videos: hide the panel rather than show an error
 };
 
 // ---------- data & accuracy ----------

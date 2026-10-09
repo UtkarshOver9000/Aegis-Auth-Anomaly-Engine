@@ -67,13 +67,19 @@ def parse_feed(xml_bytes: bytes, source: str, limit: int = 12) -> list[dict]:
     return [i for i in items if i["title"] and i["url"].startswith("http")][:limit]
 
 
+_last_good: dict[str, list[dict]] = {}  # feed url -> its last non-empty result
+
+
 def _fetch(source: str, url: str) -> list[dict]:
     req = urllib.request.Request(url, headers={"User-Agent": "Alibi-security-dashboard/1.0 (+github.com)"})
     try:
         with urllib.request.urlopen(req, timeout=12) as resp:
-            return parse_feed(resp.read(), source)
+            items = parse_feed(resp.read(), source)
     except Exception:  # one broken feed must not take the page down
-        return []
+        items = []
+    if items:
+        _last_good[url] = items
+    return items or _last_good.get(url, [])  # a failed refresh serves the previous copy
 
 
 def latest(feeds: dict[str, str], key: str) -> list[dict]:
