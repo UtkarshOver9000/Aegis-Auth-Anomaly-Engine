@@ -185,3 +185,35 @@ def overview(model_card: dict) -> dict:
 def bad_ip(ip: str) -> dict | None:
     """The abuse.ch report behind a malware-server IP, if it is in the snapshot."""
     return _load("bad_ips.json").get(ip)
+
+
+# The login models were trained once on the RBA dataset; these periods are the splits in rba/train.py.
+MODELS = [
+    {
+        "name": "Account-takeover model",
+        "data": "RBA login dataset (Wiefling et al., 2022)",
+        "licence": "CC BY 4.0",
+        "url": "https://zenodo.org/records/6782156",
+        "data_period": "2020-02-03 to 2020-11-30",
+        "train": "Feb to Jul 2020",
+        "validate": "Aug to Sep 2020",
+        "test": "Oct to Nov 2020",
+        "note": "Values synthesized by the dataset's authors from real logins; city values are random.",
+    },
+    {
+        "name": "Attack-IP model",
+        "data": "RBA login dataset (Wiefling et al., 2022)",
+        "licence": "CC BY 4.0",
+        "url": "https://zenodo.org/records/6782156",
+        "data_period": "2020-02-03 to 2021-02-28",
+        "train": "first 70% by time",
+        "validate": "next 15%",
+        "test": "Jan to Feb 2021",
+        "note": "Trained once; not retrained since.",
+    },
+]
+
+
+def freshness() -> dict:
+    """How current each number is: every feed's last download, and the models' data periods."""
+    return {"snapshot": meta()["fetched_at"], "feeds": meta().get("feeds", []), "models": MODELS}

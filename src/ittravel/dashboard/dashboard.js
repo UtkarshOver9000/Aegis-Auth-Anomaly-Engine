@@ -696,29 +696,45 @@ loaders.news = async () => {
 };
 
 // ---------- data & accuracy ----------
+const SPAN = { h: "hour", d: "day" };
+const every = (span) => { const n = +span.slice(0, -1), u = SPAN[span.at(-1)]; return n === 1 ? `every ${u}` : `every ${n} ${u}s`; };
+const spanMs = (span) => +span.slice(0, -1) * (span.endsWith("h") ? 3600e3 : 86400e3);
+
 loaders.results = async () => {
-  const [m, src] = await Promise.all([api("/v1/model"), api("/v1/intel/sources")]);
+  const [m, fr, src] = await Promise.all([api("/v1/model"), api("/v1/intel/freshness"), api("/v1/intel/sources")]);
   const ato = m.test_metrics.ato, ip = m.test_metrics.attack_ip;
   $("#model-kpis").innerHTML = [
-    kpi(`${ato.confusion_matrix.tp} of ${ato.positives}`, `account takeovers caught (recall ${pct(ato.recall, 1)})`),
+    kpi(`${ato.confusion_matrix.tp} of ${ato.positives}`, `account takeovers caught in the Oct to Nov 2020 test data (recall ${pct(ato.recall, 1)})`),
     kpi(pct(ato.alert_rate), `of sign-ins asked for a code (${ato.alerts_per_10k_logins} per 10,000)`),
     kpi(ato.roc_auc.toFixed(3), "takeover ROC-AUC (1.0 is perfect, 0.5 is a coin flip)"),
-    kpi(ip.roc_auc.toFixed(3), `attack-IP ROC-AUC, recall ${pct(ip.recall, 1)} at a ${pct(ip.alert_rate)} alert rate`),
+    kpi(ip.roc_auc.toFixed(3), `attack-IP ROC-AUC on Jan to Feb 2021 data, recall ${pct(ip.recall, 1)} at a ${pct(ip.alert_rate)} alert rate`),
     kpi(compact(ato.logins), "test sign-ins the model never saw"),
-    kpi(pct(ato.precision, 2), "takeover precision: most codes go to real owners, which is why Alibi asks rather than blocks"),
+    kpi(pct(ato.precision, 2), "takeover precision: most codes go to sign-ins not labelled as takeovers, so Alibi asks rather than blocks"),
   ].join("");
-  $("#model-plain").textContent = `Out of ${fmt(ato.logins)} sign-ins in the test months, ${ato.positives} were real account takeovers. ` +
+  $("#model-plain").textContent = `Out of ${fmt(ato.logins)} sign-ins in the test months (October and November 2020), ${ato.positives} were labelled account takeovers. ` +
     `Asking for a one-time code on the riskiest ${pct(ato.alert_rate)} of sign-ins would have stopped ${ato.confusion_matrix.tp} of them. ` +
     `The other ${fmt(ato.confusion_matrix.fp)} people asked for a code were not labelled as takeovers. ` +
+    `With only ${ato.positives} takeovers to test on, that catch rate is uncertain: anywhere from about 43% to 80%. ` +
     `Spotting sign-ins from known attack IPs is harder: the model ranks them well above chance (ROC-AUC ${ip.roc_auc.toFixed(2)}) ` +
-    `but catches only ${pct(ip.recall, 1)} at that budget, which is why Alibi adds the Tor, VPN, malware-server and criminal-network checks on top.`;
-  const { news_feeds: nf, video_feeds: vf, ...sources } = src;
+    `but catches only ${pct(ip.recall, 1)} at that budget, which is why Alibi adds today's Tor, VPN, malware-server and criminal-network checks on top. ` +
+    "These models have not yet been tested on 2025 or 2026 logins.";
+  const now = Date.now();
+  $("#currency").innerHTML = fr.feeds.map((f) => {
+    const age = f.updated ? now - new Date(f.updated) : null;
+    const stale = age !== null && age > spanMs(f.max_age);
+    const when = !f.available ? (f.optional ? "not in this snapshot; fetched live" : "missing") : `${day(f.updated)} (${ago(f.updated)})`;
+    return `<tr><td><a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.name)}</a></td><td>${esc(f.licence)}</td>
+      <td>${when}${stale ? ' <span class="tag">stale</span>' : ""}</td><td>${every(f.cadence)}</td></tr>`;
+  }).join("");
+  $("#currency-note").textContent = `Snapshot built ${day(fr.snapshot)}. A feed counts as stale once it is older than its limit: 3 days for the malware feeds, up to 6 months for DB-IP and the cable maps.`;
+  $("#model-data").innerHTML = fr.models.map((x) => `<tr><td>${esc(x.name)}</td><td><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.data)}</a>, ${esc(x.licence)}<br><span class="fineprint">${esc(x.note)}</span></td>
+    <td>${esc(x.train)}</td><td>${esc(x.test)}</td></tr>`).join("");
+  const { news_feeds: nf, video_feeds: vf } = src;
   const rows = [
-    [m.dataset.name, m.dataset.source, "CC BY 4.0. Synthesized by its authors from 33M+ real logins; trains and tests the takeover models"],
-    ...Object.values(sources).map((x) => [x.name, x.url, x.license]),
-    [`Security news: ${Object.keys(nf).join(", ")}`, Object.values(nf)[0], "public RSS feeds, headlines and links only"],
-    [`Videos: ${Object.keys(vf).join(", ")}`, "https://www.youtube.com", "public YouTube channel feeds, titles and links only"],
-    ["World map shapes: Natural Earth via world-atlas", "https://github.com/topojson/world-atlas", "public domain"],
+    [`Security news: ${Object.keys(nf).join(", ")}`, Object.values(nf)[0], "public RSS feeds, headlines and links only, fetched live"],
+    [`Videos: ${Object.keys(vf).join(", ")}`, "https://www.youtube.com", "public YouTube channel feeds, titles and links only, fetched live"],
+    ["Country shapes: Natural Earth via world-atlas", "https://github.com/topojson/world-atlas", "public domain"],
+    ["Earth imagery: NASA Blue Marble", "https://visibleearth.nasa.gov/collection/1484/blue-marble", "public domain"],
     ["Street map tiles", "https://www.openstreetmap.org/copyright", "© OpenStreetMap contributors, ODbL"],
   ];
   $("#sources").innerHTML = rows.map(([n, u, l]) => `<li><a href="${esc(u)}" target="_blank" rel="noopener">${esc(n)}</a>: ${esc(l)}</li>`).join("");

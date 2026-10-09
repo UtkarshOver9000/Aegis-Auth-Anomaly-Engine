@@ -28,6 +28,7 @@ import ipaddress
 import json
 import re
 from collections import Counter, defaultdict
+from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -689,6 +690,35 @@ def build_countries(
     }
 
 
+def feed_currency(raw: Path) -> list[dict]:
+    """When each feed was last downloaded, from the fetcher's state (or the file date), plus its licence."""
+    import yaml
+
+    feeds = yaml.safe_load((Path(__file__).resolve().parents[3] / "sources.yaml").read_text(encoding="utf-8"))["feeds"]
+    state_file = raw / "_fetch_state.json"
+    states = json.loads(state_file.read_text()) if state_file.exists() else {}
+    out = []
+    for f in feeds:
+        path = raw / f["file"]
+        updated = states.get(f["id"], {}).get("last_success")
+        if not updated and path.exists():
+            updated = datetime.fromtimestamp(path.stat().st_mtime, UTC).isoformat()
+        out.append(
+            {
+                "id": f["id"],
+                "name": f["name"],
+                "licence": f["licence"],
+                "url": f["url"].split("?")[0],
+                "cadence": f["cadence"],
+                "max_age": f["max_age"],
+                "updated": updated,
+                "optional": bool(f.get("optional")),
+                "available": path.exists(),
+            }
+        )
+    return out
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build the intel snapshot from raw downloads")
     parser.add_argument("--raw", type=Path, default=Path("data/intel"))
@@ -716,6 +746,7 @@ def main() -> None:
     meta["heat"] = build_heat(args.raw)
     meta["countries"] = build_countries(args.raw, hosting_ips, bad_by_country, rw_by_country, landings)
     meta["window_ooni"] = "last 30 days to fetch date"
+    meta["feeds"] = feed_currency(args.raw)
     (OUT / "meta.json").write_text(json.dumps(meta, indent=2))
     print(json.dumps(meta, indent=2))
 

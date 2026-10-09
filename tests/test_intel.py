@@ -168,7 +168,8 @@ def test_sources_yaml_lists_every_raw_file_the_snapshot_reads():
     for f in feeds:
         assert required <= f.keys(), f["id"]
     read = set(re.findall(r'raw / "([^"]+)"', (root / "src/ittravel/intel/snapshot.py").read_text(encoding="utf-8")))
-    assert read - {"fetched_at.txt", "fetched_at_threats.txt"} <= {f["file"] for f in feeds}
+    internal = {"fetched_at.txt", "fetched_at_threats.txt", "_fetch_state.json"}  # written by the fetcher itself
+    assert read - internal <= {f["file"] for f in feeds}
 
 
 def test_globe_textures_bins_and_pick_map():
@@ -191,7 +192,6 @@ def test_globe_textures_bins_and_pick_map():
     rows = client.get("/v1/intel/globe/places").json()["rows"]
     r, g, _ = pick.getpixel((int((75.5 + 180) / 360 * 2048), int((90 - 19.2) / 180 * 1024)))  # inside Maharashtra
     assert rows[(r << 8 | g) - 1][0] == "Maharashtra"
-
 
 
 def test_stix_bundle_for_a_malware_server():

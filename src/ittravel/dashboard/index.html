@@ -204,11 +204,19 @@
 
   <section id="tab-results" class="tab" hidden>
     <h2>Data and accuracy</h2>
-    <p class="muted">The account-takeover model was trained on the RBA login dataset (31.3 million logins, 4.3 million
-      users; Wiefling et al., 2022) and tested on two months of logins it never saw.</p>
+    <p class="muted">Alibi mixes two kinds of data. The threat data (breaches, malware servers, criminal networks,
+      ransomware, flaws, censorship) is downloaded from public sources every day; the table below shows how old each
+      copy is. The login models are older: they were trained once on the RBA dataset, 31.3 million logins from
+      4.3 million users between February 2020 and February 2021. Its authors built each value from real logins at a
+      Norwegian sign-in service and changed the values to protect privacy, and its cities are random.</p>
     <div class="kpis" id="model-kpis"></div>
     <div class="card"><h3>In plain words</h3><p id="model-plain"></p></div>
-    <div class="card"><h3>Where every number comes from</h3><ul class="sources" id="sources"></ul></div>
+    <div class="card"><h3>How current each number is</h3>
+      <table class="table"><thead><tr><th>Data</th><th>Licence</th><th>Last downloaded</th><th>Refreshed</th></tr></thead><tbody id="currency"></tbody></table>
+      <p class="fineprint" id="currency-note"></p></div>
+    <div class="card"><h3>The login models</h3>
+      <table class="table"><thead><tr><th>Model</th><th>Data</th><th>Trained on</th><th>Tested on</th></tr></thead><tbody id="model-data"></tbody></table></div>
+    <div class="card"><h3>Also used</h3><ul class="sources" id="sources"></ul></div>
   </section>
 
 </main>

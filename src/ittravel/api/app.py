@@ -69,8 +69,17 @@ async def demo_check(story: DemoStory):
     uid = f"demo-{uuid4().hex[:12]}"
     engine = get_engine()
     results = [engine.evaluate_event(e.model_copy(update={"user_id": uid})) for e in story.events]
-    timeline = [{"tier": r.risk_tier, "score": r.risk_score, "reasons": r.reasons[:3], "distance_km": r.distance_km,
-                 "velocity_kmph": r.velocity_kmph, "network": r.network} for r in results]
+    timeline = [
+        {
+            "tier": r.risk_tier,
+            "score": r.risk_score,
+            "reasons": r.reasons[:3],
+            "distance_km": r.distance_km,
+            "velocity_kmph": r.velocity_kmph,
+            "network": r.network,
+        }
+        for r in results
+    ]
     return {"history_logins": len(results) - 1, "verdict": results[-1], "timeline": timeline}
 
 
@@ -133,6 +142,12 @@ async def intel_threats():
 async def intel_cables():
     """Submarine internet cables and landing stations (TeleGeography, CC BY-NC-SA 3.0)."""
     return service.cables()
+
+
+@app.get("/v1/intel/freshness", tags=["Intel"])
+async def intel_freshness():
+    """When each feed was last downloaded, its licence, and the period of the data behind each model."""
+    return service.freshness()
 
 
 @app.get("/v1/intel/sources", tags=["Intel"])
@@ -223,8 +238,12 @@ async def intel_sample_ips(country: str = Query(..., min_length=2, max_length=2)
     cc = country.upper()
     hosting = sample_ips(cc, True, 1) or sample_ips("US", True, 1)
     tor = sorted(tor_exits())
-    return {"home": sample_ips(cc, False, 2), "hosting": hosting, "tor": tor[len(tor) // 2] if tor else None,
-            "malware": malware_ip(cc)}
+    return {
+        "home": sample_ips(cc, False, 2),
+        "hosting": hosting,
+        "tor": tor[len(tor) // 2] if tor else None,
+        "malware": malware_ip(cc),
+    }
 
 
 @app.get("/v1/health", include_in_schema=False)
