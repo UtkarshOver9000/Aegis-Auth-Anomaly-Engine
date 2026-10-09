@@ -1,3 +1,4 @@
+import gzip
 import io
 import urllib.error
 from datetime import UTC, datetime
@@ -69,7 +70,7 @@ def test_run_falls_back_to_last_month_and_then_respects_the_cadence(tmp_path, mo
     def urlopen(req, timeout):
         if "2026-03" in req.full_url:
             raise http_error(404)  # this month's file isn't published yet
-        return Resp(b"geo")
+        return Resp(gzip.compress(b"geo"))
 
     monkeypatch.setattr(fetch.urllib.request, "urlopen", urlopen)
     now = datetime(2026, 3, 2, tzinfo=UTC)
@@ -78,3 +79,20 @@ def test_run_falls_back_to_last_month_and_then_respects_the_cadence(tmp_path, mo
     again = fetch.run(tmp_path, only={"dbip_city"}, now=now.replace(day=10))["dbip_city"]
     assert again["status"] == "fresh, skipped" and not again["stale"]
     assert (tmp_path / "fetched_at.txt").read_text() == "2026-03-10T00:00:00Z"
+
+
+def test_a_cut_off_download_is_rejected(tmp_path, monkeypatch):
+    import gzip as gz
+
+    dest = tmp_path / "table.tsv.gz"
+    dest.write_bytes(gz.compress(b"good"))
+    whole = gz.compress(b"x" * 100000)
+    monkeypatch.setattr(
+        fetch.urllib.request, "urlopen", lambda req, timeout: Resp(whole[:50], {"Content-Length": str(len(whole))})
+    )
+    with pytest.raises(ValueError, match="truncated"):
+        fetch.download("https://x", dest, {}, retries=1)
+    monkeypatch.setattr(fetch.urllib.request, "urlopen", lambda req, timeout: Resp(whole[:50]))  # no length header
+    with pytest.raises(EOFError):
+        fetch.download("https://x", dest, {}, retries=1)
+    assert gz.decompress(dest.read_bytes()) == b"good"

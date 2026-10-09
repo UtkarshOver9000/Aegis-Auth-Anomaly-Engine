@@ -13,6 +13,7 @@ and non-empty, so a failed fetch never destroys the last good file.
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import shutil
 import sys
@@ -44,6 +45,13 @@ def expand(url: str, now: datetime) -> str:
     )
 
 
+def _check_gzip(path: Path) -> None:
+    """Read a .gz file to the end; a cut-off archive raises before it can replace a good copy."""
+    with gzip.open(path, "rb") as fh:
+        while fh.read(1 << 20):
+            pass
+
+
 def download(url: str, dest: Path, state: dict, retries: int = 4, timeout: int = 120, sleep=time.sleep) -> tuple:
     """Return ("updated" | "not modified", new validators). Raises the last error after all retries."""
     headers = {"User-Agent": USER_AGENT}
@@ -59,8 +67,13 @@ def download(url: str, dest: Path, state: dict, retries: int = 4, timeout: int =
             with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=timeout) as resp:
                 with open(tmp, "wb") as fh:
                     shutil.copyfileobj(resp, fh, 1 << 20)
-                if tmp.stat().st_size == 0:
+                size, expected = tmp.stat().st_size, resp.headers.get("Content-Length")
+                if size == 0:
                     raise ValueError("empty response")
+                if expected and size != int(expected):  # the server closed the connection early
+                    raise ValueError(f"truncated download: {size} of {expected} bytes")
+                if dest.suffix == ".gz":
+                    _check_gzip(tmp)
                 tmp.replace(dest)
                 return "updated", {"etag": resp.headers.get("ETag"), "last_modified": resp.headers.get("Last-Modified")}
         except urllib.error.HTTPError as e:
