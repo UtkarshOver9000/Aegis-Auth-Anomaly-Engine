@@ -126,6 +126,8 @@ def flaws_summary() -> dict:
         "top_vendors_last_12_months": Counter(r["vendor"] for r in in_days(365)).most_common(10),
         "added_by_month": {m: by_month[m] for m in months},
         "latest": rows[:20],
+        "most_likely_exploited": sorted((r for r in rows if r.get("epss") is not None), key=lambda r: -r["epss"])[:10],
+        "epss_date": meta()["flaws"].get("epss_date"),
         "source": SOURCES["flaws"],
         "as_of": meta()["fetched_at"],
     }
@@ -287,7 +289,14 @@ def health(now: datetime | None = None) -> dict:
         status = "missing" if not f["available"] else ("stale" if age is None or age > limit else "ok")
         if status != "ok" and f["optional"]:
             status = "optional, " + status
-        feeds.append({"id": f["id"], "status": status, "last_success": f["updated"],
-                      "age_hours": round(age / 3600, 1) if age is not None else None, "records": _records(f["id"])})
+        feeds.append(
+            {
+                "id": f["id"],
+                "status": status,
+                "last_success": f["updated"],
+                "age_hours": round(age / 3600, 1) if age is not None else None,
+                "records": _records(f["id"]),
+            }
+        )
     degraded = any(x["status"] in ("stale", "missing") for x in feeds)
     return {"status": "degraded" if degraded else "ok", "snapshot": meta()["fetched_at"], "feeds": feeds}

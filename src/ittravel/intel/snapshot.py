@@ -222,8 +222,21 @@ def build_breaches(raw: Path) -> dict:
     }
 
 
+def _epss(raw: Path) -> tuple[dict[str, tuple[float, float]], str | None]:
+    """CVE -> (probability of exploitation in the next 30 days, percentile), from FIRST EPSS."""
+    path = raw / "epss_scores.csv.gz"
+    if not path.exists():
+        return {}, None
+    with gzip.open(path, "rt", encoding="utf-8") as fh:
+        model = fh.readline().strip()  # "#model_version:...,score_date:..."
+        scores = {r["cve"]: (float(r["epss"]), float(r["percentile"])) for r in csv.DictReader(fh)}
+    date = model.split("score_date:")[-1][:10] if "score_date:" in model else None
+    return scores, date
+
+
 def build_flaws(raw: Path) -> dict:
     data = json.loads((raw / "cisa_kev.json").read_text(encoding="utf-8"))
+    epss, epss_date = _epss(raw)
     rows = [
         {
             "cve": v["cveID"],
@@ -234,12 +247,20 @@ def build_flaws(raw: Path) -> dict:
             "due": v["dueDate"],
             "ransomware": v.get("knownRansomwareCampaignUse") == "Known",
             "action": v.get("requiredAction", ""),
+            "epss": round(epss[v["cveID"]][0], 5) if v["cveID"] in epss else None,
+            "epss_pct": round(epss[v["cveID"]][1], 4) if v["cveID"] in epss else None,
         }
         for v in data["vulnerabilities"]
     ]
     rows.sort(key=lambda r: r["added"], reverse=True)
     (OUT / "flaws.json").write_text(json.dumps(rows, separators=(",", ":")))
-    return {"flaws": len(rows), "catalog_version": data.get("catalogVersion"), "released": data.get("dateReleased")}
+    return {
+        "flaws": len(rows),
+        "catalog_version": data.get("catalogVersion"),
+        "released": data.get("dateReleased"),
+        "epss_date": epss_date,
+        "epss_scored": sum(r["epss"] is not None for r in rows),
+    }
 
 
 def _ip_networks(ips: list[str]) -> dict[str, tuple[int, str, str, bool]]:

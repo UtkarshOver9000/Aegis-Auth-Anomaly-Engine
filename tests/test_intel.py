@@ -245,3 +245,12 @@ def test_every_api_response_carries_the_snapshot_date():
         assert res.headers["x-data-as-of"] == stamp, path
     for path in ("/v1/intel/overview", "/v1/intel/cables", "/v1/intel/ip/8.8.8.8", "/v1/intel/search?q=adobe"):
         assert client.get(path).json()["as_of"] == stamp, path
+
+
+def test_epss_scores_join_the_exploited_flaws():
+    f = service.flaws_summary()
+    if not service.meta()["flaws"].get("epss_scored"):
+        return  # snapshot built without the EPSS file
+    top = f["most_likely_exploited"]
+    assert top and all(0 <= r["epss"] <= 1 for r in top)
+    assert [r["epss"] for r in top] == sorted((r["epss"] for r in top), reverse=True)

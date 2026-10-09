@@ -72,7 +72,16 @@ def _urlhaus(path: Path) -> None:
     _need(all(len(r) >= 8 and r[2].startswith("http") for r in rows[:50]), "rows do not look like URLhaus entries")
 
 
+def _epss(path: Path) -> None:
+    with gzip.open(path, "rt", encoding="utf-8") as fh:
+        head = [next(fh, "") for _ in range(3)]
+    _need(head[0].startswith("#model_version"), "missing the EPSS model line")
+    _need(head[1].strip() == "cve,epss,percentile", "unexpected EPSS header")
+    _need(head[2].startswith("CVE-"), "no scores")
+
+
 CHECKS = {
+    "epss": _epss,
     "hibp_breaches": lambda p: _rows_of(_json(p), "PwnCount", 500, "breaches"),
     "cisa_kev": lambda p: _rows_of(_json(p).get("vulnerabilities"), "cveID", 1000, "vulnerabilities"),
     "iptoasn": lambda p: _gz_lines(p, "\t", 5),

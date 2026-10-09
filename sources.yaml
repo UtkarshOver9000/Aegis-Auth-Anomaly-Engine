@@ -27,6 +27,17 @@ feeds:
     parser: snapshot.build_flaws
     description: Vulnerabilities confirmed as exploited in real attacks.
 
+  - id: epss
+    name: FIRST EPSS exploit prediction scores
+    url: https://epss.empiricalsecurity.com/epss_scores-current.csv.gz
+    file: epss_scores.csv.gz
+    licence: free to use with attribution to FIRST (Exploit Prediction Scoring System)
+    auth: none
+    cadence: 1d
+    max_age: 3d
+    parser: snapshot.build_flaws
+    description: Daily probability that each CVE is exploited in the next 30 days.
+
   - id: iptoasn
     name: iptoasn.com IP-to-ASN table
     url: https://iptoasn.com/data/ip2asn-v4.tsv.gz

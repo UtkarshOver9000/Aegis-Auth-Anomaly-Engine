@@ -600,7 +600,8 @@ loaders.flaws = async () => {
     new Date(`${m}-01`).toLocaleDateString("en-GB", { month: "short", year: "numeric" }) + (m === thisMonth ? ", to date" : ""), n]));
   $("#flaw-rows").innerHTML = f.latest.map((r) => `<tr><td>${day(r.added)}</td>
     <td><a href="https://nvd.nist.gov/vuln/detail/${esc(r.cve)}" target="_blank" rel="noopener">${esc(r.cve)}</a><br>${esc(r.name)}</td>
-    <td>${esc(r.vendor)} ${esc(r.product)}</td><td>${r.ransomware ? '<span class="tag">yes</span>' : "not known"}</td></tr>`).join("");
+    <td>${esc(r.vendor)} ${esc(r.product)}</td><td>${r.ransomware ? '<span class="tag">yes</span>' : "not known"}</td>
+    <td class="num">${r.epss == null ? "not scored" : pct(r.epss, 1)}</td></tr>`).join("");
 };
 
 // ---------- account takeover: check a sign-in ----------
