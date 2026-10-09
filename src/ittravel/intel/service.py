@@ -217,3 +217,29 @@ MODELS = [
 def freshness() -> dict:
     """How current each number is: every feed's last download, and the models' data periods."""
     return {"snapshot": meta()["fetched_at"], "feeds": meta().get("feeds", []), "models": MODELS}
+
+
+def search(q: str, limit: int = 10) -> dict:
+    """One search box for everything: an IP, a CVE id, or text matched against breaches and flaws."""
+    import ipaddress
+    import re
+
+    from .network import lookup
+
+    q = q.strip()
+    try:
+        ipaddress.ip_address(q)
+    except ValueError:
+        pass
+    else:
+        net = lookup(q)
+        return {"kind": "ip", "query": q, "ip": {**net.__dict__, "type": net.label}, "report": bad_ip(q)}
+    if re.fullmatch(r"(?i)cve-\d{4}-\d{4,}", q):
+        hits = [f for f in _load("flaws.json") if f["cve"].upper() == q.upper()]
+        return {"kind": "cve", "query": q, "flaws": hits}
+    needle = q.lower()
+    breaches = [b for b in _load("breaches.json") if needle in b["name"].lower() or needle in b["domain"].lower()]
+    flaws = [f for f in _load("flaws.json") if needle in f["vendor"].lower() or needle in f["product"].lower()]
+    return {"kind": "text", "query": q,
+            "breaches": sorted(breaches, key=lambda b: -b["accounts"])[:limit], "breach_matches": len(breaches),
+            "flaws": flaws[:limit], "flaw_matches": len(flaws)}

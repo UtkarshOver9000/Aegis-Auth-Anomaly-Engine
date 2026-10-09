@@ -149,3 +149,7 @@ button.link { border: 0; background: none; color: var(--accent); cursor: pointer
 .load-error { border-color: var(--risk); display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .empty { margin: 6px 0; }
 @media (prefers-reduced-motion: reduce) { .is-loading .kpis:empty, .is-loading .bars:empty { animation: none; } }
+.search { margin-left: auto; }
+.search input { width: 260px; max-width: 60vw; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font: 0.9rem Inter, sans-serif; }
+.search-results { margin: 8px 0 0; max-height: 60vh; overflow: auto; }
+.search-results h4 { margin: 10px 0 4px; font-size: 0.95rem; }

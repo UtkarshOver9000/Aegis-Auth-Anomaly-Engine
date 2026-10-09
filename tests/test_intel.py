@@ -222,3 +222,16 @@ def test_news_keeps_only_security_items():
     drop = {"source": "NetworkChuck", "title": "I built a home lab Raspberry Pi media server"}
     always = {"source": "CISA advisories", "title": "Siemens SIMATIC S7-1500"}
     assert news.is_security(keep) and news.is_security(always) and not news.is_security(drop)
+
+
+def test_search_finds_ips_cves_and_names():
+    from ittravel.intel.network import malware_ip
+
+    ip = malware_ip("IN")
+    r = client.get("/v1/intel/search", params={"q": ip}).json()
+    assert r["kind"] == "ip" and r["report"]["source"]
+    flaw = service.flaws_summary()["latest"][0]
+    r = client.get("/v1/intel/search", params={"q": flaw["cve"].lower()}).json()
+    assert r["kind"] == "cve" and r["flaws"][0]["cve"] == flaw["cve"]
+    r = client.get("/v1/intel/search", params={"q": "linkedin"}).json()
+    assert r["kind"] == "text" and any("LinkedIn" in b["name"] for b in r["breaches"])

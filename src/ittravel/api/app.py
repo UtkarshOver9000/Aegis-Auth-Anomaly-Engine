@@ -144,6 +144,12 @@ async def intel_cables():
     return service.cables()
 
 
+@app.get("/v1/intel/search", tags=["Intel"])
+async def intel_search(q: str = Query(..., min_length=2, max_length=100)):
+    """Search an IP address, a CVE id, or a company / product name across breaches and exploited flaws."""
+    return service.search(q)
+
+
 @app.get("/v1/intel/freshness", tags=["Intel"])
 async def intel_freshness():
     """When each feed was last downloaded, its licence, and the period of the data behind each model."""

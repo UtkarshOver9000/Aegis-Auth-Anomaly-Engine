@@ -81,6 +81,45 @@ function show(hash) {
 }
 window.addEventListener("hashchange", () => show(location.hash.slice(1)));
 
+// ---------- global search ----------
+$("#search").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const q = $("#search-q").value.trim();
+  const box = $("#search-results");
+  if (q.length < 2) return void (box.hidden = true);
+  box.hidden = false;
+  box.innerHTML = '<p class="muted">Searching…</p>';
+  try {
+    box.innerHTML = searchHtml(await api(`/v1/intel/search?q=${encodeURIComponent(q)}`)) +
+      '<p><button class="link" id="search-close">Close</button></p>';
+  } catch (err) {
+    box.innerHTML = `<p class="err">Search failed: ${esc(err.message.slice(0, 80))}</p>`;
+  }
+  $("#search-close")?.addEventListener("click", () => (box.hidden = true));
+});
+
+function searchHtml(r) {
+  if (r.kind === "ip") {
+    const n = r.ip, rep = r.report;
+    return `<h3>${esc(r.query)}</h3><p><b>${esc(n.type)}</b>${n.network ? ` on ${esc(n.network)} (AS${n.asn})` : ""}${
+      n.country ? `, registered in ${esc(n.country)}` : ""}.</p>` +
+      (rep ? `<p class="err">Reported as a ${esc(rep.what.toLowerCase())} (${esc(rep.malware)}) to abuse.ch ${esc(rep.source)} on ${day(rep.seen)}.</p>`
+        : "<p class=\"muted\">Not on the abuse.ch malware lists in this snapshot.</p>") +
+      (n.criminal_network ? "<p class=\"err\">Its network is on the Spamhaus DROP list (run by criminals).</p>" : "") +
+      `<p class="fineprint"><a href="/v1/intel/ip/${encodeURIComponent(r.query)}/stix" target="_blank">Download as STIX 2.1</a></p>`;
+  }
+  if (r.kind === "cve") {
+    return r.flaws.length ? r.flaws.map((f) => `<h3>${esc(f.cve)}</h3><p>${esc(f.name)}</p>
+      <p class="fineprint">Added to CISA's exploited list ${day(f.added)}${f.ransomware ? " · used by ransomware" : ""} ·
+      <a href="https://nvd.nist.gov/vuln/detail/${esc(f.cve)}" target="_blank" rel="noopener">NVD</a></p>`).join("")
+      : `<p class="muted">${esc(r.query)} is not on CISA's list of exploited flaws.</p>`;
+  }
+  const b = r.breaches.map((x) => `<li><b>${esc(x.name)}</b> ${esc(x.domain)}: ${fmt(x.accounts)} accounts, ${day(x.breach_date)} · ${esc(x.how)}</li>`).join("");
+  const f = r.flaws.map((x) => `<li><b>${esc(x.cve)}</b> ${esc(x.vendor)} ${esc(x.product)} · added ${day(x.added)}</li>`).join("");
+  return `<h4>Breaches (${fmt(r.breach_matches)})</h4>${b ? `<ul>${b}</ul>` : '<p class="muted">No published breach matches.</p>'}
+    <h4>Exploited flaws (${fmt(r.flaw_matches)})</h4>${f ? `<ul>${f}</ul>` : '<p class="muted">No exploited flaw matches.</p>'}`;
+}
+
 // ---------- libraries, loaded only when a tab needs them ----------
 const LIBS = {
   d3: "/static/vendor/d3.min.js",
