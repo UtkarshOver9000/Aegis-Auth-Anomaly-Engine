@@ -1,11 +1,13 @@
-import gzip
 import io
 import urllib.error
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
 
 from ittravel.intel import fetch
+
+DBIP_HEAD = (Path(__file__).parent / "fixtures" / "dbip-city-lite-head.csv.gz").read_bytes()
 
 
 class Resp(io.BytesIO):
@@ -70,7 +72,7 @@ def test_run_falls_back_to_last_month_and_then_respects_the_cadence(tmp_path, mo
     def urlopen(req, timeout):
         if "2026-03" in req.full_url:
             raise http_error(404)  # this month's file isn't published yet
-        return Resp(gzip.compress(b"geo"))
+        return Resp(DBIP_HEAD)  # 1,000 real DB-IP rows
 
     monkeypatch.setattr(fetch.urllib.request, "urlopen", urlopen)
     now = datetime(2026, 3, 2, tzinfo=UTC)
@@ -96,3 +98,46 @@ def test_a_cut_off_download_is_rejected(tmp_path, monkeypatch):
     with pytest.raises(EOFError):
         fetch.download("https://x", dest, {}, retries=1)
     assert gz.decompress(dest.read_bytes()) == b"good"
+
+
+def test_every_saved_feed_passes_its_check_and_bad_files_fail(tmp_path):
+    from pathlib import Path
+
+    from ittravel.intel import validate
+
+    raw = Path(__file__).resolve().parents[2] / "_data" / "intel"
+    checked = 0
+    for feed_id, name in (
+        ("hibp_breaches", "hibp_breaches.json"),
+        ("cisa_kev", "cisa_kev.json"),
+        ("threatfox", "threatfox_recent.json"),
+        ("urlhaus", "urlhaus_recent.csv"),
+        ("spamhaus_asndrop", "spamhaus_asndrop.json"),
+        ("cables", "cable_geo.json"),
+    ):
+        if (raw / name).exists():  # real downloads, when present on this machine
+            validate.check(feed_id, raw / name)
+            checked += 1
+    bad = tmp_path / "x.json"
+    bad.write_text('{"vulnerabilities": []}')
+    with pytest.raises(validate.InvalidFeed, match="expected at least 1000"):
+        validate.check("cisa_kev", bad)
+    bad.write_text("<html>maintenance</html>")
+    with pytest.raises(validate.InvalidFeed, match="not valid JSON"):
+        validate.check("hibp_breaches", bad)
+
+
+def test_an_invalid_file_is_not_retried_and_keeps_the_old_copy(tmp_path, monkeypatch):
+    from ittravel.intel.validate import InvalidFeed
+
+    dest = tmp_path / "cisa_kev.json"
+    dest.write_text("good")
+    calls = []
+    monkeypatch.setattr(fetch.urllib.request, "urlopen", lambda req, timeout: calls.append(1) or Resp(b"<html>"))
+
+    def strict(path):
+        raise InvalidFeed("bad")
+
+    with pytest.raises(InvalidFeed):
+        fetch.download("https://x", dest, {}, validate=strict)
+    assert calls == [1] and dest.read_text() == "good"

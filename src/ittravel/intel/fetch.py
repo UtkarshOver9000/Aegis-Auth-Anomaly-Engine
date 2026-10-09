@@ -25,6 +25,8 @@ from pathlib import Path
 
 import yaml
 
+from .validate import InvalidFeed, check
+
 SOURCES = Path(__file__).resolve().parents[3] / "sources.yaml"
 USER_AGENT = "Alibi-threat-intel/4.0 (+https://github.com/UtkarshOver9000/alibi)"
 UNITS = {"m": 60, "h": 3600, "d": 86400}
@@ -52,7 +54,9 @@ def _check_gzip(path: Path) -> None:
             pass
 
 
-def download(url: str, dest: Path, state: dict, retries: int = 4, timeout: int = 120, sleep=time.sleep) -> tuple:
+def download(
+    url: str, dest: Path, state: dict, retries: int = 4, timeout: int = 120, sleep=time.sleep, validate=None
+) -> tuple:
     """Return ("updated" | "not modified", new validators). Raises the last error after all retries."""
     headers = {"User-Agent": USER_AGENT}
     if dest.exists():
@@ -74,6 +78,8 @@ def download(url: str, dest: Path, state: dict, retries: int = 4, timeout: int =
                     raise ValueError(f"truncated download: {size} of {expected} bytes")
                 if dest.suffix == ".gz":
                     _check_gzip(tmp)
+                if validate:
+                    validate(tmp)  # format and size checks; raises InvalidFeed
                 tmp.replace(dest)
                 return "updated", {"etag": resp.headers.get("ETag"), "last_modified": resp.headers.get("Last-Modified")}
         except urllib.error.HTTPError as e:
@@ -82,6 +88,8 @@ def download(url: str, dest: Path, state: dict, retries: int = 4, timeout: int =
             error = e
             if e.code in NO_RETRY:
                 break
+        except InvalidFeed:
+            raise  # the file arrived whole but is wrong: retrying won't help
         except Exception as e:  # network errors, resets, timeouts, empty bodies
             error = e
         finally:
@@ -111,7 +119,7 @@ def run(raw: Path, force: bool = False, only: set[str] | None = None, now: datet
         urls = [expand(feed["url"], now)] + ([expand(feed["fallback_url"], now)] if feed.get("fallback_url") else [])
         for url in urls:
             try:
-                status, validators = download(url, dest, st, **kw)
+                status, validators = download(url, dest, st, validate=lambda p, i=feed["id"]: check(i, p), **kw)
             except Exception as e:
                 st["status"], st["error"] = "failed", f"{type(e).__name__}: {e}"[:300]
                 continue
