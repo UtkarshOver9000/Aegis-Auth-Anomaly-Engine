@@ -88,6 +88,19 @@ async def intel_states():
     return FileResponse(str(service.DATA / "states.json"), media_type="application/json")
 
 
+@router.get("/v1/intel/events", tags=["Intel"])
+async def intel_events():
+    """Typed points for the globe: malware servers with their report time (unix seconds), Tor exits and
+    Spamhaus criminal ranges, each placed by DB-IP: [lat, lng, type, time]."""
+    return FileResponse(str(service.DATA / "events.json"), media_type="application/json")
+
+
+@router.get("/v1/intel/activity", tags=["Intel"])
+async def intel_activity():
+    """Malware servers reported today (UTC) and per hour over the 48 hours before the snapshot."""
+    return service.activity()
+
+
 @router.get("/v1/intel/heat", tags=["Intel"])
 async def intel_heat():
     """City-level hotspots of malware servers and public DNS servers (located with DB-IP, CC BY 4.0)."""

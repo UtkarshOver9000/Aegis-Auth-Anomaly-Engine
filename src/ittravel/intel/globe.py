@@ -15,6 +15,7 @@ from __future__ import annotations
 import bisect
 import io
 import json
+from collections import Counter
 from functools import cache, lru_cache
 from pathlib import Path
 
@@ -138,6 +139,8 @@ def top(metric: str, n: int = 10) -> list[dict]:
                 "value": round(v, 2),
                 "count": s[m["field"]],
                 "addresses": s["ip"],
+                "lat": round((s["b"][0] + s["b"][2]) / 2, 2),
+                "lng": round((s["b"][1] + s["b"][3]) / 2, 2),
             }
             for v, s in ranked[:n]
         ]
@@ -227,3 +230,20 @@ def places() -> list[list]:
 def state(index: int) -> dict:
     s = _load("states.json")[index]
     return {"name": s["n"], "country": s["c"], "type": s["t"], "rings": s["r"]}
+
+
+def ranks(metric: str) -> dict[str, list]:
+    """country -> [rank, value, how many countries are ranked]. State-level metrics are rated per million
+    addresses over the whole country, counting only countries with at least MIN_ADDRESSES addresses."""
+    m = METRICS[metric]
+    if m["level"] == "state":
+        count: Counter = Counter()
+        addresses: Counter = Counter()
+        for s in _load("states.json"):
+            count[s["c"]] += s.get(m["field"], 0)
+            addresses[s["c"]] += s.get("ip", 0)
+        values = {cc: count[cc] / addresses[cc] * 1e6 for cc in addresses if addresses[cc] >= MIN_ADDRESSES}
+    else:
+        values = {cc: c[m["field"]] for cc, c in _load("countries.json").items() if not m.get("needs") or c[m["needs"]]}
+    ordered = sorted(values.items(), key=lambda kv: -kv[1])
+    return {cc: [i + 1, round(v, 2), len(ordered)] for i, (cc, v) in enumerate(ordered)}

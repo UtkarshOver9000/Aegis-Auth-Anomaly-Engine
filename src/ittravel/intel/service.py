@@ -330,3 +330,18 @@ def prioritised_flaws(vendors: list[str] | None = None, limit: int = 20) -> list
         score = sum(PRIORITY_WEIGHTS[k] * v for k, v in parts.items())
         out.append({**r, "priority": round(score, 1), "priority_parts": {k: round(v, 3) for k, v in parts.items()}})
     return sorted(out, key=lambda r: -r["priority"])[:limit]
+
+
+def activity() -> dict:
+    """Malware servers reported today and per hour over the 48 hours before the snapshot (real report times)."""
+    end = int(datetime.fromisoformat(meta()["fetched_at"].replace("Z", "+00:00")).timestamp())
+    midnight = end - end % 86400
+    times = [p[3] for p in _load("events.json")["points"] if p[3] and end - 48 * 3600 <= p[3] <= end]
+    by_hour = Counter((end - t) // 3600 for t in times)
+    return {
+        "window_end": end,
+        "new_today": sum(t >= midnight for t in times),
+        "last_48h": len(times),
+        "per_hour": [by_hour.get(h, 0) for h in range(47, -1, -1)],
+        "as_of": meta()["fetched_at"],
+    }

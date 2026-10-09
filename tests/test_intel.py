@@ -239,8 +239,14 @@ def test_search_finds_ips_cves_and_names():
 
 def test_every_api_response_carries_the_snapshot_date():
     stamp = service.meta()["fetched_at"]
-    for path in ("/v1/intel/overview", "/v1/intel/cables", "/v1/intel/globe/places", "/v1/intel/ip/8.8.8.8",
-                 "/v1/intel/globe/pick.png", "/v1/intel/states"):
+    for path in (
+        "/v1/intel/overview",
+        "/v1/intel/cables",
+        "/v1/intel/globe/places",
+        "/v1/intel/ip/8.8.8.8",
+        "/v1/intel/globe/pick.png",
+        "/v1/intel/states",
+    ):
         res = client.get(path)
         assert res.headers["x-data-as-of"] == stamp, path
     for path in ("/v1/intel/overview", "/v1/intel/cables", "/v1/intel/ip/8.8.8.8", "/v1/intel/search?q=adobe"):
@@ -275,3 +281,18 @@ def test_readme_numbers_and_sources_match_the_data():
     spec.loader.exec_module(mod)
     readme = (root / "README.md").read_text(encoding="utf-8")
     assert mod.render(readme) == readme, "run: PYTHONPATH=src python scripts/readme_numbers.py"
+
+
+def test_events_activity_and_country_ranks():
+    ev = client.get("/v1/intel/events").json()
+    assert set(ev["types"]) == {"c2", "dl", "tor", "drop"}
+    for lat, lng, kind, t in ev["points"][:500]:
+        assert -90 <= lat <= 90 and -180 <= lng <= 180 and kind in ev["types"]
+        assert t is None or isinstance(t, int)
+    act = client.get("/v1/intel/activity").json()
+    assert len(act["per_hour"]) == 48 and sum(act["per_hour"]) == act["last_48h"] >= act["new_today"] >= 0
+    lg = client.get("/v1/intel/globe/malicious_ips/legend").json()
+    ranks = lg["ranks"]
+    assert ranks and sorted(r[0] for r in ranks.values()) == list(range(1, len(ranks) + 1))
+    assert all(r[2] == len(ranks) for r in ranks.values())
+    assert all("lat" in t and "lng" in t for t in lg["top"])

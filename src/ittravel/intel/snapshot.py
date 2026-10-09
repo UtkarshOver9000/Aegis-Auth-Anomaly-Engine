@@ -342,6 +342,14 @@ def _jsonl(path: Path, prefix: str) -> list[dict]:
     return [json.loads(ln) for ln in path.read_text(encoding="utf-8").splitlines() if ln.startswith(prefix)]
 
 
+def _utc(stamp: str) -> int | None:
+    """'2026-10-04 11:01:40' (UTC, as the abuse.ch feeds write it) -> unix seconds."""
+    try:
+        return int(datetime.strptime(stamp[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC).timestamp())
+    except ValueError:
+        return None
+
+
 def build_threats(raw: Path) -> tuple[dict, Counter]:
     """Criminal infrastructure seen right now: botnet control servers, malware sites, criminal networks, ransomware."""
     bad: dict[str, dict] = {}  # ip -> what it was reported for
@@ -352,6 +360,7 @@ def build_threats(raw: Path) -> tuple[dict, Counter]:
             "malware": r["malware"],
             "source": "Feodo Tracker",
             "seen": (r.get("last_online") or r["first_seen"])[:10],
+            "t": _utc(r["first_seen"]),
             "online": r["status"] == "online",
         }
 
@@ -367,6 +376,7 @@ def build_threats(raw: Path) -> tuple[dict, Counter]:
                     "malware": r["malware_printable"],
                     "source": "ThreatFox",
                     "seen": r["first_seen_utc"][:10],
+                    "t": _utc(r["first_seen_utc"]),
                     "online": True,
                 },
             )
@@ -386,6 +396,7 @@ def build_threats(raw: Path) -> tuple[dict, Counter]:
                     "malware": family.strip(),
                     "source": "URLhaus",
                     "seen": added[:10],
+                    "t": _utc(added),
                     "online": status == "online",
                 },
             )
@@ -616,7 +627,12 @@ def build_heat(raw: Path) -> dict:
             for r in csv.DictReader(fh)
             if not r.get("error") and "." in r["ip_address"]
         }
-    geo = _geolocate(raw, set(bad) | set(dns))
+    tor_ips: set[str] = set()
+    if (raw / "onionoo_exits.json").exists():
+        for relay in json.loads((raw / "onionoo_exits.json").read_text(encoding="utf-8"))["relays"]:
+            tor_ips.update(a for a in relay.get("exit_addresses") or [] if "." in a)
+    drop_starts = [str(ipaddress.IPv4Address(int(n))) for n in np.load(OUT / "drop.npz")["start"]]
+    geo = _geolocate(raw, set(bad) | set(dns) | tor_ips | set(drop_starts))
 
     states = json.loads((OUT / "states.json").read_text(encoding="utf-8"))
     owner, polys = [], []  # one polygon per ring, each mapped back to its state
@@ -667,6 +683,25 @@ def build_heat(raw: Path) -> dict:
         s["ip"] = per_state_ip.get(i, 0)
     heat["ipv4_located"] = sum(per_state_ip.values())
     heat["ipv4_total"] = sum(addresses.values())
+
+    kinds = {"Botnet control server": "c2", "Malware download site": "dl"}
+    points = []
+    for ip, info in bad.items():
+        if ip in geo:
+            points.append([round(geo[ip][0], 2), round(geo[ip][1], 2), kinds.get(info["what"], "dl"), info.get("t")])
+    points += [[round(geo[ip][0], 2), round(geo[ip][1], 2), "tor", None] for ip in sorted(tor_ips) if ip in geo]
+    points += [[round(geo[ip][0], 2), round(geo[ip][1], 2), "drop", None] for ip in drop_starts if ip in geo]
+    events = {
+        "types": {
+            "c2": "Botnet control server",
+            "dl": "Malware download site",
+            "tor": "Tor exit relay",
+            "drop": "Criminal network (Spamhaus DROP)",
+        },
+        "points": points,
+    }
+    (OUT / "events.json").write_text(json.dumps(events, separators=(",", ":")), encoding="utf-8")
+    heat["points"] = Counter(p[2] for p in points)
 
     landings = json.loads((OUT / "cables.json").read_text())["landings"]
     heat["landings"] = [[p["lat"], p["lng"], 1] for p in landings]

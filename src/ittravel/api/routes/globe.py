@@ -51,4 +51,9 @@ async def globe_legend(metric: str):
     """Colour classes, units and the top 10 places for one globe metric."""
     if metric not in globe.METRICS:
         raise HTTPException(404, f"metric must be one of {sorted(globe.METRICS)}")
-    return {**globe.legend(metric), "top": globe.top(metric), "as_of": service.meta()["fetched_at"]}
+    return {
+        **globe.legend(metric),
+        "top": globe.top(metric),
+        "ranks": globe.ranks(metric),
+        "as_of": service.meta()["fetched_at"],
+    }

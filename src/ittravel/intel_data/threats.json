@@ -1,5 +1,5 @@
 {
- "malicious_ips": 8905,
+ "malicious_ips": 8907,
  "malicious_ips_on_hosting": 982,
  "hosting_share_of_malicious_ips": 0.1107,
  "hosting_share_of_internet": 0.1092,
@@ -7,11 +7,11 @@
  "by_source": [
   [
    "URLhaus",
-   6494
+   6490
   ],
   [
    "ThreatFox",
-   2406
+   2412
   ],
   [
    "Feodo Tracker",
@@ -21,11 +21,11 @@
  "what": [
   [
    "Malware download site",
-   6497
+   6493
   ],
   [
    "Botnet control server",
-   2408
+   2414
   ]
  ],
  "top_malware": [
@@ -35,7 +35,7 @@
   ],
   [
    "unnamed",
-   1722
+   1718
   ],
   [
    "mirai",
@@ -94,7 +94,7 @@
   {
    "asn": 4837,
    "network": "CHINA169-BACKBONE CHINA UNICOM China169 Backbone",
-   "count": 3670,
+   "count": 3667,
    "hosting": false,
    "criminal_network": false
   },
@@ -200,11 +200,11 @@
  "top_countries": [
   [
    "CN",
-   4853
+   4850
   ],
   [
    "US",
-   1008
+   1013
   ],
   [
    "IN",
@@ -212,7 +212,7 @@
   ],
   [
    "HK",
-   200
+   201
   ],
   [
    "ZA",
@@ -259,15 +259,15 @@
    69
   ]
  ],
- "threatfox_iocs_48h": 6728,
+ "threatfox_iocs_48h": 6754,
  "threatfox_types": [
   [
    "Botnet control server",
-   4264
+   4275
   ],
   [
    "Malware download site",
-   1756
+   1771
   ],
   [
    "Malware file",
@@ -285,7 +285,7 @@
   ],
   [
    "Unknown Loader",
-   717
+   742
   ],
   [
    "PureRAT",
@@ -293,11 +293,11 @@
   ],
   [
    "ClearFake",
-   425
+   414
   ],
   [
    "Unknown malware",
-   399
+   396
   ],
   [
    "AsyncRAT",
@@ -321,7 +321,7 @@
   ],
   [
    "Vidar",
-   194
+   199
   ],
   [
    "Remcos",
@@ -340,8 +340,8 @@
    98
   ]
  ],
- "urlhaus_urls_30d": 33021,
- "urlhaus_online": 16806,
+ "urlhaus_urls_30d": 33013,
+ "urlhaus_online": 16812,
  "spamhaus_drop_ranges": 1684,
  "spamhaus_drop_addresses": 14901248,
  "spamhaus_asn_drop": 431,
@@ -388,7 +388,7 @@
   ]
  ],
  "ransomware": {
-  "victims": 215,
+  "victims": 214,
   "from": "2026-10-02",
   "to": "2026-10-09",
   "by_day": [
@@ -422,7 +422,7 @@
    ],
    [
     "2026-10-09",
-    36
+    35
    ]
   ],
   "by_group": [
