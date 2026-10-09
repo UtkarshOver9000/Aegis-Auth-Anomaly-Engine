@@ -105,3 +105,24 @@ def test_security_headers():
     assert page.headers["x-frame-options"] == "DENY"
     api = client.get("/v1/health")
     assert api.headers["x-content-type-options"] == "nosniff" and "max-age" in api.headers["strict-transport-security"]
+
+
+def test_cors_allows_only_known_headers():
+    ok = client.options(
+        "/v1/intel/overview",
+        headers={
+            "Origin": "https://example.org",
+            "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Headers": "X-API-Key",
+        },
+    )
+    assert ok.status_code == 200 and "x-api-key" in ok.headers["access-control-allow-headers"].lower()
+    bad = client.options(
+        "/v1/intel/overview",
+        headers={
+            "Origin": "https://example.org",
+            "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Headers": "X-Evil",
+        },
+    )
+    assert bad.status_code == 400

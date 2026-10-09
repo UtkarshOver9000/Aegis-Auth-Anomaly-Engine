@@ -31,7 +31,15 @@ app = FastAPI(
     version=__version__,
     license_info={"name": "MIT"},
 )
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "POST"], allow_headers=["*"])
+# Public read API: any origin may read, but only these headers are accepted and no cookies are involved.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "X-API-Key"],
+    expose_headers=["X-Data-As-Of", "Retry-After"],
+    allow_credentials=False,
+)
 app.add_middleware(GZipMiddleware, minimum_size=2048)
 app.add_middleware(RateLimitMiddleware)
 
