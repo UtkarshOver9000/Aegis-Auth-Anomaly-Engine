@@ -569,6 +569,8 @@ const PRESETS = {
   travel: { home: "IN", country: "GB", net: "newhome", device: "same", minutes: 10, fails: 0, correct: true },
   guessing: { home: "IN", country: "IN", net: "newhome", device: "new", minutes: 600, fails: 6, correct: true },
 };
+// risk bar colour per tier: green, amber, orange, red
+const TIER_COLOR = { LOW: "#2f7a4f", MEDIUM: "#d4a017", HIGH: "#e8710a", CRITICAL: "#b42318" };
 const SAY = {
   LOW: "Looks like the real owner. Let them in.",
   MEDIUM: "A little unusual, but believable. Let them in and keep a note.",
@@ -675,7 +677,7 @@ function renderVerdict(v, usual, ip, home, there, fails) {
   $("#verdict").innerHTML = `
     <span class="badge ${v.risk_tier}">${v.risk_tier}</span>
     <p class="say">${SAY[v.risk_tier]}</p>
-    <div class="meter"><div style="width:${v.risk_score}%"></div></div>
+    <div class="meter"><div style="width:${v.risk_score}%;background:${TIER_COLOR[v.risk_tier]}"></div></div>
     <p class="fineprint">The model rates it riskier than ${v.risk_score}% of sign-ins in the real test data. Alibi would ${esc(v.recommended_action)}.</p>
     <h3>Why</h3><ul>${reasons.map((r) => `<li>${esc(r)}</li>`).join("")}</ul>
     <div class="facts">${facts.map(([k, val]) => `<div><b>${k}</b>${val}</div>`).join("")}</div>
