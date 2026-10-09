@@ -1,0 +1,14 @@
+# Weekly pull requests for dependency and GitHub Actions updates.
+# scikit-learn stays pinned in pyproject.toml because the committed models were trained with that version.
+version: 2
+updates:
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+    ignore:
+      - dependency-name: scikit-learn
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
