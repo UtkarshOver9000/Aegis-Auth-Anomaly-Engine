@@ -26,6 +26,23 @@ VIDEO_FEEDS = {
     "Hak5": YT + "UC3s0BtrBJpwNDaflRSoiieQ",
 }
 CACHE_SECONDS = 1800
+# Sources that only publish security material; everything else must mention a security topic.
+SECURITY_ONLY_SOURCES = {"CISA advisories", "Krebs on Security"}
+SECURITY_WORDS = (
+    "hack", "breach", "leak", "malware", "ransomware", "phish", "exploit", "vulnerab", "cve-", "zero-day", "0-day",
+    "patch", "attack", "botnet", "backdoor", "trojan", "spyware", "stealer", "scam", "fraud", "cyber", "security",
+    "password", "credential", "account takeover", "2fa", "mfa", "passkey", "privacy", "surveillance", "vpn", "tor ",
+    "encrypt", "firewall", "ddos", "apt", "threat", "nation-state", "espionage", "osint", "ctf", "pentest",
+    "red team", "blue team", "incident", "forensic", "reverse engineer", "sandbox", "c2", "supply chain",
+)
+
+
+def is_security(item: dict) -> bool:
+    """Keep an item if its source only covers security, or its title names a security topic."""
+    if item["source"] in SECURITY_ONLY_SOURCES:
+        return True
+    title = f" {item['title'].lower()} "
+    return any(word in title for word in SECURITY_WORDS)
 _cache: dict[str, tuple[float, list]] = {}
 ATOM = "{http://www.w3.org/2005/Atom}"
 
@@ -89,7 +106,7 @@ def latest(feeds: dict[str, str], key: str) -> list[dict]:
         return hit[1]
     with ThreadPoolExecutor(max_workers=len(feeds) or 1) as pool:
         results = pool.map(lambda kv: _fetch(*kv), feeds.items())
-    items = [i for group in results for i in group]
+    items = [i for group in results for i in group if is_security(i)]
     items.sort(key=lambda i: i["published"] or "", reverse=True)
     _cache[key] = (now, items)
     return items

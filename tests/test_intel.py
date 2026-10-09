@@ -215,3 +215,10 @@ def test_stix_bundle_for_a_malware_server():
     assert by_type["ipv4-addr"][0]["id"] == stix.ipv4(ip)["id"]  # same IP, same id, every time
     assert {r["relationship_type"] for r in by_type["relationship"]} >= {"based-on"}
     assert by_type["sighting"][0]["sighting_of_ref"] == ind["id"]
+
+
+def test_news_keeps_only_security_items():
+    keep = {"source": "BleepingComputer", "title": "Microsoft patches zero-day exploited in attacks"}
+    drop = {"source": "NetworkChuck", "title": "I built a home lab Raspberry Pi media server"}
+    always = {"source": "CISA advisories", "title": "Siemens SIMATIC S7-1500"}
+    assert news.is_security(keep) and news.is_security(always) and not news.is_security(drop)
