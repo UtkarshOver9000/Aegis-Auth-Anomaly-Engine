@@ -524,8 +524,9 @@ loaders.flaws = async () => {
     kpi(fmt(f.ransomware_linked), "used in ransomware attacks"),
   ].join("");
   bars($("#flaw-vendors"), f.top_vendors_last_12_months);
+  const thisMonth = f.as_of.slice(0, 7); // the snapshot's month is not over yet
   bars($("#flaw-months"), Object.entries(f.added_by_month).map(([m, n]) => [
-    new Date(`${m}-01`).toLocaleDateString("en-GB", { month: "short", year: "numeric" }), n]));
+    new Date(`${m}-01`).toLocaleDateString("en-GB", { month: "short", year: "numeric" }) + (m === thisMonth ? ", to date" : ""), n]));
   $("#flaw-rows").innerHTML = f.latest.map((r) => `<tr><td>${day(r.added)}</td>
     <td><a href="https://nvd.nist.gov/vuln/detail/${esc(r.cve)}" target="_blank" rel="noopener">${esc(r.cve)}</a><br>${esc(r.name)}</td>
     <td>${esc(r.vendor)} ${esc(r.product)}</td><td>${r.ransomware ? '<span class="tag">yes</span>' : "not known"}</td></tr>`).join("");
