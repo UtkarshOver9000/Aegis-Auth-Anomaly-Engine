@@ -2,17 +2,28 @@
 
 ## API keys
 
-- `POST /v1/auth/evaluate`, `/v1/anomalies` and `/v1/stats` need an `X-API-Key` header.
-- The master key comes from the `AEGIS_API_KEY` environment variable. If it is not set,
-  the public demo key `demo-master-key-9000` is used. **Always set `AEGIS_API_KEY` outside
-  the demo.**
-- `POST /v1/keys/generate` issues extra keys and requires the master key. Issued keys
-  (`demo_...`) can evaluate logins but cannot issue keys.
-- Keys are compared in constant time and held in memory only; they do not survive a restart.
+- The dashboard and `POST /v1/demo/check` need no key. No key is ever shown in the UI or the README.
+- `POST /v1/auth/evaluate`, `/v1/anomalies` and `/v1/stats` need an `X-API-Key` header. The master key
+  comes only from the `ALIBI_API_KEY` environment variable on the server. If it is not set, those
+  endpoints return 503: there is no built-in default key.
+- `POST /v1/keys/generate` issues extra keys (`alibi_...`) and requires the master key. Issued keys
+  can evaluate logins but cannot issue keys. Keys are compared in constant time and held in memory only.
+
+## Rate limits
+
+Per client IP (first `X-Forwarded-For` hop), token bucket, in memory per server instance:
+
+| Path | Limit |
+|---|---|
+| `/v1/demo/*` | 20 requests a minute |
+| `/v1/auth/*` | 60 a minute |
+| other `/v1/*` | 120 a minute |
+
+Over the limit returns 429 with `Retry-After`. Each serverless instance counts on its own, so add a
+gateway or CDN limit for a hard global cap.
 
 ## Not provided by this project
 
-- Rate limiting: enforce it at the gateway or CDN.
 - Persistent or shared state: history is per process (see ARCHITECTURE.md).
 - CORS is open (`*`) for the demo page; restrict it for real deployments.
 

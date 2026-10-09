@@ -199,7 +199,8 @@ OONI and TeleGeography data are non-commercial. Alibi is a non-commercial portfo
 curl https://impossible-travel-auth-anomaly-engi.vercel.app/v1/intel/ip/8.8.8.8
 ```
 
-- The demo key `demo-master-key-9000` is public. Set `AEGIS_API_KEY` for any real deployment.
+- The dashboard and `/v1/demo/check` are keyless and rate-limited per IP (20 demo checks a minute).
+- `/v1/auth/evaluate` needs a key set server-side in `ALIBI_API_KEY`; without it that endpoint is off.
 - History lives in memory, so the hosted demo is a sandbox.
 
 ## Run it

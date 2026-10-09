@@ -5,5 +5,5 @@ services:
       - "8000:8000"
     environment:
       # Replace with a secret value; the default demo key is public.
-      - AEGIS_API_KEY=change-me
+      - ALIBI_API_KEY=change-me
     restart: unless-stopped

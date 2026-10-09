@@ -1,10 +1,11 @@
+import os
+
 from fastapi.testclient import TestClient
 
 from ittravel.api.app import app
-from ittravel.state import DEMO_MASTER_KEY
 
 client = TestClient(app)
-KEY = {"X-API-Key": DEMO_MASTER_KEY}
+KEY = {"X-API-Key": os.environ["ALIBI_API_KEY"]}
 EVENT = {
     "user_id": "api-user",
     "login_ts": "2026-08-03T09:00:00Z",
@@ -44,7 +45,7 @@ def test_issuing_keys_requires_the_master_key():
     res = client.post("/v1/keys/generate", json={"name": "svc"}, headers=KEY)
     assert res.status_code == 200
     issued = res.json()["api_key"]
-    assert issued.startswith("demo_")
+    assert issued.startswith("alibi_")
     # an issued key can evaluate, but cannot mint more keys
     assert (
         client.post("/v1/auth/evaluate", json={**EVENT, "user_id": "k"}, headers={"X-API-Key": issued}).status_code
@@ -80,3 +81,16 @@ def test_anomaly_log_and_stats():
     logs = client.get("/v1/anomalies", headers=KEY).json()
     assert any(a["user_id"] == "t" for a in logs)
     assert client.get("/v1/stats", headers=KEY).json()["users_seen_by_this_instance"] >= 1
+
+
+def test_keyed_endpoints_are_off_without_a_server_key(monkeypatch):
+    monkeypatch.delenv("ALIBI_API_KEY")
+    assert client.post("/v1/auth/evaluate", json=EVENT, headers=KEY).status_code == 503
+
+
+def test_demo_endpoint_is_rate_limited_per_ip():
+    ip = {"X-Forwarded-For": "198.51.100.77"}
+    codes = [client.post("/v1/demo/check", json={}, headers=ip).status_code for _ in range(21)]
+    assert codes[:20] == [422] * 20 and codes[20] == 429
+    other = client.post("/v1/demo/check", json={}, headers={"X-Forwarded-For": "198.51.100.78"})
+    assert other.status_code == 422

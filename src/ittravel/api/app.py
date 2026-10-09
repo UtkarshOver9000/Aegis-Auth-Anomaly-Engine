@@ -20,6 +20,7 @@ from ..intel.network import lookup, malware_ip, sample_ips, tor_exits
 from ..schema import APIKeyCreate, APIKeyResponse, DemoStory, EvaluationResult, LoginEvent
 from ..state import store
 from .auth import verify_api_key, verify_master_key
+from .ratelimit import RateLimitMiddleware
 
 app = FastAPI(
     title="Alibi: login security and threat intelligence",
@@ -33,6 +34,7 @@ app = FastAPI(
 )
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "POST"], allow_headers=["*"])
 app.add_middleware(GZipMiddleware, minimum_size=2048)
+app.add_middleware(RateLimitMiddleware)
 
 DASHBOARD_DIR = Path(__file__).resolve().parent.parent / "dashboard"
 if DASHBOARD_DIR.exists():
@@ -73,7 +75,7 @@ async def demo_check(story: DemoStory):
 
 @app.post("/v1/keys/generate", response_model=APIKeyResponse, tags=["Authentication"])
 async def generate_key(req: APIKeyCreate, _admin: str = Depends(verify_master_key)):
-    """Issue an extra API key. Requires the master key (set AEGIS_API_KEY in production)."""
+    """Issue an extra API key. Requires the master key (ALIBI_API_KEY on the server)."""
     return store.create_api_key(req.name)
 
 

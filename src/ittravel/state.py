@@ -1,5 +1,5 @@
 """
-In-memory state: per-user login history and demo API keys.
+In-memory state: per-user login history and issued API keys.
 
 State lives in process memory. On a serverless deployment it resets whenever
 a new instance starts, so treat the live demo as a sandbox, not a system of
@@ -13,13 +13,12 @@ import secrets
 from collections import deque
 from datetime import UTC, datetime
 
-DEMO_MASTER_KEY = "demo-master-key-9000"
 HISTORY_LIMIT = 50
 
 
-def master_key() -> str:
-    """The admin key. Set AEGIS_API_KEY in production; the default is public and for the demo only."""
-    return os.getenv("AEGIS_API_KEY", DEMO_MASTER_KEY)
+def master_key() -> str | None:
+    """The admin key, from ALIBI_API_KEY on the server. Unset means the keyed endpoints are switched off."""
+    return os.getenv("ALIBI_API_KEY") or None
 
 
 class UserState:
@@ -74,13 +73,14 @@ class StateStore:
         return self.users[user_id]
 
     def create_api_key(self, name: str) -> dict:
-        key = f"demo_{secrets.token_hex(16)}"
+        key = f"alibi_{secrets.token_hex(16)}"
         info = {"name": name, "api_key": key, "created_at": datetime.now(UTC).isoformat()}
         self.api_keys[key] = info
         return info
 
     def is_master_key(self, key: str) -> bool:
-        return secrets.compare_digest(key, master_key())
+        admin = master_key()
+        return bool(admin) and secrets.compare_digest(key, admin)
 
     def is_valid_api_key(self, key: str) -> bool:
         return self.is_master_key(key) or key in self.api_keys

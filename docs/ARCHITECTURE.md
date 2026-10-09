@@ -9,7 +9,8 @@ daily data snapshot, and login-risk scoring with two models trained on the RBA d
 | Path | What it does |
 |---|---|
 | `api/app.py` | All HTTP routes: `/` (dashboard), `/v1/intel/*`, `/v1/demo/check`, `/v1/auth/evaluate`, `/v1/keys/generate`, `/v1/model`, `/v1/stats`, `/v1/health` |
-| `api/auth.py` | `X-API-Key` checks for the keyed routes |
+| `api/auth.py` | `X-API-Key` checks for the keyed routes (key from `ALIBI_API_KEY` only) |
+| `api/ratelimit.py` | Per-IP token-bucket limits on `/v1/*` |
 | `engine.py` | `RiskEngine`: builds the 19 live features, scores both models, maps percentiles to tiers, then applies the rule layer: malware IP → CRITICAL; criminal network, Tor, new hosting / VPN network, 5+ failed passwords, or > 900 km/h travel → at least HIGH |
 | `state.py` | In-memory per-user history and issued API keys (lost on restart) |
 | `schema.py` | Pydantic request and response models |
@@ -55,4 +56,4 @@ Browser ──GET /──> dashboard ──fetch /v1/intel/*──> service.py �
 - Login history is in memory only.
 - The snapshot ships inside the deploy bundle, not in shared storage.
 - The models are trained on 2020–2021 data.
-- `/v1/auth/evaluate` uses a public demo key unless `AEGIS_API_KEY` is set.
+- Rate limits are per serverless instance, not global.
