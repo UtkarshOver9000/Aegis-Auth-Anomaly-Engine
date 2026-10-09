@@ -534,7 +534,8 @@ def build_states(raw: Path) -> dict:
         # borders are reference geography: keep the last good copy rather than fail the whole snapshot
         if (OUT / "states.json").exists():
             old = json.loads((OUT / "meta.json").read_text()).get("states", {})
-            return {**old, "reused": True}
+            prev = json.loads((OUT / "meta.json").read_text())
+            return {**old, "reused_from": old.get("reused_from") or prev["fetched_at"]}
         raise
     data = json.loads((raw / "ne_10m_admin1.geojson").read_text(encoding="utf-8"))
     out = []
@@ -809,10 +810,11 @@ def main() -> None:
     meta["countries"] = build_countries(args.raw, hosting_ips, bad_by_country, rw_by_country, landings)
     meta["window_ooni"] = "last 30 days to fetch date"
     meta["feeds"] = feed_currency(args.raw)
-    if net.get("reused_from"):  # say honestly how old the network table is
-        for f in meta["feeds"]:
-            if f["id"] == "iptoasn":
-                f.update(updated=net["reused_from"], available=True)
+    for feed_id, part in (("iptoasn", net), ("natural_earth_admin1", meta["states"])):
+        if part.get("reused_from"):  # say honestly how old a reused table is
+            for f in meta["feeds"]:
+                if f["id"] == feed_id:
+                    f.update(updated=part["reused_from"], available=True)
     meta["files"], meta["content_hash"] = content_hashes()
     (OUT / "meta.json").write_text(json.dumps(meta, indent=2))
     print(json.dumps(meta, indent=2))
