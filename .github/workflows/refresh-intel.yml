@@ -1,27 +1,46 @@
 name: Refresh intel data
 
-# Re-downloads every public source and rebuilds the snapshot once a day, so the
-# breaches, malware servers, ransomware and flaw numbers stay current.
+# Every 6 hours: download each feed in sources.yaml that is due by its own cadence
+# (fast feeds daily, DB-IP monthly, borders twice a year), rebuild the snapshot and commit it.
+# Raw downloads and their ETags persist between runs in the Actions cache, so unchanged
+# feeds are skipped or answered with 304 Not Modified.
 on:
   schedule:
-    - cron: "17 3 * * *"
+    - cron: "17 */6 * * *"
   workflow_dispatch:
+    inputs:
+      force:
+        description: "Re-download every feed, ignoring cadences"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
 
+concurrency:
+  group: refresh-intel
+  cancel-in-progress: false
+
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: pip install ".[snapshot]" pytest httpx
-      - run: bash scripts/fetch_intel.sh
+      - name: Restore the last raw downloads
+        uses: actions/cache@v6
+        with:
+          path: data/intel
+          key: intel-raw-${{ github.run_id }}
+          restore-keys: intel-raw-
+      - name: Download the feeds that are due
+        run: PYTHONPATH=src python -m ittravel.intel.fetch --raw data/intel ${{ inputs.force && '--force' || '' }}
       - run: PYTHONPATH=src python -m ittravel.intel.snapshot --raw data/intel
-      - run: ALIBI_OFFLINE=1 pytest -q tests/test_intel.py
+      - run: ALIBI_OFFLINE=1 pytest -q tests/test_intel.py tests/test_fetch.py
       - name: Commit the new snapshot
         run: |
           git config user.name "github-actions[bot]"
