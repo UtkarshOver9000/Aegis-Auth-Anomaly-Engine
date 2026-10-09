@@ -52,7 +52,7 @@ function show(tab) {
 window.addEventListener("hashchange", () => show(location.hash.slice(1)));
 
 // ---------- shared country data ----------
-const WORLD_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
+const WORLD_URL = "/static/vendor/countries-110m.json"; // world-atlas 2.0.2, self-hosted
 let worldPromise;
 
 function center(f) {
@@ -151,7 +151,7 @@ function sizeGlobe() {
   globe.width(el.clientWidth).height(el.clientHeight);
 }
 
-const IMG = "https://cdn.jsdelivr.net/npm/three-globe@2/example/img/"; // NASA Blue Marble imagery, public domain
+const IMG = "/static/vendor/img/"; // NASA Blue Marble imagery (public domain), self-hosted
 // low → high: blue, green, yellow, orange, red
 const HEAT = d3.interpolateRgbBasis(["#2b83ba", "#66c2a5", "#ffffbf", "#fdae61", "#d7191c"]);
 const HEAT_CSS = "linear-gradient(90deg, #2b83ba, #66c2a5, #ffffbf, #fdae61, #d7191c)";
