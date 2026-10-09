@@ -1,44 +1,58 @@
-# Aegis architecture
+# Alibi architecture (one page)
 
-## Offline: training on the RBA dataset
+Alibi is one FastAPI app (`src/ittravel`) that serves a static dashboard, a public threat-intel API built on a
+daily data snapshot, and login-risk scoring with two models trained on the RBA dataset.
+`ittravel` is the original package name; it stays for import compatibility.
 
-```
-rba-dataset.zip (Zenodo, 9 GB CSV inside)
-   └─ rba/load.py       stream the CSV out of the zip in 1M-row chunks into DuckDB (31,269,264 rows)
-      └─ rba/features.py  SQL window functions over each user's (and each IP's) earlier logins
-         └─ rba/train.py    time split → gradient boosting per target → artifacts/ + reports/
-```
+## Modules
 
-Features per login, all from **earlier** activity only:
-
-| Feature | Meaning |
+| Path | What it does |
 |---|---|
-| `log_prior_logins`, `log_secs_since_prev` | how established the account is, time since last attempt |
-| `new_country`, `new_asn`, `new_ip`, `new_ua`, `new_browser`, `new_os`, `new_device` | first time this user is seen with that value |
-| `country_hop_1h` | country differs from the previous attempt less than an hour ago |
-| `prev_failed`, `fails_prev10`, `success` | recent failed password attempts, this attempt's outcome |
-| `log_rtt_ms`, `rtt_missing` | server-measured round-trip time |
-| `hour`, `weekday` | time of day and week |
-| `ip_attempts_1h`, `ip_failures_1h` | how busy this IP has been across all users in the last hour |
+| `api/app.py` | All HTTP routes: `/` (dashboard), `/v1/intel/*`, `/v1/demo/check`, `/v1/auth/evaluate`, `/v1/keys/generate`, `/v1/model`, `/v1/stats`, `/v1/health` |
+| `api/auth.py` | `X-API-Key` checks for the keyed routes |
+| `engine.py` | `RiskEngine`: builds the 19 live features, scores both models, maps percentiles to tiers, then applies the rule layer: malware IP → CRITICAL; criminal network, Tor, new hosting / VPN network, 5+ failed passwords, or > 900 km/h travel → at least HIGH |
+| `state.py` | In-memory per-user history and issued API keys (lost on restart) |
+| `schema.py` | Pydantic request and response models |
+| `geo.py` | Haversine distance |
+| `intel/snapshot.py` | Offline builder: raw downloads → `intel_data/` |
+| `intel/service.py` | Reads `intel_data/*.json` and shapes summaries; holds the `SOURCES` licence table |
+| `intel/network.py` | IP lookup: owner (iptoasn), hosting flag, Tor (snapshot or live list), abuse.ch malware hit, Spamhaus DROP |
+| `intel/news.py` | Live RSS / Atom fetch with a 30-minute in-memory cache |
+| `rba/load.py`, `rba/features.py`, `rba/train.py` | Offline training: zip → DuckDB → window-function features → gradient boosting |
+| `dashboard/` | `index.html`, `dashboard.css`, `dashboard.js` (plain JS, d3, Leaflet, globe.gl from CDNs) |
+| `api/index.py` (repo root) | Vercel entry point that imports the app |
 
-Two binary targets, both labelled by the original online service: `ato` (account
-takeover confirmed by its incident team) and `attack_ip` (IP found in an attacker data set).
-
-## Online: the API
+## Data flow
 
 ```
-POST /v1/auth/evaluate
-   └─ engine.RiskEngine
-        ├─ state.UserState     per-user history (seen countries/networks/devices, recent outcomes)
-        ├─ per-IP 1-hour window
-        ├─ same 19 features as training → both models → probabilities
-        ├─ probability → percentile of validation-period logins → tier
-        └─ optional: great-circle distance / time > 900 km/h → at least HIGH
+Public sources ──(scripts/fetch_intel.sh)──> data/intel/ (raw, not committed)
+                 └─(python -m ittravel.intel.snapshot)──> src/ittravel/intel_data/ (committed, ~13 MB)
+                      breaches.json  flaws.json  threats.json  bad_ips.json  countries.json
+                      states.json  heat.json  cables.json  network.npz  drop.npz  meta.json
+GitHub Action refresh-intel.yml (daily 03:17 UTC) runs both steps and commits intel_data/
+Vercel redeploys on each push → API reads intel_data/ from the deployed bundle
+
+RBA zip (Zenodo, 1.1 GB) ──rba/load.py──> data/rba.duckdb ──rba/train.py──> src/ittravel/artifacts/
+      rba_models.joblib (two HistGradientBoosting models)   rba_model_card.json (metrics, thresholds, score quantiles)
+      reports/rba_metrics.json, reports/figures/*.png
+
+Browser ──GET /──> dashboard ──fetch /v1/intel/*──> service.py ──> intel_data/
+        ──POST /v1/demo/check──> engine.py ──> artifacts/ + network.py
 ```
 
-Tiers: percentile ≥ 99.9 → CRITICAL (block and alert), ≥ 99 → HIGH (step-up
-authentication), ≥ 90 → MEDIUM (allow and log), otherwise LOW.
+## Where things live
 
-State is in process memory. On Vercel each instance has its own memory and is recycled,
-so the hosted demo is a sandbox; a production deployment would keep user history in a
-shared store.
+- **Snapshot:** `src/ittravel/intel_data/`, rebuilt daily. Its date is in `meta.json` (`fetched_at`).
+- **Models:** `src/ittravel/artifacts/`, trained once on RBA (2020-02 to 2021-02). They are not retrained
+  automatically.
+- **Live, not snapshotted:** news and video feeds (cached 30 minutes per instance), and the Tor exit list
+  when the snapshot has none (cached 1 hour).
+- **State:** in memory per serverless instance, so the hosted demo is a sandbox.
+
+## Known limits
+
+- A single `app.py` holds every route.
+- Login history is in memory only.
+- The snapshot ships inside the deploy bundle, not in shared storage.
+- The models are trained on 2020–2021 data.
+- `/v1/auth/evaluate` uses a public demo key unless `AEGIS_API_KEY` is set.
