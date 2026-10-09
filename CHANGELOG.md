@@ -60,10 +60,16 @@ Changes from the Alibi master plan (`#` numbers refer to its 299 items). Newest 
 - Generate the README numbers and source table from the data (#40)
 - Start a CHANGELOG listing every shipped plan item (#3)
 
+- Publish snapshots to a data branch so main holds only human commits
+- Self-host IBM Plex Sans and Plex Mono for the console redesign
+- Save report times and typed points; add events, activity and country ranks
+- Redesign the dashboard as an analyst console with a full-screen globe (#152, #160, #169)
+- Log the console redesign in the changelog
+
 Covered without a separate change:
 
 - API keys are issued server-side only and never shown in the UI (done with #12 and #13) (#14)
 - The globe legend names what is counted and per what unit (done with #151) (#20)
 - Each feed has its own max age in sources.yaml, and stale feeds are flagged (done with #29, #30 and #36) (#38)
 
-Plan items done so far: 54 of 299 (#1, #2, #3, #4, #5, #6, #7, #8, #9, #10, #11, #12, #13, #14, #15, #16, #17, #18, #19, #20, #21, #22, #23, #24, #25, #26, #27, #28, #29, #30, #31, #32, #33, #35, #36, #38, #39, #40, #42, #61, #62, #115, #136, #137, #151, #153, #154, #155, #158, #159, #168, #276, #277, #293).
+Plan items done so far: 57 of 299 (#152, #160, #169, #1, #2, #3, #4, #5, #6, #7, #8, #9, #10, #11, #12, #13, #14, #15, #16, #17, #18, #19, #20, #21, #22, #23, #24, #25, #26, #27, #28, #29, #30, #31, #32, #33, #35, #36, #38, #39, #40, #42, #61, #62, #115, #136, #137, #151, #153, #154, #155, #158, #159, #168, #276, #277, #293).
