@@ -36,3 +36,12 @@ Do not send real user data to the public demo.
 ## Reporting a problem
 
 Open a GitHub issue using the bug template; don't include real credentials or personal data.
+
+## Secret scan of the git history (9 October 2026)
+
+All 35 commits on every branch were scanned for AWS, GitHub, Google, Slack, Stripe, OpenAI and Anthropic
+key formats, private keys, JWTs and quoted assignments to `secret`, `password`, `api_key` or `token`
+(snapshot data and vendored files excluded). The only hit is the old public demo key
+`demo-master-key-9000`, which was published on purpose. Since the key-handling change (#13) it no longer
+works anywhere, because there is no built-in default key. Nothing needed rotating. New commits are
+checked by the gitleaks pre-commit hook.
