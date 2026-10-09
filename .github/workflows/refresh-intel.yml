@@ -1,12 +1,14 @@
 name: Refresh intel data
 
-# Every 6 hours: download each feed in sources.yaml that is due by its own cadence
-# (fast feeds daily, DB-IP monthly, borders twice a year), rebuild the snapshot and commit it.
-# Raw downloads and their ETags persist between runs in the Actions cache, so unchanged
-# feeds are skipped or answered with 304 Not Modified.
+# Every 6 hours, and whenever main changes: download each feed in sources.yaml that is due
+# (fast feeds daily, DB-IP monthly, borders twice a year), rebuild the snapshot, and publish
+# main + the fresh snapshot as one commit on the `data` branch, which Vercel deploys.
+# main itself only ever holds human commits; `data` is rebuilt from main on every run.
 on:
   schedule:
     - cron: "17 */6 * * *"
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       force:
@@ -27,6 +29,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: main
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -49,9 +53,11 @@ jobs:
           name: intel-snapshot-${{ github.run_id }}
           path: src/ittravel/intel_data
           retention-days: 90
-      - name: Commit the new snapshot
+      - name: Publish main + this snapshot to the data branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B data
           git add src/ittravel/intel_data README.md
-          if git diff --cached --quiet; then echo "no changes"; else git commit -m "Refresh intel data $(date -u +%F)" && git push; fi
+          git commit -q -m "Snapshot of $(date -u +%F' '%H:%M) UTC on top of main $(git rev-parse --short main)" || true
+          git push -f origin data
