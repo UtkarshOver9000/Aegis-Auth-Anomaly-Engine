@@ -154,6 +154,12 @@
       <div class="card"><h3>Whose products, in the last 12 months</h3><div class="bars" id="flaw-vendors"></div></div>
       <div class="card"><h3>New flaws added each month</h3><div class="bars" id="flaw-months"></div></div>
     </div>
+    <div class="card"><h3>Patch these first</h3>
+      <p class="muted">Pick the products your company runs. Alibi ranks their exploited flaws by the chance of
+        exploitation in the next 30 days, ransomware use, how widely the vendor is targeted and how new the flaw is.</p>
+      <div class="chips" id="stack-chips"></div>
+      <table class="table"><thead><tr><th>Priority</th><th>Flaw</th><th>Product</th><th>Why</th></tr></thead><tbody id="priority-rows"></tbody></table>
+    </div>
     <div class="card"><h3>Latest additions</h3>
       <table class="table"><thead><tr><th>Added</th><th>Flaw</th><th>Product</th><th>Ransomware</th><th class="num" title="FIRST EPSS: probability it is exploited in the next 30 days">Exploit chance, 30 days</th></tr></thead><tbody id="flaw-rows"></tbody></table>
     </div>

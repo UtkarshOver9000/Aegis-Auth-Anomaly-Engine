@@ -595,6 +595,26 @@ loaders.flaws = async () => {
     kpi(fmt(f.ransomware_linked), "used in ransomware attacks"),
   ].join("");
   bars($("#flaw-vendors"), f.top_vendors_last_12_months);
+  const stack = new Set(["Microsoft", "Fortinet", "Cisco"]);
+  const chips = $("#stack-chips");
+  chips.innerHTML = f.top_vendors.slice(0, 12).map(([v]) => `<button data-vendor="${esc(v)}">${esc(v)}</button>`).join("");
+  const rank = async () => {
+    $$("[data-vendor]", chips).forEach((b) => b.classList.toggle("on", stack.has(b.dataset.vendor)));
+    const r = await api(`/v1/intel/flaws/priority?vendors=${encodeURIComponent([...stack].join(","))}`);
+    $("#priority-rows").innerHTML = r.flaws.slice(0, 10).map((x) => {
+      const why = [x.epss != null ? `${pct(x.epss, 1)} exploit chance` : null, x.ransomware ? "used by ransomware" : null,
+        `added ${day(x.added)}`].filter(Boolean).join(" · ");
+      return `<tr><td><b>${x.priority.toFixed(0)}</b></td><td><a href="https://nvd.nist.gov/vuln/detail/${esc(x.cve)}" target="_blank" rel="noopener">${esc(x.cve)}</a></td>
+        <td>${esc(x.vendor)} ${esc(x.product)}</td><td class="fineprint">${why}</td></tr>`;
+    }).join("") || '<tr><td colspan="4" class="muted">Pick at least one vendor.</td></tr>';
+  };
+  chips.addEventListener("click", (e) => {
+    const v = e.target.closest("[data-vendor]")?.dataset.vendor;
+    if (!v) return;
+    stack.has(v) ? stack.delete(v) : stack.add(v);
+    rank();
+  });
+  rank();
   const thisMonth = f.as_of.slice(0, 7); // the snapshot's month is not over yet
   bars($("#flaw-months"), Object.entries(f.added_by_month).map(([m, n]) => [
     new Date(`${m}-01`).toLocaleDateString("en-GB", { month: "short", year: "numeric" }) + (m === thisMonth ? ", to date" : ""), n]));
