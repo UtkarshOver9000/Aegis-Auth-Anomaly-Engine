@@ -126,16 +126,16 @@ feeds:
     parser: snapshot.build_threats
     description: Whole networks (ASNs) run by criminals.
 
-  - id: ransomware_live
-    name: ransomware.live recent victims
-    url: https://api.ransomware.live/v2/recentvictims
-    file: ransomware_recent.json
-    licence: no licence published; only aggregate counts are shown, never names, links or files
+  - id: ransomlook
+    name: RansomLook ransomware leak-site posts, last 7 days
+    url: https://www.ransomlook.io/api/last/7
+    file: ransomlook_last7.json
+    licence: CC BY 4.0 (RansomLook); Alibi shows totals by day and gang only, never victim names or links
     auth: none
     cadence: 1d
     max_age: 3d
     parser: snapshot.build_threats
-    description: The latest victims posted on ransomware leak sites.
+    description: Every post on ransomware gangs' leak sites in the last 7 days.
 
   - id: cables
     name: TeleGeography Submarine Cable Map, cables

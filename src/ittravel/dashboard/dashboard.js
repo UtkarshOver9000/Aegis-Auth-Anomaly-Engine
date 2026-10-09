@@ -1,5 +1,5 @@
 // Alibi dashboard. Every number on the page comes from the API, which reads the real data
-// snapshot (HIBP, CISA KEV, abuse.ch, Spamhaus, ransomware.live, iptoasn, OONI, TeleGeography,
+// snapshot (HIBP, CISA KEV, abuse.ch, Spamhaus, RansomLook, iptoasn, OONI, TeleGeography,
 // public-dns.info) or the live news feeds. Nothing here is generated.
 
 const $ = (sel, el = document) => el.querySelector(sel);
@@ -193,12 +193,6 @@ const METRICS = {
     title: "Malware and botnet servers right now",
     explain: "Servers that security researchers caught spreading malware or controlling botnets in the last few days. Most are not rented servers but hacked home routers, cameras and other devices, which is why countries with huge numbers of home connections lead this list.",
     source: "malware",
-  },
-  ransomware_victims: {
-    unit: "ransomware victims this week",
-    title: "Ransomware victims this week",
-    explain: "Businesses that ransomware gangs posted on their leak sites this week, by the victim's country. Gangs post victims who refuse to pay, so the real number of attacks is higher.",
-    source: "ransomware",
   },
   confirmed_blocks: {
     unit: "websites confirmed blocked",
@@ -406,7 +400,6 @@ async function selectCountry(f, at) {
   globe.pointOfView(at ? { lat: at.lat, lng: at.lng, altitude: 1.2 } : { lat, lng, altitude: 1.5 }, 900);
   const facts = [
     ["Malware servers now", fmt(c.malicious_ips)],
-    ["Ransomware victims this week", fmt(c.ransomware_victims)],
     ["Websites confirmed blocked", `${fmt(c.confirmed_blocks)} in ${compact(c.censorship_measurements)} tests`],
     ["Public DNS servers", fmt(c.dns_resolvers)],
     ["Hosting / VPN addresses", compact(c.hosting_ipv4)],
@@ -572,10 +565,9 @@ loaders.attacks = async () => {
   $("#attack-networks").innerHTML = t.top_networks.map((n) => `<tr><td>${esc(n.network)} <span class="fineprint">AS${n.asn}</span></td>
     <td>${n.criminal_network ? '<span class="tag">criminal network</span>' : n.hosting ? "hosting / cloud" : "home or business internet provider"}</td>
     <td class="num">${fmt(n.count)}</td></tr>`).join("");
-  $("#ransom-window").textContent = `${rw.victims} businesses posted on ransomware gangs' leak sites between ${day(rw.from)} and ${day(rw.to)}. ` +
-    "Only totals are shown here: no victim names, links or stolen files.";
-  bars($("#ransom-sectors"), rw.by_sector.filter(([s]) => !/not (found|stated)/i.test(s)).slice(0, 10));
-  bars($("#ransom-countries"), rw.by_country.slice(0, 10).map(([cc, n]) => [name(cc), n]));
+  $("#ransom-window").textContent = `${fmt(rw.victims)} posts on ransomware gangs' leak sites between ${day(rw.from)} and ${day(rw.to)} (RansomLook, CC BY 4.0). ` +
+    "Only totals are shown: no victim names, links or stolen files. This source does not record victims' countries or industries.";
+  bars($("#ransom-days"), rw.by_day.map(([d, n]) => [day(d), n]));
   bars($("#ransom-groups"), rw.by_group.slice(0, 10));
   $("#drop-text").textContent = `${fmt(t.spamhaus_drop_ranges)} address blocks (${compact(t.spamhaus_drop_addresses)} addresses) and ` +
     `${t.spamhaus_asn_drop} whole networks are on Spamhaus's "do not route" lists: hijacked, or run by spammers and cybercriminals. Where those networks are registered:`;

@@ -35,9 +35,9 @@ SOURCES = {
         "license": "free to use, per Spamhaus DROP terms",
     },
     "ransomware": {
-        "name": "ransomware.live",
-        "url": "https://www.ransomware.live",
-        "license": "public tracker; only aggregate counts shown, no victim names or leak links",
+        "name": "RansomLook",
+        "url": "https://www.ransomlook.io",
+        "license": "CC BY 4.0; totals only, no victim names or leak links",
     },
     "cables": {
         "name": "TeleGeography Submarine Cable Map",
@@ -267,7 +267,7 @@ def _records(feed_id: str) -> int | None:
         "threatfox": threats["threatfox_iocs_48h"],
         "spamhaus_drop": threats["spamhaus_drop_ranges"],
         "spamhaus_asndrop": threats["spamhaus_asn_drop"],
-        "ransomware_live": threats["ransomware"]["victims"],
+        "ransomlook": threats["ransomware"]["victims"],
         "cables": m["cables"]["cables"],
         "cable_landings": m["cables"]["landing_points"],
         "dbip_city": m.get("heat", {}).get("malware_located"),

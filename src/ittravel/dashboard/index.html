@@ -63,7 +63,6 @@
       million IP addresses in each state. Hover a state for its numbers, click it for the details.</p>
     <div class="chips" id="metric-chips">
       <button data-metric="malicious_ips" class="on">Malware servers now</button>
-      <button data-metric="ransomware_victims">Ransomware victims this week</button>
       <button data-metric="confirmed_blocks">Websites blocked</button>
       <button data-metric="hosting_ipv4">Hosting / VPN address space</button>
       <button data-metric="dns_resolvers">Public DNS servers</button>
@@ -135,13 +134,10 @@
     <h2>Ransomware this week</h2>
     <p class="muted" id="ransom-window"></p>
     <div class="grid2">
-      <div class="card"><h3>Industries hit</h3><div class="bars" id="ransom-sectors"></div></div>
-      <div class="card"><h3>Countries hit</h3><div class="bars" id="ransom-countries"></div></div>
-    </div>
-    <div class="grid2">
+      <div class="card"><h3>Leak-site posts per day</h3><div class="bars" id="ransom-days"></div></div>
       <div class="card"><h3>Most active gangs</h3><div class="bars" id="ransom-groups"></div></div>
-      <div class="card"><h3>Networks run by criminals</h3><p id="drop-text" class="muted"></p><div class="bars" id="drop-countries"></div></div>
     </div>
+    <div class="card"><h3>Networks run by criminals</h3><p id="drop-text" class="muted"></p><div class="bars" id="drop-countries"></div></div>
     <p class="fineprint" id="attack-sources"></p>
   </section>
 

@@ -29,11 +29,56 @@ CACHE_SECONDS = 1800
 # Sources that only publish security material; everything else must mention a security topic.
 SECURITY_ONLY_SOURCES = {"CISA advisories", "Krebs on Security"}
 SECURITY_WORDS = (
-    "hack", "breach", "leak", "malware", "ransomware", "phish", "exploit", "vulnerab", "cve-", "zero-day", "0-day",
-    "patch", "attack", "botnet", "backdoor", "trojan", "spyware", "stealer", "scam", "fraud", "cyber", "security",
-    "password", "credential", "account takeover", "2fa", "mfa", "passkey", "privacy", "surveillance", "vpn", "tor ",
-    "encrypt", "firewall", "ddos", "apt", "threat", "nation-state", "espionage", "osint", "ctf", "pentest",
-    "red team", "blue team", "incident", "forensic", "reverse engineer", "sandbox", "c2", "supply chain",
+    "hack",
+    "breach",
+    "leak",
+    "malware",
+    "ransomware",
+    "phish",
+    "exploit",
+    "vulnerab",
+    "cve-",
+    "zero-day",
+    "0-day",
+    "patch",
+    "attack",
+    "botnet",
+    "backdoor",
+    "trojan",
+    "spyware",
+    "stealer",
+    "scam",
+    "fraud",
+    "cyber",
+    "security",
+    "password",
+    "credential",
+    "account takeover",
+    "2fa",
+    "mfa",
+    "passkey",
+    "privacy",
+    "surveillance",
+    "vpn",
+    "tor ",
+    "encrypt",
+    "firewall",
+    "ddos",
+    "apt",
+    "threat",
+    "nation-state",
+    "espionage",
+    "osint",
+    "ctf",
+    "pentest",
+    "red team",
+    "blue team",
+    "incident",
+    "forensic",
+    "reverse engineer",
+    "sandbox",
+    "c2",
+    "supply chain",
 )
 
 
@@ -43,6 +88,8 @@ def is_security(item: dict) -> bool:
         return True
     title = f" {item['title'].lower()} "
     return any(word in title for word in SECURITY_WORDS)
+
+
 _cache: dict[str, tuple[float, list]] = {}
 ATOM = "{http://www.w3.org/2005/Atom}"
 

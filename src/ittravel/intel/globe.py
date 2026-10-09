@@ -32,7 +32,6 @@ SIZES = (2048, 4096)
 METRICS = {
     "malicious_ips": {"level": "state", "field": "m", "unit": "malware servers per million IP addresses"},
     "dns_resolvers": {"level": "state", "field": "d", "unit": "public DNS servers per million IP addresses"},
-    "ransomware_victims": {"level": "country", "field": "ransomware_victims", "unit": "ransomware victims this week"},
     "confirmed_blocks": {
         "level": "country",
         "field": "confirmed_blocks",

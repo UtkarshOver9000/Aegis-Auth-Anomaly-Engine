@@ -92,7 +92,7 @@ CHECKS = {
     "threatfox": lambda p: _rows_of([r for g in _json(p).values() for r in g], "ioc_value", 100, "indicators"),
     "spamhaus_drop": lambda p: _jsonl(p, "cidr", 100),
     "spamhaus_asndrop": lambda p: _jsonl(p, "asn", 50),
-    "ransomware_live": lambda p: _rows_of(_json(p), "group", 10, "victims"),
+    "ransomlook": lambda p: _rows_of(_json(p), "group_name", 10, "posts"),
     "cables": lambda p: _features(p, 300),
     "cable_landings": lambda p: _features(p, 1000),
     "dbip_city": lambda p: _gz_lines(p, ",", 8),

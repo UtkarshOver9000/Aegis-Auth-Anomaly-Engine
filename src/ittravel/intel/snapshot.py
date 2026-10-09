@@ -12,7 +12,7 @@ Sources (all public, credited in the app and README):
 * OONI web-connectivity measurements (CC BY-NC-SA 4.0)  -> per-country censorship counts
 * abuse.ch Feodo Tracker, ThreatFox, URLhaus (CC0)      -> threats.json + bad_ips.json
 * Spamhaus DROP and ASN-DROP (free blocklists)          -> drop.npz + threats.json
-* ransomware.live recent victims (aggregate counts only) -> threats.json
+* RansomLook leak-site posts, last 7 days (CC BY 4.0)    -> threats.json (totals by day and gang)
 * TeleGeography Submarine Cable Map (CC BY-NC-SA 3.0)   -> cables.json (the globe's connections)
 * Natural Earth admin-1 states and provinces (public domain) -> states.json (borders + click lookup)
 * DB-IP IP to City Lite (CC BY 4.0)                     -> heat.json (city-level hotspots, per-state counts)
@@ -342,7 +342,7 @@ def _jsonl(path: Path, prefix: str) -> list[dict]:
     return [json.loads(ln) for ln in path.read_text(encoding="utf-8").splitlines() if ln.startswith(prefix)]
 
 
-def build_threats(raw: Path) -> tuple[dict, Counter, Counter]:
+def build_threats(raw: Path) -> tuple[dict, Counter]:
     """Criminal infrastructure seen right now: botnet control servers, malware sites, criminal networks, ransomware."""
     bad: dict[str, dict] = {}  # ip -> what it was reported for
 
@@ -420,8 +420,8 @@ def build_threats(raw: Path) -> tuple[dict, Counter, Counter]:
         asn=np.array(sorted(drop_asns), dtype=np.uint32),
     )
 
-    rw = json.loads((raw / "ransomware_recent.json").read_text(encoding="utf-8"))
-    rw_country = Counter((r.get("country") or "").upper() for r in rw if r.get("country"))
+    rw = json.loads((raw / "ransomlook_last7.json").read_text(encoding="utf-8"))
+    rw_days = Counter(r["discovered"][:10] for r in rw)
     malware = Counter(info["malware"] for info in bad.values())
     threats = {
         "malicious_ips": len(bad),
@@ -456,13 +456,13 @@ def build_threats(raw: Path) -> tuple[dict, Counter, Counter]:
             "victims": len(rw),
             "from": min(r["discovered"] for r in rw)[:10],
             "to": max(r["discovered"] for r in rw)[:10],
-            "by_country": rw_country.most_common(12),
-            "by_sector": Counter(r.get("activity") or "Not stated" for r in rw).most_common(12),
-            "by_group": Counter(r["group"] for r in rw).most_common(12),
+            "by_day": sorted(rw_days.items()),
+            "by_group": Counter(r["group_name"] for r in rw).most_common(12),
+            "source": "RansomLook (CC BY 4.0)",
         },
     }
     (OUT / "threats.json").write_text(json.dumps(threats, indent=1))
-    return threats, by_country, rw_country
+    return threats, by_country
 
 
 def build_cables(raw: Path) -> tuple[dict, Counter]:
@@ -677,9 +677,7 @@ def build_heat(raw: Path) -> dict:
     }
 
 
-def build_countries(
-    raw: Path, hosting_ips: Counter, bad_by_country: Counter, rw_by_country: Counter, landings: Counter
-) -> dict:
+def build_countries(raw: Path, hosting_ips: Counter, bad_by_country: Counter, landings: Counter) -> dict:
     import pycountry
 
     tor_exits: Counter = Counter()
@@ -722,7 +720,6 @@ def build_countries(
             "censorship_anomalies": o.get("anomalies", 0),
             "confirmed_blocks": o.get("confirmed_blocks", 0),
             "malicious_ips": bad_by_country.get(a2, 0),
-            "ransomware_victims": rw_by_country.get(a2, 0),
             "cable_landings": landings.get(a2, 0),
         }
     (OUT / "countries.json").write_text(json.dumps(countries, separators=(",", ":")))
@@ -792,7 +789,7 @@ def main() -> None:
     meta["network"] = net
     meta["breaches"] = build_breaches(args.raw)
     meta["flaws"] = build_flaws(args.raw)
-    threats, bad_by_country, rw_by_country = build_threats(args.raw)
+    threats, bad_by_country = build_threats(args.raw)
     meta["threats"] = {
         k: threats[k]
         for k in (
@@ -807,7 +804,7 @@ def main() -> None:
     meta["cables"], landings = build_cables(args.raw)
     meta["states"] = build_states(args.raw)
     meta["heat"] = build_heat(args.raw)
-    meta["countries"] = build_countries(args.raw, hosting_ips, bad_by_country, rw_by_country, landings)
+    meta["countries"] = build_countries(args.raw, hosting_ips, bad_by_country, landings)
     meta["window_ooni"] = "last 30 days to fetch date"
     meta["feeds"] = feed_currency(args.raw)
     for feed_id, part in (("iptoasn", net), ("natural_earth_admin1", meta["states"])):
