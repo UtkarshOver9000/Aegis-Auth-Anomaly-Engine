@@ -70,7 +70,7 @@ def _threat(ip: str, n: int, asn: int | None) -> tuple[str | None, bool]:
     hit = bad.get(ip)
     threat = f"{hit['what']} ({hit['malware']}), reported to {hit['source']} on {hit['seen']}" if hit else None
     i = int(np.searchsorted(d_start, n, side="right")) - 1
-    return threat, (i >= 0 and n <= d_end[i]) or (asn in d_asn)
+    return threat, bool((i >= 0 and n <= d_end[i]) or asn in d_asn)  # plain bool: numpy bools break JSON
 
 
 def tor_exits() -> frozenset[str]:
