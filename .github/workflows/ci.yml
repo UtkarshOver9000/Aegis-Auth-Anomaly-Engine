@@ -30,5 +30,8 @@ jobs:
       - name: Type check
         run: mypy src/ittravel
 
+      - name: Audit dependencies for known vulnerabilities
+        run: pip install pip-audit && pip-audit -r requirements.txt
+
       - name: Tests (use the committed model artifacts)
         run: pytest --cov=src --cov-report=term-missing
