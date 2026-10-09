@@ -20,7 +20,7 @@ daily data snapshot, and login-risk scoring with two models trained on the RBA d
 | `intel/network.py` | IP lookup: owner (iptoasn), hosting flag, Tor (snapshot or live list), abuse.ch malware hit, Spamhaus DROP |
 | `intel/news.py` | Live RSS / Atom fetch with a 30-minute in-memory cache |
 | `rba/load.py`, `rba/features.py`, `rba/train.py` | Offline training: zip → DuckDB → window-function features → gradient boosting |
-| `dashboard/` | `index.html`, `dashboard.css`, `dashboard.js` (plain JS, d3, Leaflet, globe.gl from CDNs) |
+| `dashboard/` | `index.html`, `dashboard.css`, `dashboard.js` (plain JS; d3, Leaflet, globe.gl, fonts and textures self-hosted in `dashboard/vendor/`) |
 | `api/index.py` (repo root) | Vercel entry point that imports the app |
 
 ## Data flow
