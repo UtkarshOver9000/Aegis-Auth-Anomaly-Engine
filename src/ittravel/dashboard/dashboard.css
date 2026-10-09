@@ -28,7 +28,7 @@ h2 { font-size: 18px; }
   padding: 0 16px; background: #0b0e12; border-bottom: 1px solid var(--line); }
 .brand { display: flex; align-items: center; gap: 9px; font: 600 14px var(--mono); letter-spacing: 0.18em; color: var(--ink); }
 .brand:hover { text-decoration: none; }
-.mark { width: 14px; height: 14px; border: 2px solid var(--blue); transform: rotate(45deg); }
+.mark { width: 30px; height: 30px; display: block; }
 nav { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; flex: 1; min-width: 0; }
 nav::-webkit-scrollbar { display: none; }
 nav a { color: var(--muted); padding: 0 11px; height: var(--bar-h); display: flex; align-items: center; white-space: nowrap;

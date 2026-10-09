@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Alibi">
+  <title>Alibi</title>
+  <defs>
+    <linearGradient id="blood" gradientUnits="userSpaceOnUse" x1="22" y1="14" x2="106" y2="118">
+      <stop offset="0" stop-color="#ef233c"/>
+      <stop offset=".32" stop-color="#b5121b"/>
+      <stop offset=".68" stop-color="#6a040f"/>
+      <stop offset="1" stop-color="#370104"/>
+    </linearGradient>
+    <linearGradient id="iron" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e9edf1"/>
+      <stop offset=".45" stop-color="#8d96a0"/>
+      <stop offset="1" stop-color="#2f353c"/>
+    </linearGradient>
+    <linearGradient id="ironEdge" gradientUnits="userSpaceOnUse" x1="10" y1="20" x2="118" y2="112">
+      <stop offset="0" stop-color="#c9d0d7"/>
+      <stop offset=".5" stop-color="#6c757f"/>
+      <stop offset="1" stop-color="#3a4048"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2.2" flood-color="#000" flood-opacity=".65"/>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <g fill="none" stroke="#1a0204" stroke-width="14.5" stroke-linecap="round" stroke-linejoin="round" ><path d="M105.72 80.86 A45.0 45.0 0 1 0 86.50 102.97"/><circle cx="64.0" cy="64.0" r="15.0"/><path d="M79.0 47.0 V72.0 Q79.6 83.0 90.0 83.0 Q99.7 84.9 105.72 80.86"/></g>
+    <g fill="none" stroke="url(#blood)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" ><path d="M105.72 80.86 A45.0 45.0 0 1 0 86.50 102.97"/><circle cx="64.0" cy="64.0" r="15.0"/><path d="M79.0 47.0 V72.0 Q79.6 83.0 90.0 83.0 Q99.7 84.9 105.72 80.86"/></g>
+    <g fill="none" stroke="#ff6b6b" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" stroke-opacity=".35" transform="translate(-1.2 -1.4)"><path d="M105.72 80.86 A45.0 45.0 0 1 0 86.50 102.97"/><circle cx="64.0" cy="64.0" r="15.0"/><path d="M79.0 47.0 V72.0 Q79.6 83.0 90.0 83.0 Q99.7 84.9 105.72 80.86"/></g>
+  </g>
+  <g filter="url(#shadow)">
+    <ellipse rx="8.2" ry="4.9" fill="none" stroke="#0b0c0e" stroke-width="5.2" transform="translate(14.00 108.00) rotate(-40.4)"/>
+    <ellipse rx="8.2" ry="4.9" fill="none" stroke="url(#iron)" stroke-width="3.2" transform="translate(14.00 108.00) rotate(-40.4)"/>
+    <ellipse rx="8.2" ry="4.9" fill="none" stroke="#f4f6f8" stroke-opacity=".55" stroke-width=".8" stroke-dasharray="7 30" transform="translate(14.00 108.00) rotate(-40.4)"/>
+    <line x1="-8.6" x2="8.6" y1="0" y2="0" stroke="#0b0c0e" stroke-width="5.4" stroke-linecap="round" transform="translate(22.07 101.13) rotate(-40.4)"/>
+    <line x1="-8.6" x2="8.6" y1="0" y2="0" stroke="url(#ironEdge)" stroke-width="3.4" stroke-linecap="round" transform="translate(22.07 101.13) rotate(-40.4)"/>
+    <ellipse rx="8.2" ry="4.9" fill="none" stroke="#0b0c0e" stroke-width="5.2" transform="translate(30.14 94.26) rotate(-40.4)"/>
+    <ellipse rx="8.2" ry="4.9" fill="none" stroke="url(#iron)" stroke-width="3.2" transform="translate(30.14 94.26) rotate(-40.4)"/>
+    <ellipse rx="8.2" ry="4.9" fill="none" stroke="#f4f6f8" stroke-opacity=".55" stroke-width=".8" stroke-dasharray="7 30" transform="translate(30.14 94.26) rotate(-40.4)"/>
+    <line x1="-8.6" x2="8.6" y1="0" y2="0" stroke="#0b0c0e" stroke-width="5.4" stroke-linecap="round" transform="translate(38.21 87.38) rotate(-40.4)"/>
+    <line x1="-8.6" x2="8.6" y1="0" y2="0" stroke="url(#ironEdge)" stroke-width="3.4" stroke-linecap="round" transform="translate(38.21 87.38) rotate(-40.4)"/>
+    <ellipse rx="8.2" ry="4.9" fill="none" stroke="#0b0c0e" stroke-width="5.2" transform="translate(46.28 80.51) rotate(-40.4)"/>
+    <ellipse rx="8.2" ry="4.9" fill="none" stroke="url(#iron)" stroke-width="3.2" transform="translate(46.28 80.51) rotate(-40.4)"/>
+    <ellipse rx="8.2" ry="4.9" fill="none" stroke="#f4f6f8" stroke-opacity=".55" stroke-width=".8" stroke-dasharray="7 30" transform="translate(46.28 80.51) rotate(-40.4)"/>
+    <line x1="-8.6" x2="8.6" y1="0" y2="0" stroke="#0b0c0e" stroke-width="5.4" stroke-linecap="round" transform="translate(54.35 73.64) rotate(-40.4)"/>
+    <line x1="-8.6" x2="8.6" y1="0" y2="0" stroke="url(#ironEdge)" stroke-width="3.4" stroke-linecap="round" transform="translate(54.35 73.64) rotate(-40.4)"/>
+    <ellipse rx="8.2" ry="4.9" fill="none" stroke="#0b0c0e" stroke-width="5.2" transform="translate(62.42 66.77) rotate(-40.4)"/>
+    <ellipse rx="8.2" ry="4.9" fill="none" stroke="url(#iron)" stroke-width="3.2" transform="translate(62.42 66.77) rotate(-40.4)"/>
+    <ellipse rx="8.2" ry="4.9" fill="none" stroke="#f4f6f8" stroke-opacity=".55" stroke-width=".8" stroke-dasharray="7 30" transform="translate(62.42 66.77) rotate(-40.4)"/>
+    <line x1="-8.6" x2="8.6" y1="0" y2="0" stroke="#0b0c0e" stroke-width="5.4" stroke-linecap="round" transform="translate(70.49 59.90) rotate(-40.4)"/>
+    <line x1="-8.6" x2="8.6" y1="0" y2="0" stroke="url(#ironEdge)" stroke-width="3.4" stroke-linecap="round" transform="translate(70.49 59.90) rotate(-40.4)"/>
+    <ellipse rx="8.2" ry="4.9" fill="none" stroke="#0b0c0e" stroke-width="5.2" transform="translate(78.57 53.02) rotate(-40.4)"/>
+    <ellipse rx="8.2" ry="4.9" fill="none" stroke="url(#iron)" stroke-width="3.2" transform="translate(78.57 53.02) rotate(-40.4)"/>
+    <ellipse rx="8.2" ry="4.9" fill="none" stroke="#f4f6f8" stroke-opacity=".55" stroke-width=".8" stroke-dasharray="7 30" transform="translate(78.57 53.02) rotate(-40.4)"/>
+    <line x1="-8.6" x2="8.6" y1="0" y2="0" stroke="#0b0c0e" stroke-width="5.4" stroke-linecap="round" transform="translate(86.64 46.15) rotate(-40.4)"/>
+    <line x1="-8.6" x2="8.6" y1="0" y2="0" stroke="url(#ironEdge)" stroke-width="3.4" stroke-linecap="round" transform="translate(86.64 46.15) rotate(-40.4)"/>
+    <ellipse rx="8.2" ry="4.9" fill="none" stroke="#0b0c0e" stroke-width="5.2" transform="translate(94.71 39.28) rotate(-40.4)"/>
+    <ellipse rx="8.2" ry="4.9" fill="none" stroke="url(#iron)" stroke-width="3.2" transform="translate(94.71 39.28) rotate(-40.4)"/>
+    <ellipse rx="8.2" ry="4.9" fill="none" stroke="#f4f6f8" stroke-opacity=".55" stroke-width=".8" stroke-dasharray="7 30" transform="translate(94.71 39.28) rotate(-40.4)"/>
+    <line x1="-8.6" x2="8.6" y1="0" y2="0" stroke="#0b0c0e" stroke-width="5.4" stroke-linecap="round" transform="translate(102.78 32.41) rotate(-40.4)"/>
+    <line x1="-8.6" x2="8.6" y1="0" y2="0" stroke="url(#ironEdge)" stroke-width="3.4" stroke-linecap="round" transform="translate(102.78 32.41) rotate(-40.4)"/>
+    <ellipse rx="8.2" ry="4.9" fill="none" stroke="#0b0c0e" stroke-width="5.2" transform="translate(110.85 25.54) rotate(-40.4)"/>
+    <ellipse rx="8.2" ry="4.9" fill="none" stroke="url(#iron)" stroke-width="3.2" transform="translate(110.85 25.54) rotate(-40.4)"/>
+    <ellipse rx="8.2" ry="4.9" fill="none" stroke="#f4f6f8" stroke-opacity=".55" stroke-width=".8" stroke-dasharray="7 30" transform="translate(110.85 25.54) rotate(-40.4)"/>
+  </g>
+  <g fill="none" stroke-linecap="butt">
+    <path d="M103.73 42.87 A45.0 45.0 0 0 0 85.13 24.27" stroke="#1a0204" stroke-width="14.5"/>
+    <path d="M103.73 42.87 A45.0 45.0 0 0 0 85.13 24.27" stroke="url(#blood)" stroke-width="11"/>
+  </g>
+</svg>
