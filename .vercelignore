@@ -1,0 +1,9 @@
+# Not needed to serve the app: keeps the serverless bundle small
+docs/
+tests/
+reports/
+data/
+scripts/
+.github/
+.pre-commit-config.yaml
+Makefile
