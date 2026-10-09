@@ -131,3 +131,8 @@ def test_cors_allows_only_known_headers():
 def test_security_txt():
     txt = client.get("/.well-known/security.txt").text
     assert txt.startswith("Contact: https://") and "Expires: 2027-" in txt
+
+
+def test_read_endpoints_are_cacheable_and_health_is_not():
+    assert "s-maxage" in client.get("/v1/intel/overview").headers["cache-control"]
+    assert client.get("/v1/health").headers["cache-control"] == "no-store"

@@ -60,6 +60,18 @@ PAGE_CSP = (
 
 
 @app.middleware("http")
+async def cache_headers(request, call_next):
+    """Snapshot data changes at most every few hours: let browsers and the CDN cache reads briefly."""
+    response = await call_next(request)
+    path = request.url.path
+    if request.method == "GET" and path.startswith("/v1/intel/") and "cache-control" not in response.headers:
+        response.headers["Cache-Control"] = "public, max-age=300, s-maxage=1800, stale-while-revalidate=86400"
+    elif path == "/v1/health":
+        response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.middleware("http")
 async def security_headers(request, call_next):
     response = await call_next(request)
     for name, value in SECURITY_HEADERS.items():
