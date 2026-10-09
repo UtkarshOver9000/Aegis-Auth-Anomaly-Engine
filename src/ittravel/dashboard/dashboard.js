@@ -648,6 +648,10 @@ async function runCheck() {
   }
 }
 
+// HIGH without impossible travel means the pattern is unusual for this account, not that the trip can't happen
+const say = (v) => (v.risk_tier === "HIGH" && !v.reasons.some((r) => r.startsWith("Impossible travel"))
+  ? "Unusual for this user. Ask for a one-time code first." : SAY[v.risk_tier]);
+
 function renderVerdict(v, usual, ip, home, there, fails) {
   const n = v.network || {};
   const reasons = v.reasons.length ? v.reasons : ["Nothing unusual compared with this account's history"];
@@ -663,7 +667,7 @@ function renderVerdict(v, usual, ip, home, there, fails) {
     ["Speed needed", `${fmt(Math.round(v.velocity_kmph))} km/h`]);
   $("#verdict").innerHTML = `
     <span class="badge ${v.risk_tier}">${v.risk_tier}</span>
-    <p class="say">${SAY[v.risk_tier]}</p>
+    <p class="say">${say(v)}</p>
     <div class="meter"><div style="width:${v.risk_score}%;background:${TIER_COLOR[v.risk_tier]}"></div></div>
     <p class="fineprint">The model rates it riskier than ${v.risk_score}% of sign-ins in the real test data. Alibi would ${esc(v.recommended_action)}.</p>
     <p class="fineprint tiers">LOW is below the 90th percentile · MEDIUM is the 90th or above · HIGH the 99th or above ·
