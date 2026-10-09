@@ -105,6 +105,20 @@ def is_hosting(description: str) -> bool:
     return any(k in d for k in HOSTING_KEYWORDS)
 
 
+def reuse_network() -> tuple[dict, Counter]:
+    """Keep the network table from the previous snapshot; recompute hosting addresses per country from it."""
+    old = json.loads((OUT / "meta.json").read_text())
+    z = np.load(OUT / "network.npz")
+    countries = json.loads((OUT / "network_names.json").read_text())["countries"]
+    sizes = z["end"].astype(np.int64) - z["start"].astype(np.int64) + 1
+    hosting_ips: Counter = Counter()
+    for cc_index, size in zip(z["cc"][z["hosting"]].tolist(), sizes[z["hosting"]].tolist(), strict=True):
+        if countries[cc_index]:
+            hosting_ips[countries[cc_index]] += size
+    reused_from = old["network"].get("reused_from") or old["fetched_at"]
+    return {**old["network"], "reused_from": reused_from}, hosting_ips
+
+
 def build_network(raw: Path) -> tuple[dict, Counter]:
     starts, ends, asns, ccs, hosting = [], [], [], [], []
     names: dict[int, str] = {}
@@ -722,10 +736,15 @@ def feed_currency(raw: Path) -> list[dict]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build the intel snapshot from raw downloads")
     parser.add_argument("--raw", type=Path, default=Path("data/intel"))
+    parser.add_argument(
+        "--reuse-network",
+        action="store_true",
+        help="keep the IP-to-network table already in intel_data (when iptoasn.com can't be reached)",
+    )
     args = parser.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     meta = {"fetched_at": (args.raw / "fetched_at.txt").read_text().strip()}
-    net, hosting_ips = build_network(args.raw)
+    net, hosting_ips = reuse_network() if args.reuse_network else build_network(args.raw)
     meta["network"] = net
     meta["breaches"] = build_breaches(args.raw)
     meta["flaws"] = build_flaws(args.raw)
@@ -747,6 +766,10 @@ def main() -> None:
     meta["countries"] = build_countries(args.raw, hosting_ips, bad_by_country, rw_by_country, landings)
     meta["window_ooni"] = "last 30 days to fetch date"
     meta["feeds"] = feed_currency(args.raw)
+    if net.get("reused_from"):  # say honestly how old the network table is
+        for f in meta["feeds"]:
+            if f["id"] == "iptoasn":
+                f.update(updated=net["reused_from"], available=True)
     (OUT / "meta.json").write_text(json.dumps(meta, indent=2))
     print(json.dumps(meta, indent=2))
 
