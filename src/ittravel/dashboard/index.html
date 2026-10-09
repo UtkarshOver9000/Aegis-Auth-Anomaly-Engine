@@ -2,234 +2,259 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Alibi: who's breaking in, how, and from where</title>
-<meta name="description" content="Alibi tracks data breaches at major companies and how they happened, live malware and botnet servers, criminal networks, ransomware, exploited software flaws and suspicious sign-ins, on one live 3D globe." />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Alibi · open-source threat intelligence</title>
+<meta name="description" content="Alibi maps breaches, malware and botnet servers, criminal networks, ransomware and exploited flaws from public sources on a live 3D globe, and checks sign-ins for account takeover." />
+<meta name="theme-color" content="#0e1116" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Crect x=%223.5%22 y=%223.5%22 width=%229%22 height=%229%22 transform=%22rotate(45 8 8)%22 fill=%22none%22 stroke=%22%234c90f0%22 stroke-width=%222%22/%3E%3C/svg%3E">
 <link rel="stylesheet" href="/static/vendor/fonts/fonts.css">
 <link rel="stylesheet" href="/static/vendor/leaflet.css">
-<link rel="stylesheet" href="/static/dashboard.css?v=7">
+<link rel="stylesheet" href="/static/dashboard.css?v=9">
 </head>
 <body>
-<header class="top">
-  <div class="wrap top-inner">
-    <a class="brand" href="#home"><span class="logo">A</span>Alibi</a>
-    <nav>
-      <a href="#globe" data-tab="globe">Live globe</a>
-      <a href="#breaches" data-tab="breaches">Breaches</a>
-      <a href="#attacks" data-tab="attacks">Attacks</a>
-      <a href="#flaws" data-tab="flaws">Exploited flaws</a>
-      <a href="#check" data-tab="check">Account takeover</a>
-      <a href="#news" data-tab="news">News</a>
-      <a href="#results" data-tab="results">Data &amp; accuracy</a>
-    </nav>
-    <form class="search" id="search" role="search">
-      <input id="search-q" type="search" placeholder="Search an IP, domain, CVE or company" aria-label="Search" autocomplete="off">
-    </form>
-  </div>
-  <div class="wrap"><div class="card search-results" id="search-results" hidden></div></div>
+<header class="topbar">
+  <a class="brand" href="#home" aria-label="Alibi home"><span class="mark" aria-hidden="true"></span>ALIBI</a>
+  <nav aria-label="Modules">
+    <a href="#home" data-tab="home">Overview</a>
+    <a href="#globe" data-tab="globe">Globe</a>
+    <a href="#breaches" data-tab="breaches">Breaches</a>
+    <a href="#attacks" data-tab="attacks">Attacks</a>
+    <a href="#flaws" data-tab="flaws">Flaws</a>
+    <a href="#check" data-tab="check">Sign-in check</a>
+    <a href="#news" data-tab="news">News</a>
+    <a href="#results" data-tab="results">Sources</a>
+  </nav>
+  <form class="search" id="search" role="search">
+    <input id="search-q" type="search" placeholder="IP, CVE, domain or company" aria-label="Search" autocomplete="off">
+  </form>
+  <div class="status" id="status" title="Snapshot and feed health"><i class="dot"></i><span>loading</span></div>
 </header>
+<div class="search-wrap"><div class="panel search-results" id="search-results" hidden></div></div>
 
-<main class="wrap">
+<main>
 
-  <section id="tab-home" class="tab">
-    <div class="hero">
-      <h1>Who's breaking in, how, and from where.</h1>
-      <p class="lede">Alibi pulls the world's public security data into one place: which companies lost their
-        customers' data and how it happened, the servers attackers are using today, the networks run by
-        criminals, the ransomware gangs hitting businesses this week, the software flaws being exploited right now, and
-        whether a single sign-in looks like the real account owner or an intruder.</p>
-      <div class="hero-actions">
-        <a class="btn primary" href="#globe">Open the live globe</a>
-        <a class="btn" href="#check/usual">Try the sign-in checker</a>
-        <a class="btn" href="#breaches">See the biggest breaches</a>
-      </div>
+  <section id="tab-home" class="tab page">
+    <div class="page-head">
+      <h1>Situation overview</h1>
+      <p class="sub">Open-source threat intelligence from public feeds. Every figure shows its source and age.</p>
     </div>
     <div class="kpis" id="home-kpis"></div>
-    <div class="steps" id="modules">
-      <a class="step" href="#breaches"><span>1</span><h3>Breaches</h3><p>Every published data breach, the biggest companies hit, and how the data got out.</p></a>
-      <a class="step" href="#attacks"><span>2</span><h3>Attacks</h3><p>Live malware and botnet servers, criminal networks, and this week's ransomware victims by country and industry.</p></a>
-      <a class="step" href="#flaws"><span>3</span><h3>Exploited flaws</h3><p>Software holes attackers are actively using, updated by the US government every weekday.</p></a>
-      <a class="step" href="#check"><span>4</span><h3>Account takeover</h3><p>A model trained on 31 million logins decides if a sign-in is the owner, a VPN, Tor or a malware server.</p></a>
-      <a class="step" href="#globe"><span>5</span><h3>Live globe</h3><p>Every country's numbers on a 3D globe, linked by the real undersea internet cables. Chain countries into a sign-in journey.</p></a>
-      <a class="step" href="#news"><span>6</span><h3>News</h3><p>Security headlines and videos as they're published.</p></a>
+    <div class="grid3">
+      <div class="panel"><h3>Malware servers reported, last 48 h <span class="meta" id="home-activity-meta"></span></h3><div class="spark" id="home-activity"></div></div>
+      <div class="panel"><h3>Newest exploited flaws <a class="meta" href="#flaws">all</a></h3><ul class="list" id="home-flaws"></ul></div>
+      <div class="panel"><h3>Ransomware gangs, last 7 days <a class="meta" href="#attacks">all</a></h3><div class="bars" id="home-gangs"></div></div>
+    </div>
+    <div class="grid2">
+      <div class="panel"><h3>Newest published breaches <a class="meta" href="#breaches">all</a></h3><ul class="list" id="home-breaches"></ul></div>
+      <div class="panel"><h3>Modules</h3>
+        <div class="modules" id="modules">
+          <a href="#globe"><b>Globe</b><span>States coloured by threat density, live points, 48 h replay</span></a>
+          <a href="#breaches"><b>Breaches</b><span>Every published breach and how the data got out</span></a>
+          <a href="#attacks"><b>Attacks</b><span>Malware servers, criminal networks, ransomware</span></a>
+          <a href="#flaws"><b>Flaws</b><span>CISA exploited list with EPSS, patch priority</span></a>
+          <a href="#check/usual"><b>Sign-in check</b><span>Account-takeover model plus live network rules</span></a>
+          <a href="#results"><b>Sources</b><span>Feed ages, licences, model data periods</span></a>
+        </div>
+      </div>
     </div>
     <p class="fineprint" id="home-asof"></p>
   </section>
 
-  <section id="tab-globe" class="tab" hidden>
-    <h2>The live globe</h2>
-    <p class="muted">The real Earth with every country and state outlined. Each state is coloured by the number you
-      pick, from pale yellow (low) to dark red (high); grey means no data. Malware and DNS servers are counted per
-      million IP addresses in each state. Hover a state for its numbers, click it for the details.</p>
-    <div class="chips" id="metric-chips">
-      <button data-metric="malicious_ips" class="on">Malware servers now</button>
-      <button data-metric="confirmed_blocks">Websites blocked</button>
-      <button data-metric="hosting_ipv4">Hosting / VPN address space</button>
-      <button data-metric="dns_resolvers">Public DNS servers</button>
-      <button data-metric="cable_landings">Cable landing stations</button>
-      <button data-metric="tor_exits">Tor exits</button>
-    </div>
-    <div class="globe-layout">
-      <div class="card globe-card"><div id="globe"></div><div id="globe-tip" class="globe-tip floating" hidden></div>
-        <div class="toggle"><label><input type="checkbox" id="show-cables"> Undersea cables</label><button class="link" id="reset-view">Reset view</button></div>
-        <div class="legend" id="legend"></div>
-      </div>
-      <aside class="globe-side">
-        <div class="card" id="country-panel"><h3>Pick a country</h3><p class="muted">Click a country on the globe.</p></div>
-        <div class="card" id="journey-panel">
-          <h3>Sign-in journey</h3>
-          <p class="muted">Chain 2 or 3 countries as one account's sign-ins and see whether the trip is possible.
-            Use "Add to journey" on a country, or try one:</p>
+  <section id="tab-globe" class="tab stage-tab" hidden>
+    <div class="stage">
+      <div id="globe"></div>
+      <div id="globe-tip" class="globe-tip floating" hidden></div>
+      <div class="tour-caption" id="tour-caption" hidden></div>
+
+      <aside class="ov ov-left panel" id="layers-panel" aria-label="Layers">
+        <h3>Layers <button class="link ov-close" data-toggle="layers-panel" aria-label="Close layers">close</button></h3>
+        <div class="group">
+          <div class="label">Colour states by</div>
+          <div class="radio-list" id="metric-chips">
+            <button data-metric="malicious_ips" class="on">Malware servers / 1M IPs</button>
+            <button data-metric="dns_resolvers">Public DNS servers / 1M IPs</button>
+            <button data-metric="confirmed_blocks">Websites blocked (country)</button>
+            <button data-metric="hosting_ipv4">Hosting / VPN addresses (country)</button>
+            <button data-metric="cable_landings">Cable landings (country)</button>
+            <button data-metric="tor_exits">Tor exits (country)</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="label">Points</div>
+          <div class="checks" id="layer-checks">
+            <label><input type="checkbox" data-layer="c2" checked><i class="sw c2"></i>Botnet control servers <span class="n" data-count="c2"></span></label>
+            <label><input type="checkbox" data-layer="dl" checked><i class="sw dl"></i>Malware download sites <span class="n" data-count="dl"></span></label>
+            <label><input type="checkbox" data-layer="tor"><i class="sw tor"></i>Tor exit relays <span class="n" data-count="tor"></span></label>
+            <label><input type="checkbox" data-layer="drop"><i class="sw drop"></i>Criminal networks (Spamhaus) <span class="n" data-count="drop"></span></label>
+            <label><input type="checkbox" id="show-cables"><i class="sw cable"></i>Undersea cables</label>
+          </div>
+        </div>
+        <div class="group legend" id="legend"></div>
+        <details class="group about"><summary>About this layer</summary><p id="metric-explain"></p><p class="fineprint" id="map-sources"></p></details>
+      </aside>
+
+      <aside class="ov ov-right" id="inspector" aria-label="Inspector">
+        <div class="panel" id="country-panel"><h3>Inspector</h3><p class="muted">Select a state or country on the globe.</p></div>
+        <details class="panel" id="journey-panel">
+          <summary><h3>Sign-in journey</h3></summary>
+          <p class="muted">Chain 2 or 3 countries as one account's sign-ins and test whether the trip is possible.</p>
           <div class="chips small">
             <button data-journey="IN,GB">India → UK</button>
             <button data-journey="US,NG,RU">USA → Nigeria → Russia</button>
             <button data-journey="DE,FR">Germany → France</button>
           </div>
           <ol id="journey-list" class="journey"></ol>
-          <label>Minutes between sign-ins <input id="journey-minutes" type="number" min="1" value="45"></label>
-          <button class="btn primary" id="journey-go" disabled>Check this journey</button>
+          <label class="inline">Minutes between sign-ins <input id="journey-minutes" type="number" min="1" value="45"></label>
+          <button class="btn primary" id="journey-go" disabled>Check journey</button>
           <p class="err" id="journey-err"></p>
           <div id="journey-result"></div>
-        </div>
+        </details>
+        <details class="panel" id="top-panel" open>
+          <summary><h3 id="top-title">Top 10</h3></summary>
+          <ol class="toplist" id="top-list"></ol>
+        </details>
       </aside>
-    </div>
-    <div class="grid2">
-      <div class="card"><h3 id="top-title">Top countries</h3><ol class="toplist" id="top-list"></ol></div>
-      <div class="card"><h3>What this means</h3><p id="metric-explain" class="muted"></p><p class="fineprint" id="map-sources"></p></div>
+
+      <div class="ov ov-bottom panel timeline" aria-label="Timeline">
+        <button class="btn icon" id="replay-play" title="Replay the last 48 hours">▶</button>
+        <div class="tl-main">
+          <div class="tl-head"><span class="label">Malware servers by report time, last 48 h</span><span class="mono" id="replay-time"></span></div>
+          <div class="hist" id="replay-hist"></div>
+        </div>
+        <div class="tl-stat"><span class="label">New today</span><b class="mono" id="new-today">-</b></div>
+        <div class="tl-stat"><span class="label">48 h</span><b class="mono" id="last-48h">-</b></div>
+        <button class="btn" id="tour-btn">Tour</button>
+        <button class="btn" id="reset-view">Reset</button>
+      </div>
+
+      <div class="ov-toggles">
+        <button class="btn" data-toggle="layers-panel">Layers</button>
+        <button class="btn" data-toggle="inspector">Inspector</button>
+      </div>
     </div>
   </section>
 
-  <section id="tab-breaches" class="tab" hidden>
-    <h2>Data breaches, and how they happened</h2>
-    <p class="muted">Every breach published by <a href="https://haveibeenpwned.com" target="_blank" rel="noopener">Have I Been Pwned</a>.
-      How each one happened is read from Have I Been Pwned's own write-up of it.</p>
+  <section id="tab-breaches" class="tab page" hidden>
+    <div class="page-head"><h2>Breaches</h2>
+      <p class="sub">Every breach published by <a href="https://haveibeenpwned.com" target="_blank" rel="noopener">Have I Been Pwned</a>. The method is read from HIBP's own write-up.</p></div>
     <div class="kpis" id="breach-kpis"></div>
     <div class="grid2">
-      <div class="card"><h3>How company data got out</h3><div class="bars" id="breach-how"></div>
-        <p class="fineprint">Count of company breaches. Most write-ups only say a company "suffered a breach" without the method.</p></div>
-      <div class="card"><h3>What gets taken most often</h3><div class="bars" id="breach-data"></div></div>
+      <div class="panel"><h3>How company data got out</h3><div class="bars" id="breach-how"></div>
+        <p class="fineprint">Company breaches only. Most write-ups say a breach happened without the method.</p></div>
+      <div class="panel"><h3>Data types exposed most often</h3><div class="bars" id="breach-data"></div></div>
     </div>
-    <div class="card"><h3>Accounts exposed, by year of breach</h3><div class="bars" id="breach-years"></div></div>
-    <div class="card">
-      <div class="row-between"><h3 id="breach-table-title">Biggest company breaches</h3><input id="breach-search" placeholder="Search a company, e.g. LinkedIn, Adobe, Canva" /></div>
-      <p class="fineprint">Click a row to read how it happened.</p>
-      <table class="table"><thead><tr><th>Company</th><th>Breached</th><th class="num">Accounts</th><th>How</th></tr></thead><tbody id="breach-rows"></tbody></table>
+    <div class="panel"><h3>Accounts exposed by year of breach</h3><div class="bars" id="breach-years"></div></div>
+    <div class="panel">
+      <h3 id="breach-table-title">Largest company breaches</h3>
+      <input id="breach-search" class="field" placeholder="Filter by company or domain" />
+      <table class="table"><thead><tr><th>Company</th><th>Breached</th><th class="num">Accounts</th><th>Method</th></tr></thead><tbody id="breach-rows"></tbody></table>
+      <p class="fineprint">Select a row for the write-up. Source: Have I Been Pwned, CC BY 4.0.</p>
     </div>
-    <p class="fineprint">Source: Have I Been Pwned (haveibeenpwned.com), CC BY 4.0.</p>
   </section>
 
-  <section id="tab-attacks" class="tab" hidden>
-    <h2>Attacks happening now</h2>
-    <p class="muted">Servers caught spreading malware or controlling botnets, networks run by criminals, and the
-      businesses ransomware gangs claimed this week. Gathered by security researchers and shared publicly.</p>
+  <section id="tab-attacks" class="tab page" hidden>
+    <div class="page-head"><h2>Attacks</h2>
+      <p class="sub">Malware and botnet servers, criminal networks and ransomware leak-site activity, from researchers' public feeds.</p></div>
     <div class="kpis" id="attack-kpis"></div>
-    <div class="card callout" id="attack-insight"></div>
+    <div class="panel callout" id="attack-insight"></div>
     <div class="grid2">
-      <div class="card"><h3>Malware families behind them</h3><div class="bars" id="attack-malware"></div></div>
-      <div class="card"><h3>Countries hosting them</h3><div class="bars" id="attack-countries"></div></div>
+      <div class="panel"><h3>Malware families</h3><div class="bars" id="attack-malware"></div></div>
+      <div class="panel"><h3>Hosting countries</h3><div class="bars" id="attack-countries"></div></div>
     </div>
-    <div class="card"><h3>Networks hosting the most malware servers</h3>
-      <table class="table"><thead><tr><th>Network</th><th>Type</th><th class="num">Malware servers</th></tr></thead><tbody id="attack-networks"></tbody></table>
+    <div class="panel"><h3>Networks hosting the most malware servers</h3>
+      <table class="table"><thead><tr><th>Network</th><th>Type</th><th class="num">Servers</th></tr></thead><tbody id="attack-networks"></tbody></table>
     </div>
-    <h2>Ransomware this week</h2>
-    <p class="muted" id="ransom-window"></p>
-    <div class="grid2">
-      <div class="card"><h3>Leak-site posts per day</h3><div class="bars" id="ransom-days"></div></div>
-      <div class="card"><h3>Most active gangs</h3><div class="bars" id="ransom-groups"></div></div>
+    <div class="panel"><h3>Ransomware, last 7 days</h3><p class="muted" id="ransom-window"></p>
+      <div class="grid2 flat">
+        <div><div class="label">Leak-site posts per day</div><div class="bars" id="ransom-days"></div></div>
+        <div><div class="label">Most active gangs</div><div class="bars" id="ransom-groups"></div></div>
+      </div>
     </div>
-    <div class="card"><h3>Networks run by criminals</h3><p id="drop-text" class="muted"></p><div class="bars" id="drop-countries"></div></div>
+    <div class="panel"><h3>Networks run by criminals</h3><p class="muted" id="drop-text"></p><div class="bars" id="drop-countries"></div></div>
     <p class="fineprint" id="attack-sources"></p>
   </section>
 
-  <section id="tab-flaws" class="tab" hidden>
-    <h2>Security flaws attackers are using right now</h2>
-    <p class="muted">The US Cybersecurity and Infrastructure Security Agency (CISA) lists software flaws that are
-      confirmed to be exploited in real attacks. Companies are told to patch these first.</p>
+  <section id="tab-flaws" class="tab page" hidden>
+    <div class="page-head"><h2>Exploited flaws</h2>
+      <p class="sub">CISA's catalogue of flaws exploited in real attacks, with FIRST EPSS exploitation probabilities.</p></div>
     <div class="kpis" id="flaw-kpis"></div>
-    <div class="grid2">
-      <div class="card"><h3>Whose products, in the last 12 months</h3><div class="bars" id="flaw-vendors"></div></div>
-      <div class="card"><h3>New flaws added each month</h3><div class="bars" id="flaw-months"></div></div>
-    </div>
-    <div class="card"><h3>Patch these first</h3>
-      <p class="muted">Pick the products your company runs. Alibi ranks their exploited flaws by the chance of
-        exploitation in the next 30 days, ransomware use, how widely the vendor is targeted and how new the flaw is.</p>
+    <div class="panel"><h3>Patch these first</h3>
+      <p class="muted">Select the vendors you run. Ranked by EPSS percentile, ransomware use, vendor reach and recency.</p>
       <div class="chips" id="stack-chips"></div>
-      <table class="table"><thead><tr><th>Priority</th><th>Flaw</th><th>Product</th><th>Why</th></tr></thead><tbody id="priority-rows"></tbody></table>
+      <table class="table"><thead><tr><th class="num">Score</th><th>Flaw</th><th>Product</th><th>Why</th></tr></thead><tbody id="priority-rows"></tbody></table>
     </div>
-    <div class="card"><h3>Latest additions</h3>
-      <table class="table"><thead><tr><th>Added</th><th>Flaw</th><th>Product</th><th>Ransomware</th><th class="num" title="FIRST EPSS: probability it is exploited in the next 30 days">Exploit chance, 30 days</th></tr></thead><tbody id="flaw-rows"></tbody></table>
+    <div class="grid2">
+      <div class="panel"><h3>Vendors, last 12 months</h3><div class="bars" id="flaw-vendors"></div></div>
+      <div class="panel"><h3>Flaws added per month</h3><div class="bars" id="flaw-months"></div></div>
     </div>
-    <p class="fineprint">Sources: CISA Known Exploited Vulnerabilities catalog (public US government data); exploit chances from <a href="https://www.first.org/epss/" target="_blank" rel="noopener">FIRST EPSS</a>, scored daily.</p>
+    <div class="panel"><h3>Latest additions</h3>
+      <table class="table"><thead><tr><th>Added</th><th>Flaw</th><th>Product</th><th>Ransomware</th><th class="num" title="FIRST EPSS: probability of exploitation in the next 30 days">EPSS 30 d</th></tr></thead><tbody id="flaw-rows"></tbody></table>
+    </div>
+    <p class="fineprint">Sources: CISA Known Exploited Vulnerabilities catalog (US government public data); <a href="https://www.first.org/epss/" target="_blank" rel="noopener">FIRST EPSS</a>, scored daily.</p>
   </section>
 
-  <section id="tab-check" class="tab" hidden>
-    <h2>Account takeover: check a sign-in</h2>
-    <p class="muted">Pick a story, or build your own. Two weeks of the account's usual sign-ins go to the live model
-      first, then the sign-in you're testing. The IP addresses are real ones from each country's networks.</p>
+  <section id="tab-check" class="tab page" hidden>
+    <div class="page-head"><h2>Sign-in check</h2>
+      <p class="sub">Two weeks of the account's usual sign-ins go to the model first, then the test sign-in. IP addresses are real, from each country's networks.</p></div>
     <div class="chips">
-      <button data-preset="usual">Usual morning sign-in</button>
-      <button data-preset="tor">Same person, but through Tor</button>
-      <button data-preset="vpn">From a VPN / cloud server</button>
-      <button data-preset="malware">From a known malware server</button>
+      <button data-preset="usual">Usual sign-in</button>
+      <button data-preset="tor">Through Tor</button>
+      <button data-preset="vpn">New VPN / cloud server</button>
+      <button data-preset="malware">Known malware server</button>
       <button data-preset="abroad">New country, new phone</button>
-      <button data-preset="travel">Mumbai, then London 10 min later</button>
-      <button data-preset="guessing">Lots of wrong passwords first</button>
+      <button data-preset="travel">Mumbai → London, 10 min</button>
+      <button data-preset="guessing">Password guessing</button>
     </div>
     <div class="grid2">
-      <form id="check-form" class="card">
-        <label>Usually signs in from<select id="f-home"></select></label>
-        <label>This sign-in comes from<select id="f-country"></select></label>
+      <form id="check-form" class="panel form">
+        <h3>Sign-in</h3>
+        <label>Usual location<select id="f-home"></select></label>
+        <label>This sign-in from<select id="f-country"></select></label>
         <label>Network<select id="f-net">
-          <option value="home">their usual home network</option>
-          <option value="newhome">a different home / mobile network</option>
-          <option value="vpn">a VPN / cloud server</option>
+          <option value="home">usual home network</option>
+          <option value="newhome">different home / mobile network</option>
+          <option value="vpn">VPN / cloud server</option>
           <option value="tor">Tor</option>
-          <option value="malware">a server reported for malware</option>
+          <option value="malware">server reported for malware</option>
         </select></label>
-        <label>Device<select id="f-device"><option value="same">their usual laptop</option><option value="new">a phone we've never seen</option></select></label>
-        <label>Minutes since their last sign-in<input id="f-minutes" type="number" min="1" value="600"></label>
+        <label>Device<select id="f-device"><option value="same">usual laptop</option><option value="new">unseen phone</option></select></label>
+        <label>Minutes since last sign-in<input id="f-minutes" type="number" min="1" value="600"></label>
         <label>Wrong passwords just before<input id="f-fails" type="number" min="0" max="10" value="0"></label>
-        <label class="check"><input id="f-correct" type="checkbox" checked> Password was correct this time</label>
-        <button class="btn primary" type="submit" id="f-go">Check this sign-in</button>
+        <label class="check"><input id="f-correct" type="checkbox" checked> Password correct this time</label>
+        <button class="btn primary" type="submit" id="f-go">Run check</button>
         <p class="err" id="f-err"></p>
       </form>
-      <div class="card verdict" id="verdict">
-        <p class="muted">Pick a story above to see Alibi's verdict.</p>
-      </div>
+      <div class="panel verdict" id="verdict"><h3>Verdict</h3><p class="muted">Select a scenario or run a check.</p></div>
     </div>
-    <div class="card"><div id="trip-map" class="trip-map"></div></div>
+    <div class="panel"><div id="trip-map" class="trip-map"></div></div>
   </section>
 
-  <section id="tab-news" class="tab" hidden>
-    <h2>What's happening in security</h2>
-    <p class="muted">Live headlines and videos from public feeds, refreshed every 30 minutes. Each one opens the original source.</p>
+  <section id="tab-news" class="tab page" hidden>
+    <div class="page-head"><h2>News</h2><p class="sub">Security headlines and videos from public feeds, cached for 30 minutes. Each item links to its source.</p></div>
     <div class="grid2">
-      <div class="card"><h3>Headlines</h3><ul class="feed" id="news-list"></ul></div>
-      <div class="card"><h3>Videos</h3><ul class="feed" id="video-list"></ul></div>
+      <div class="panel"><h3>Headlines</h3><ul class="feed" id="news-list"></ul></div>
+      <div class="panel"><h3>Videos</h3><ul class="feed" id="video-list"></ul></div>
     </div>
   </section>
 
-  <section id="tab-results" class="tab" hidden>
-    <h2>Data and accuracy</h2>
-    <p class="muted">Alibi mixes two kinds of data. The threat data (breaches, malware servers, criminal networks,
-      ransomware, flaws, censorship) is downloaded from public sources every day; the table below shows how old each
-      copy is. The login models are older: they were trained once on the RBA dataset, 31.3 million logins from
-      4.3 million users between February 2020 and February 2021. Its authors built each value from real logins at a
-      Norwegian sign-in service and changed the values to protect privacy, and its cities are random.</p>
+  <section id="tab-results" class="tab page" hidden>
+    <div class="page-head"><h2>Sources and accuracy</h2>
+      <p class="sub">Threat data is downloaded on a schedule; the login models were trained once on 2020 to 2021 data. Both are stated plainly below.</p></div>
     <div class="kpis" id="model-kpis"></div>
-    <div class="card"><h3>In plain words</h3><p id="model-plain"></p></div>
-    <div class="card"><h3>How current each number is</h3>
-      <table class="table"><thead><tr><th>Data</th><th>Licence</th><th>Last downloaded</th><th>Refreshed</th></tr></thead><tbody id="currency"></tbody></table>
+    <div class="panel"><h3>Model results in plain words</h3><p id="model-plain"></p></div>
+    <div class="panel"><h3>Feed freshness</h3>
+      <table class="table"><thead><tr><th>Source</th><th>Licence</th><th>Last downloaded</th><th>Refresh</th></tr></thead><tbody id="currency"></tbody></table>
       <p class="fineprint" id="currency-note"></p></div>
-    <div class="card"><h3>The login models</h3>
+    <div class="panel"><h3>Login models</h3>
       <table class="table"><thead><tr><th>Model</th><th>Data</th><th>Trained on</th><th>Tested on</th></tr></thead><tbody id="model-data"></tbody></table></div>
-    <div class="card"><h3>Also used</h3><ul class="sources" id="sources"></ul></div>
+    <div class="panel"><h3>Also used</h3><ul class="sources" id="sources"></ul></div>
   </section>
 
 </main>
-<footer class="wrap foot">
-  Alibi is a portfolio project built on public data. <a href="/docs">API</a> · <a href="https://github.com/UtkarshOver9000/alibi">Source code</a>
+<footer class="foot">
+  <span>Alibi · non-commercial portfolio project on public data</span>
+  <a href="/docs">API</a><a href="/v1/health">Health</a><a href="https://github.com/UtkarshOver9000/alibi">Source</a>
 </footer>
-<script src="/static/dashboard.js?v=7"></script>
+<script src="/static/dashboard.js?v=9"></script>
 </body>
 </html>

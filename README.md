@@ -33,7 +33,7 @@ Numbers from the snapshot of **9 October 2026** (the live app shows the current 
 
 | Tab | What you can do |
 |---|---|
-| **Live globe** | Spin the real Earth (NASA imagery) with every country and 4,596 state borders. States are coloured by the metric you pick, for example malware servers per million IP addresses. Click any state for its numbers and the country's hotspot cities, or chain 2 or 3 countries into a sign-in journey. |
+| **Live globe** | A full-screen 3D Earth (NASA imagery) with every country and 4,596 state borders. States are coloured by the metric you pick, e.g. malware servers per million IP addresses, and every country shows its rank. Live points mark botnet control servers, malware download sites, Tor exits and Spamhaus criminal ranges in Okabe-Ito colour-blind-safe colours. A 48-hour replay pulses each malware server where and when abuse.ch first reported it, and a hands-free tour walks through today's hotspots. Phones without WebGL get the same map in 2D. |
 | **Breaches** | Every breach published by Have I Been Pwned, the biggest company breaches, and how each happened (read from HIBP's own write-up). |
 | **Attacks** | Live malware and botnet servers, the networks hosting them, Spamhaus criminal networks, and this week's ransomware victims by industry, country and gang (totals only). |
 | **Exploited flaws** | CISA's list of flaws exploited in real attacks, each with its FIRST EPSS exploit chance, and a "patch these first" list for the vendors you run. |

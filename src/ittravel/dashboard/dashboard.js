@@ -41,9 +41,10 @@ const loaded = new Set();
 // "Updated 3 hours ago" line under a tab's title
 function stamp(tab, iso, extra = "") {
   const section = $(`#tab-${tab}`);
+  if (!section.querySelector(".page-head")) return; // the globe shows its date in the timeline
   let el = section.querySelector(".updated");
   if (!el) {
-    section.querySelector("h1, h2").insertAdjacentHTML("afterend", '<p class="fineprint updated"></p>');
+    section.querySelector(".page-head").insertAdjacentHTML("afterend", '<p class="fineprint updated"></p>');
     el = section.querySelector(".updated");
   }
   el.textContent = `Updated ${ago(iso)} (${day(iso)})${extra}`;
@@ -59,7 +60,7 @@ function load(tab) {
     .catch((err) => {
       console.error(tab, err);
       loaded.delete(tab);
-      section.querySelector("h1, h2").insertAdjacentHTML("afterend", `<div class="card load-error" role="alert">
+      (section.querySelector(".page-head") || section.firstElementChild).insertAdjacentHTML("afterend", `<div class="panel load-error" role="alert">
         <b>This section didn't load.</b> The server or your connection had a hiccup (${esc(err.message.slice(0, 80))}).
         <button class="btn">Try again</button></div>`);
       section.querySelector(".load-error button").addEventListener("click", () => load(tab));
@@ -75,6 +76,7 @@ function show(hash) {
   $$("nav a").forEach((a) => a.classList.toggle("on", a.dataset.tab === tab));
   if (!loaded.has(tab) && loaders[tab]) load(tab);
   if (tab === "check" && tripMap) setTimeout(() => tripMap.invalidateSize(), 50);
+  document.body.classList.toggle("on-globe", tab === "globe");
   if (tab === "globe" && globe) setTimeout(sizeGlobe, 50);
   window.scrollTo(0, 0);
   if (tab === "check" && PRESETS[story]) applyPreset(story);
@@ -167,70 +169,89 @@ function world() {
 const sampleCache = {};
 const samples = (cc) => (sampleCache[cc] ??= api(`/v1/intel/sample-ips?country=${cc}`));
 
-// ---------- home ----------
+// ---------- header status ----------
+async function headerStatus() {
+  try {
+    const h = await api("/v1/health");
+    const ok = h.feeds.filter((f) => f.status === "ok" || f.status.startsWith("optional")).length;
+    const el = $("#status");
+    el.className = `status ${h.status}`;
+    el.querySelector("span").textContent = `SNAPSHOT ${new Date(h.snapshot).toISOString().slice(5, 16).replace("T", " ")}Z · ${ok}/${h.feeds.length} FEEDS OK`;
+    el.title = h.feeds.filter((f) => f.status !== "ok").map((f) => `${f.id}: ${f.status}`).join("\n") || "All feeds within their max age";
+  } catch {
+    $("#status span").textContent = "STATUS UNAVAILABLE";
+  }
+}
+
+// ---------- overview ----------
+const hhmm = (unix) => new Date(unix * 1000).toISOString().slice(5, 16).replace("T", " ") + "Z";
+
 loaders.home = async () => {
-  const o = await api("/v1/intel/overview");
-  stamp("home", o.as_of, ". Threat data refreshes daily; news is live.");
-  const t = o.takeovers_caught, rw = o.ransomware_victims;
+  const [o, act, f, b, t] = await Promise.all([api("/v1/intel/overview"), api("/v1/intel/activity"), api("/v1/intel/flaws"),
+    api("/v1/intel/breaches"), api("/v1/intel/threats")]);
+  stamp("home", o.as_of, " · threat feeds refresh every 6 h; news is live");
+  const tk = o.takeovers_caught, rw = o.ransomware_victims;
   $("#home-kpis").innerHTML = [
-    kpi(compact(o.accounts_exposed_last_12_months), `accounts exposed in ${o.breaches_last_12_months} published breaches in the last 12 months`),
-    kpi(fmt(o.malicious_ips), "servers caught spreading malware or running botnets right now"),
-    kpi(fmt(rw.victims), `businesses claimed by ransomware gangs, ${day(rw.from)} to ${day(rw.to)}`),
-    kpi(fmt(o.exploited_flaws_last_30_days), "software flaws newly confirmed as exploited in the last 30 days"),
-    kpi(fmt(o.criminal_networks), "whole networks Spamhaus lists as run by criminals"),
-    kpi(`${t.caught} of ${t.of}`, `account takeovers caught in the test data, asking only ${pct(t.challenge_rate)} of sign-ins for a code`),
-    kpi(compact(o.total_accounts_exposed), `accounts exposed across ${fmt(o.total_breaches)} breaches on record`),
-    kpi(fmt(o.countries_with_confirmed_blocking), "countries where websites were found blocked in the last 30 days"),
+    kpi(fmt(o.malicious_ips), "malware and botnet servers tracked"),
+    kpi(fmt(act.new_today), "new malware servers reported today (UTC)"),
+    kpi(fmt(rw.victims), `ransomware leak-site posts, ${day(rw.from)} to ${day(rw.to)}`),
+    kpi(fmt(o.exploited_flaws_last_30_days), "flaws newly confirmed exploited, 30 d"),
+    kpi(compact(o.accounts_exposed_last_12_months), `accounts exposed in ${o.breaches_last_12_months} breaches, 12 mo`),
+    kpi(fmt(o.criminal_networks), "networks run by criminals (Spamhaus)"),
+    kpi(fmt(o.countries_with_confirmed_blocking), "countries with confirmed website blocking, 30 d"),
+    kpi(`${tk.caught}/${tk.of}`, `takeovers caught at a ${pct(tk.challenge_rate)} challenge rate (2020 test data)`),
   ].join("");
-  $("#home-asof").textContent = `Breach, flaw, malware, ransomware and network data as of ${day(o.as_of)}. News is fetched live.`;
+  const max = Math.max(...act.per_hour, 1);
+  $("#home-activity").innerHTML = act.per_hour.map((n, i) => `<i style="height:${(n / max) * 100}%" title="${n} reported, ${47 - i} h before snapshot"></i>`).join("");
+  $("#home-activity-meta").textContent = `${fmt(act.last_48h)} total`;
+  $("#home-flaws").innerHTML = f.latest.slice(0, 7).map((r) => `<li><span><a href="https://nvd.nist.gov/vuln/detail/${esc(r.cve)}" target="_blank" rel="noopener">${esc(r.cve)}</a>
+    ${esc(r.vendor)} ${esc(r.product)}</span><span>${r.epss == null ? "" : `EPSS ${pct(r.epss, 1)} · `}${esc(r.added.slice(5))}</span></li>`).join("");
+  $("#home-breaches").innerHTML = b.latest.slice(0, 7).map((r) => `<li><span><b>${esc(r.name)}</b> <span class="muted">${esc(r.how)}</span></span><span>${compact(r.accounts)}</span></li>`).join("");
+  bars($("#home-gangs"), t.ransomware.by_group.slice(0, 7));
+  $("#home-asof").textContent = `Snapshot ${o.as_of}. Sources and licences: Sources tab.`;
 };
 
 // ---------- live globe ----------
 const METRICS = {
   malicious_ips: {
-    unit: "malware servers",
     state: "m",
-    title: "Malware and botnet servers right now",
-    explain: "Servers that security researchers caught spreading malware or controlling botnets in the last few days. Most are not rented servers but hacked home routers, cameras and other devices, which is why countries with huge numbers of home connections lead this list.",
+    title: "Malware and botnet servers",
+    explain: "Servers reported to abuse.ch for spreading malware or controlling botnets, placed by IP geolocation and divided by the IPv4 addresses in each state. Hijacked home routers and cameras dominate, so dense home-broadband regions rank high.",
     source: "malware",
   },
+  dns_resolvers: {
+    state: "d",
+    title: "Public DNS servers",
+    explain: "Working open DNS resolvers per million IPv4 addresses. Useful infrastructure, also abused for traffic amplification and blocked under censorship.",
+    source: "dns",
+  },
   confirmed_blocks: {
-    unit: "websites confirmed blocked",
-    title: "Websites confirmed blocked, last 30 days",
-    explain: "Volunteers running OONI Probe test whether websites and apps load. A confirmed block means the test hit a known government or ISP block page. More volunteers means more tests, so a high number means heavy blocking or a lot of testing, and often both.",
+    title: "Websites confirmed blocked, 30 d",
+    explain: "OONI Probe tests that hit a known government or ISP block page. Country-level; more volunteers means more tests.",
     source: "censorship",
   },
   hosting_ipv4: {
-    unit: "hosting / VPN addresses",
-    title: "Addresses on hosting / VPN networks",
-    explain: "IPv4 addresses that belong to cloud, hosting and VPN companies. Real customers rarely sign in from a data center, but bots, scrapers and people hiding behind VPNs do, so Alibi treats these networks with extra care.",
+    title: "Hosting / VPN address space",
+    explain: "IPv4 addresses owned by cloud, hosting and VPN providers. Country-level. Sign-ins from these networks get extra scrutiny.",
     source: "network",
   },
-  dns_resolvers: {
-    unit: "public DNS servers",
-    state: "d",
-    title: "Working public DNS servers",
-    explain: "DNS servers turn names like google.com into addresses. Open public ones are useful, but attackers also misuse them to flood websites with traffic, and governments block them to enforce censorship.",
-    source: "dns",
-  },
   cable_landings: {
-    unit: "undersea cable landing stations",
     title: "Undersea cable landing stations",
-    explain: "Where undersea internet cables come ashore. Almost all traffic between continents runs through these cables, so countries with few landings can be cut off by a single fault or attack.",
+    explain: "Where undersea internet cables come ashore. Country-level. Few landings means a single fault can cut a country off.",
     source: "cables",
   },
   tor_exits: {
-    unit: "Tor exits",
     title: "Tor exit relays",
-    explain: "Tor hides where a person really is by bouncing their traffic around the world. Exit relays are where that traffic comes back out, so a sign-in from one could be anyone, anywhere.",
+    explain: "Relays where Tor traffic leaves the network. Country-level. A sign-in from one could originate anywhere.",
     source: "tor",
   },
 };
-let metric = "malicious_ips", globe, selected, journey = [], journeyArcs = [];
+const POINT_COLORS = { c2: "#d55e00", dl: "#e69f00", tor: "#cc79a7", drop: "#f0e442", landing: "#56b4e9" };
+let metric = "malicious_ips", globe, selected, journey = [], journeyArcs = [], legendData = null;
 
 function sizeGlobe() {
   const el = $("#globe");
-  globe.width(el.clientWidth).height(el.clientHeight);
+  if (globe && el.clientWidth) globe.width(el.clientWidth).height(el.clientHeight);
 }
 
 const IMG = "/static/vendor/img/"; // NASA Blue Marble imagery (public domain), self-hosted
@@ -239,10 +260,20 @@ const SMALL_SCREEN = matchMedia("(pointer: coarse)").matches || innerWidth < 900
 const TEX_W = SMALL_SCREEN ? 2048 : 4096;
 const REDUCED_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
 let places = [], pickData = null, pickW = 0, pickH = 0, heatPromise, cablesLoaded = null, selState = null, snapshotAt = "";
+let events = { points: [], types: {} }, cablePaths = [], landingPoints = [], flat = false;
 
 // The server paints each metric's states into the Earth texture (see intel/globe.py), so the browser
 // downloads one image instead of drawing 4,596 states itself.
 const texUrl = (m) => `/v1/intel/globe/${m}.jpg?w=${TEX_W}&v=${encodeURIComponent(snapshotAt)}`;
+
+function webglWorks() {
+  try {
+    const c = document.createElement("canvas");
+    return !!(window.WebGLRenderingContext && (c.getContext("webgl2") || c.getContext("webgl")));
+  } catch {
+    return false;
+  }
+}
 
 async function loadPickMap() {
   const [img, rows] = await Promise.all([
@@ -267,19 +298,100 @@ function stateAt(at) {
   return index >= 0 ? places[index] : null;
 }
 
-const perMillion = (count, ip) => (ip >= 100000 ? `${(count / ip * 1e6).toFixed(2)} per million addresses` : "too few addresses to rate");
+const perMillion = (count, ip) => (ip >= 100000 ? `${(count / ip * 1e6).toFixed(2)} per 1M addresses` : "too few addresses to rate");
+
+function activePoints() {
+  const on = new Set($$("[data-layer]").filter((c) => c.checked).map((c) => c.dataset.layer));
+  const pts = events.points.filter((p) => on.has(p[2])).map(([lat, lng, kind]) => ({ lat, lng, kind }));
+  return $("#show-cables").checked ? pts.concat(landingPoints) : pts;
+}
+
+function refreshPoints() {
+  if (!globe || flat) return;
+  globe.pointsData(activePoints());
+}
+
+// Flat fallback for phones or browsers without WebGL: the same server texture as a 2D map you can tap.
+function flatMap(features) {
+  flat = true;
+  const el = $("#globe");
+  el.classList.add("flat");
+  el.innerHTML = `<img alt="Map of ${esc(METRICS[metric].title)}" src="${texUrl(metric)}">`;
+  el.querySelector("img").addEventListener("click", (e) => {
+    const r = e.target.getBoundingClientRect();
+    const at = { lng: ((e.clientX - r.left) / r.width) * 360 - 180, lat: 90 - ((e.clientY - r.top) / r.height) * 180 };
+    pickAt(features, at);
+  });
+}
 
 loaders.globe = async () => {
   const el = $("#globe");
-  // poster: the flat map of the same data while three.js loads
-  el.innerHTML = `<div class="globe-poster"><img alt="" src="${texUrl(metric)}"><span>Loading the 3D globe…</span></div>`;
-  const [{ features, data, centers }] = await Promise.all([world(), need("globe"), loadPickMap()]);
+  el.innerHTML = `<div class="globe-poster"><span>LOADING GLOBE</span></div>`;
+  const useGl = webglWorks();
+  const [{ features, data, centers }, ev, act] = await Promise.all([world(), api("/v1/intel/events"), api("/v1/intel/activity"),
+    useGl ? need("globe") : null, loadPickMap()]);
   snapshotAt = data.as_of;
-  if (!data.totals.tor_exit_relays) $('[data-metric="tor_exits"]').remove(); // Tor list unreachable when the snapshot was built
-  globe = Globe({ animateIn: !REDUCED_MOTION, rendererConfig: { antialias: !SMALL_SCREEN, powerPreference: "high-performance" } })(el)
+  events = ev;
+  for (const k of ["c2", "dl", "tor", "drop"]) {
+    const n = ev.points.filter((p) => p[2] === k).length;
+    const box = $(`[data-count="${k}"]`);
+    if (box) box.textContent = fmt(n);
+    if (!n) $(`[data-layer="${k}"]`)?.closest("label")?.remove();
+  }
+  if (!data.totals.tor_exit_relays) $('[data-metric="tor_exits"]').remove();
+  globe = null;
+  if (useGl) {
+    try {
+      globe = Globe({ animateIn: !REDUCED_MOTION, rendererConfig: { antialias: !SMALL_SCREEN, powerPreference: "high-performance" } })(el);
+    } catch (err) {
+      console.error("WebGL globe failed, using the flat map", err);
+    }
+  }
+  setupTimeline(act);
+  globe ? setupGlobe(el, features, data, centers) : flatMap(features);
+  globe && (globe.__features = features);
+  window.__features = features;
+  window.__data = data;
+  window.__centers = centers;
+
+  $$("[data-metric]").forEach((b) => b.addEventListener("click", () => {
+    metric = b.dataset.metric;
+    $$("[data-metric]").forEach((x) => x.classList.toggle("on", x === b));
+    paint();
+    if (selected) selectCountry(selected, window.__lastAt);
+  }));
+  $$("[data-layer]").forEach((c) => c.addEventListener("change", refreshPoints));
+  $("#show-cables").addEventListener("change", async () => {
+    if (!globe) return;
+    const on = $("#show-cables").checked;
+    if (on) cablesLoaded ??= api("/v1/intel/cables"); // the 733 cable paths load only when asked for
+    const cab = on ? await cablesLoaded : null;
+    cablePaths = on ? cab.cables.flatMap((c) => c.paths.map((p) => ({ name: c.name, color: c.color, coords: p }))) : [];
+    landingPoints = on ? cab.landings.map((l) => ({ lat: l.lat, lng: l.lng, kind: "landing" })) : [];
+    globe.pathsData(cablePaths);
+    refreshPoints();
+  });
+  $$("[data-toggle]").forEach((b) => b.addEventListener("click", () => {
+    const target = $(`#${b.dataset.toggle}`);
+    const open = !target.classList.contains("open");
+    $$(".ov-left, .ov-right").forEach((p) => p.classList.remove("open"));
+    target.classList.toggle("open", open);
+  }));
+  $$("[data-journey]").forEach((b) => b.addEventListener("click", () => {
+    journey = b.dataset.journey.split(",");
+    renderJourney();
+    runJourney();
+  }));
+  $("#journey-go").addEventListener("click", runJourney);
+  $("#tour-btn").addEventListener("click", () => (touring ? stopTour() : tour()));
+  paint();
+  if (new URLSearchParams(location.search).has("tour")) tour();
+};
+
+function setupGlobe(el, features, data, centers) {
+  globe
     .globeImageUrl(texUrl(metric))
-    .showAtmosphere(true).atmosphereColor("#9ec9ff").atmosphereAltitude(0.16)
-    .onGlobeReady(() => $(".globe-poster")?.remove())
+    .showAtmosphere(true).atmosphereColor("#4c90f0").atmosphereAltitude(0.14)
     .onGlobeClick((at) => pickAt(features, at))
     .polygonsData([]).polygonCapColor(() => "rgba(255,255,255,0.18)").polygonSideColor(() => "rgba(0,0,0,0)")
     .polygonStrokeColor(() => "#ffffff").polygonAltitude(0.006)
@@ -288,26 +400,27 @@ loaders.globe = async () => {
     .pathColor((p) => p.color).pathDashLength(0.08).pathDashGap(0.01).pathDashAnimateTime(16000).pathTransitionDuration(0)
     .pathLabel((p) => `<div class="globe-tip">Undersea cable: ${esc(p.name)}</div>`)
     .onPathClick((_p, _e, at) => pickAt(features, at))
-    .pointLat("lat").pointLng("lng").pointAltitude(0.005).pointRadius(0.12).pointColor(() => "#ffd27a").pointsMerge(true)
+    .pointLat("lat").pointLng("lng").pointAltitude(0.004).pointRadius((p) => (p.kind === "landing" ? 0.12 : 0.16))
+    .pointColor((p) => POINT_COLORS[p.kind]).pointsMerge(true).pointsTransitionDuration(0)
+    .ringLat("lat").ringLng("lng").ringColor((r) => (t) => `rgba(${r.rgb},${1 - t})`).ringMaxRadius(2.6)
+    .ringPropagationSpeed(3).ringRepeatPeriod(0)
     .arcsData([]).arcColor("color").arcStroke(0.8).arcDashLength(0.5).arcDashGap(0.15).arcDashAnimateTime(1600)
     .arcAltitudeAutoScale(0.45).arcLabel((a) => `<div class="globe-tip">${esc(a.label)}</div>`)
     .labelsData([]).labelLat("lat").labelLng("lng").labelText("text").labelSize(1.1).labelDotRadius(0.45)
     .labelColor(() => "#ffffff").labelResolution(2);
   if (!SMALL_SCREEN) globe.bumpImageUrl(`${IMG}earth-topology.png`).backgroundImageUrl(`${IMG}night-sky.png`);
   globe.renderer().setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-  globe.pointOfView({ lat: 22, lng: 40, altitude: SMALL_SCREEN ? 2.4 : 2 });
-  Object.assign(globe.controls(), { autoRotate: !REDUCED_MOTION && !SMALL_SCREEN, autoRotateSpeed: 0.35, minDistance: 112, maxDistance: 520 });
-  $("#reset-view").addEventListener("click", () => globe.pointOfView({ lat: 22, lng: 40, altitude: 2 }, 800));
+  globe.pointOfView({ lat: 22, lng: 40, altitude: SMALL_SCREEN ? 2.6 : 1.9 });
+  Object.assign(globe.controls(), { autoRotate: !REDUCED_MOTION && !SMALL_SCREEN, autoRotateSpeed: 0.3, minDistance: 112, maxDistance: 600 });
+  $("#reset-view").addEventListener("click", () => globe.pointOfView({ lat: 22, lng: 40, altitude: 1.9 }, 800));
   el.addEventListener("pointerdown", () => (globe.controls().autoRotate = false), { once: true });
+  // a lost WebGL context (common on phones under memory pressure) falls back to the flat map
+  el.querySelector("canvas")?.addEventListener("webglcontextlost", () => { globe.pauseAnimation(); flatMap(features); paint(); });
   sizeGlobe();
-  window.addEventListener("resize", sizeGlobe);
-  // stop drawing frames while the globe is scrolled out of view
+  new ResizeObserver(sizeGlobe).observe(el);
   new IntersectionObserver(([e]) => (e.isIntersecting ? globe.resumeAnimation() : globe.pauseAnimation())).observe(el);
-  globe.__centers = centers;
-  globe.__data = data;
-  globe.__features = features;
+  refreshPoints();
 
-  // hover: which state is under the mouse, read from the pick image (no 3D objects, no lag)
   const tip = $("#globe-tip");
   let frame = 0;
   el.addEventListener("mousemove", (e) => {
@@ -318,34 +431,112 @@ loaders.globe = async () => {
       const s = stateAt(globe.toGlobeCoords(e.clientX - box.left, e.clientY - box.top));
       if (!s) return void (tip.hidden = true);
       tip.hidden = false;
-      tip.style.left = `${Math.min(e.clientX - box.left + 14, box.width - 260)}px`;
+      tip.style.left = `${Math.min(e.clientX - box.left + 14, box.width - 270)}px`;
       tip.style.top = `${e.clientY - box.top + 14}px`;
       tip.innerHTML = stateTip(s);
     });
   });
   el.addEventListener("mouseleave", () => (tip.hidden = true));
+}
 
-  $$("[data-metric]").forEach((b) => b.addEventListener("click", () => {
-    metric = b.dataset.metric;
-    $$("[data-metric]").forEach((x) => x.classList.toggle("on", x === b));
-    paint();
-    if (selected) selectCountry(selected, globe.__lastAt);
-  }));
-  $("#show-cables").addEventListener("change", async () => {
-    const on = $("#show-cables").checked;
-    if (on) cablesLoaded ??= api("/v1/intel/cables"); // the 733 cable paths load only when asked for
-    const cab = on ? await cablesLoaded : null;
-    globe.pathsData(on ? cab.cables.flatMap((c) => c.paths.map((p) => ({ name: c.name, color: c.color, coords: p }))) : [])
-      .pointsData(on ? cab.landings : []);
-  });
-  $$("[data-journey]").forEach((b) => b.addEventListener("click", () => {
-    journey = b.dataset.journey.split(",");
+// ---------- 48-hour replay: each malware server pulses where and when it was reported ----------
+let replay = null;
+
+function setupTimeline(act) {
+  $("#new-today").textContent = fmt(act.new_today);
+  $("#last-48h").textContent = fmt(act.last_48h);
+  const max = Math.max(...act.per_hour, 1);
+  $("#replay-hist").innerHTML = act.per_hour.map((n, i) => `<i style="height:${(n / max) * 100}%" title="${n} reported ${47 - i}-${48 - i} h before the snapshot"></i>`).join("");
+  $("#replay-time").textContent = `window ends ${hhmm(act.window_end)}`;
+  $("#replay-play").addEventListener("click", () => (replay ? stopReplay() : startReplay(act)));
+}
+
+function startReplay(act, seconds = 36) {
+  const end = act.window_end, start = end - 48 * 3600;
+  const timed = events.points.filter((p) => p[3] && p[3] >= start && p[3] <= end).sort((a, b) => a[3] - b[3]);
+  const bars = $$("#replay-hist i");
+  const rgb = { c2: "213,94,0", dl: "230,159,0" };
+  let k = 0;
+  const t0 = performance.now();
+  $("#replay-play").textContent = "❚❚";
+  replay = { stop: false };
+  const step = () => {
+    if (!replay || replay.stop) return;
+    const now = start + ((performance.now() - t0) / (seconds * 1000)) * 48 * 3600;
+    const fresh = [];
+    while (k < timed.length && timed[k][3] <= now) {
+      const [lat, lng, kind] = timed[k++];
+      fresh.push({ lat, lng, rgb: rgb[kind] || "230,159,0" });
+    }
+    if (fresh.length && globe) globe.ringsData([...globe.ringsData().slice(-120), ...fresh]);
+    const hour = Math.min(47, Math.floor((now - start) / 3600));
+    bars.forEach((b, i) => b.classList.toggle("past", i <= hour));
+    $("#replay-time").textContent = `${hhmm(Math.min(now, end))} · ${fmt(k)} reported`;
+    if (now >= end) return stopReplay(true);
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+function stopReplay(done = false) {
+  if (replay) replay.stop = true;
+  replay = null;
+  $("#replay-play").textContent = "▶";
+  if (!done) $$("#replay-hist i").forEach((b) => b.classList.remove("past"));
+  setTimeout(() => globe && globe.ringsData([]), done ? 2500 : 0);
+}
+
+// ---------- tour: a hands-free walk through today's real hotspots ----------
+let touring = false;
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function caption(label, text) {
+  const c = $("#tour-caption");
+  c.hidden = !text;
+  c.innerHTML = text ? `<span class="label">${esc(label)}</span>${text}` : "";
+}
+
+async function tour() {
+  if (!globe || touring) return;
+  touring = true;
+  $("#tour-btn").textContent = "Stop tour";
+  globe.controls().autoRotate = false;
+  try {
+    const lg = await api("/v1/intel/globe/malicious_ips/legend");
+    const act = await api("/v1/intel/activity");
+    if (metric !== "malicious_ips") $('[data-metric="malicious_ips"]').click();
+    const o = await api("/v1/intel/overview");
+    caption("Today", `${fmt(o.malicious_ips)} malware and botnet servers tracked; ${fmt(act.new_today)} reported since 00:00 UTC.`);
+    globe.pointOfView({ lat: 20, lng: 40, altitude: 2.2 }, 1500);
+    await pause(4000);
+    for (const top of lg.top.filter((x) => x.lat != null).slice(0, 3)) {
+      if (!touring) return;
+      globe.pointOfView({ lat: top.lat, lng: top.lng, altitude: 0.9 }, 2200);
+      caption("Hotspot", `<b>${esc(top.name)}</b>: ${top.value.toFixed(2)} malware servers per 1M addresses (${fmt(top.count)} servers).`);
+      await pause(4500);
+    }
+    if (!touring) return;
+    globe.pointOfView({ lat: 25, lng: 60, altitude: 2.3 }, 1800);
+    caption("Replay", "The last 48 hours, each malware server shown where and when it was reported.");
+    await pause(1800);
+    startReplay(act, 14);
+    await pause(15500);
+    if (!touring) return;
+    journey = ["IN", "GB"];
     renderJourney();
-    runJourney();
-  }));
-  $("#journey-go").addEventListener("click", runJourney);
-  paint();
-};
+    caption("Sign-in check", "One account signs in from India, then from the UK 45 minutes later.");
+    await runJourney();
+    await pause(4500);
+  } finally {
+    stopTour();
+  }
+}
+
+function stopTour() {
+  touring = false;
+  $("#tour-btn").textContent = "Tour";
+  caption("", "");
+}
 
 function pickAt(features, at) {
   const f = at && features.find((x) => d3.geoContains(x, [at.lng, at.lat]));
@@ -353,34 +544,35 @@ function pickAt(features, at) {
 }
 
 function stateTip(s) {
-  const c = globe.__data.countries[s.c];
+  const c = window.__data.countries[s.c];
   const m = METRICS[metric];
   const rate = m.state ? `<br>${perMillion(m.state === "m" ? s.m : s.d, s.ip)}` : "";
   return `<b>${esc(s.n)}</b> <span class="muted">${esc(s.t)}${c ? `, ${esc(c.name)}` : ""}</span>
-    <br>${fmt(s.m)} malware servers · ${fmt(s.d)} public DNS servers here${rate}` +
-    (c && !m.state ? `<br>${esc(c.name)} (country-level data): ${fmt(c[metric])} ${esc(m.unit)}` : "");
+    <br>${fmt(s.m)} malware servers · ${fmt(s.d)} public DNS servers${rate}` +
+    (c && !m.state ? `<br>${esc(c.name)} (country): ${fmt(c[metric])}` : "");
 }
 
 async function paint() {
-  const data = globe.__data;
+  const data = window.__data;
   const m = METRICS[metric];
-  globe.globeImageUrl(texUrl(metric));
-  const lg = await api(`/v1/intel/globe/${metric}/legend`);
-  stamp("globe", lg.as_of, ". Refreshed daily.");
-  $("#legend").innerHTML = `<b>${esc(lg.unit)}</b>${lg.level === "country" ? " · country-level" : ""}<div class="bins">` +
+  if (globe) globe.globeImageUrl(texUrl(metric));
+  else $("#globe img") && ($("#globe img").src = texUrl(metric));
+  const lg = (legendData = await api(`/v1/intel/globe/${metric}/legend`));
+  stamp("globe", lg.as_of, "");
+  $("#legend").innerHTML = `<div class="label">${esc(lg.unit)}${lg.level === "country" ? " · country-level" : ""}</div><div class="bins">` +
     [...lg.bins, lg.no_data].map((b) => `<span><i style="background:${b.color}"></i>${esc(b.label)}</span>`).join("") + "</div>";
-  $("#top-title").textContent = `Top 10 ${lg.level === "state" ? "states and provinces" : "countries"}: ${m.title.toLowerCase()}`;
-  $("#top-list").innerHTML = lg.top.map((t) => `<li><span>${esc(t.name)}</span><b>${fmt(t.value)}${
-    t.count !== undefined ? ` <span class="muted">(${fmt(t.count)})</span>` : ""}</b></li>`).join("");
+  $("#top-title").textContent = `Top 10 ${lg.level === "state" ? "states" : "countries"} · ${m.title}`;
+  $("#top-list").innerHTML = lg.top.map((t) => `<li><span>${esc(t.name)}</span><b>${fmt(t.value)}</b></li>`).join("");
   $("#metric-explain").textContent = m.explain;
   const s = data.sources[m.source];
   const how = lg.level === "state"
-    ? ` Each server is placed in its state by IP geolocation (IP Geolocation by <a href="https://db-ip.com" target="_blank" rel="noopener">DB-IP</a>, CC BY 4.0), then divided by the IPv4 addresses DB-IP places in that state. States with fewer than ${fmt(lg.min_addresses)} addresses are grey.`
-    : " This number is only known per country, so every state in a country shares its colour.";
-  $("#map-sources").innerHTML = s ? `Source: <a href="${s.url}" target="_blank" rel="noopener">${esc(s.name)}</a> (${esc(s.license)}).${how} Colours are ColorBrewer YlOrRd (colour-blind safe). Data as of ${day(lg.as_of)}.` : "";
+    ? ` Placed by IP Geolocation by <a href="https://db-ip.com" target="_blank" rel="noopener">DB-IP</a> (CC BY 4.0); states under ${fmt(lg.min_addresses)} addresses are grey.`
+    : "";
+  $("#map-sources").innerHTML = s ? `Source: <a href="${s.url}" target="_blank" rel="noopener">${esc(s.name)}</a> (${esc(s.license)}).${how} Colours: ColorBrewer YlOrRd.` : "";
 }
 
 async function highlightState(s) {
+  if (!globe) return;
   if (!s) return globe.polygonsData([]);
   const { rings } = await api(`/v1/intel/globe/state/${s.i}`);
   globe.polygonsData([{ type: "Feature", properties: {}, geometry: { type: "MultiPolygon",
@@ -391,53 +583,59 @@ async function selectCountry(f, at) {
   const c = f.properties.c;
   if (!c) return;
   selected = f;
-  globe.__lastAt = at;
+  window.__lastAt = at;
   const st = stateAt(at);
   selState = st && st.c === c.a2 ? st : null;
   highlightState(selState);
-  const [lng, lat] = globe.__centers[c.a2];
-  globe.controls().autoRotate = false;
-  globe.pointOfView(at ? { lat: at.lat, lng: at.lng, altitude: 1.2 } : { lat, lng, altitude: 1.5 }, 900);
+  const [lng, lat] = window.__centers[c.a2];
+  if (globe) {
+    globe.controls().autoRotate = false;
+    if (!touring) globe.pointOfView(at ? { lat: at.lat, lng: at.lng, altitude: 1.2 } : { lat, lng, altitude: 1.5 }, 900);
+  }
+  if (SMALL_SCREEN) { $$(".ov-left").forEach((p) => p.classList.remove("open")); $("#inspector").classList.add("open"); }
+  const rank = legendData?.ranks?.[c.a2];
   const facts = [
-    ["Malware servers now", fmt(c.malicious_ips)],
-    ["Websites confirmed blocked", `${fmt(c.confirmed_blocks)} in ${compact(c.censorship_measurements)} tests`],
+    ["Malware servers", fmt(c.malicious_ips)],
+    ["Websites blocked, 30 d", `${fmt(c.confirmed_blocks)} / ${compact(c.censorship_measurements)} tests`],
     ["Public DNS servers", fmt(c.dns_resolvers)],
     ["Hosting / VPN addresses", compact(c.hosting_ipv4)],
-    ["Undersea cable landings", fmt(c.cable_landings)],
+    ["Cable landings", fmt(c.cable_landings)],
   ];
-  if (globe.__data.totals.tor_exit_relays) facts.push(["Tor exits", fmt(c.tor_exits)]);
+  if (window.__data.totals.tor_exit_relays) facts.push(["Tor exits", fmt(c.tor_exits)]);
   const key = METRICS[metric].state === "d" ? "d" : "m";
   const label = key === "d" ? "public DNS servers" : "malware servers";
   const topStates = places.filter((s) => s.c === c.a2 && s[key] > 0).sort((a, b) => b[key] - a[key]).slice(0, 6);
   heatPromise ??= api("/v1/intel/heat"); // city lists load only when a country is opened
   const spots = (await heatPromise).places?.[c.a2]?.[key === "d" ? "dns" : "malware"] || [];
-  $("#country-panel").innerHTML = `${selState ? `<div class="place"><b>${esc(selState.t)}: ${esc(selState.n)}</b><br>
-      ${fmt(selState.m)} malware servers · ${fmt(selState.d)} public DNS servers located here
+  $("#country-panel").innerHTML = `<h3>Inspector <span class="meta">${esc(c.a2)}</span></h3>
+    ${selState ? `<div class="place"><b>${esc(selState.n)}</b> <span class="muted">${esc(selState.t)}</span><br>
+      ${fmt(selState.m)} malware servers · ${fmt(selState.d)} public DNS servers
       <br><span class="muted">${perMillion(selState[key], selState.ip)} (${label})</span></div>` : ""}
-    <h3>${esc(c.name)}</h3>
-    <p class="fineprint">The boxes below are country-level totals.</p>
+    <div class="row"><b style="font-size:16px">${esc(c.name)}</b></div>
+    ${rank ? `<p class="rank">#${rank[0]} of ${rank[2]} · ${esc(METRICS[metric].title)} (${fmt(rank[1])})</p>` : ""}
     <div class="facts">${facts.map(([k, v]) => `<div><b>${k}</b>${v}</div>`).join("")}</div>
-    ${topStates.length ? `<p class="fineprint"><b>States with the most ${label}:</b> ${topStates.map((s) => `${esc(s.n)} (${fmt(s[key])})`).join(" · ")}</p>` : ""}
-    ${spots.length ? `<p class="fineprint"><b>Top cities:</b> ${spots.slice(0, 6).map(([city, n]) => `${esc(city)} (${fmt(n)})`).join(" · ")}</p>` : ""}
-    <p class="fineprint" id="country-nets">Looking up its networks…</p>
+    ${topStates.length ? `<p class="fineprint"><b>Top states, ${label}:</b> ${topStates.map((s) => `${esc(s.n)} ${fmt(s[key])}`).join(" · ")}</p>` : ""}
+    ${spots.length ? `<p class="fineprint"><b>Top cities:</b> ${spots.slice(0, 6).map(([city, n]) => `${esc(city)} ${fmt(n)}`).join(" · ")}</p>` : ""}
+    <p class="fineprint" id="country-nets">Looking up networks…</p>
     <button class="btn" id="add-journey" ${journey.length >= 3 ? "disabled" : ""}>Add to journey</button>`;
   $("#add-journey").addEventListener("click", () => {
     if (journey.length < 3 && journey.at(-1) !== c.a2) journey.push(c.a2);
+    $("#journey-panel").open = true;
     renderJourney();
     $("#add-journey").disabled = journey.length >= 3;
   });
   try {
     const s = await samples(c.a2);
-    const homes = s.home.map((h) => esc(h.network)).join(" and ");
-    $("#country-nets").innerHTML = (homes ? `Biggest home and business networks: ${homes}.` : "No home networks on record.") +
-      (s.malware ? ` A server reported for malware here: ${esc(s.malware)}.` : "");
+    const homes = s.home.map((h) => esc(h.network)).join(", ");
+    $("#country-nets").innerHTML = (homes ? `Largest home networks: ${homes}.` : "No home networks on record.") +
+      (s.malware ? ` Reported malware server: <span class="mono">${esc(s.malware)}</span>.` : "");
   } catch {
     $("#country-nets").textContent = "";
   }
 }
 
 function renderJourney() {
-  const names = globe.__data.countries;
+  const names = window.__data.countries;
   $("#journey-list").innerHTML = journey.map((cc, i) => `<li>${esc(names[cc].name)}${i === 0 ? " <span class='muted'>(usual home)</span>" : ""}
     <button data-drop="${i}" aria-label="Remove">remove</button></li>`).join("");
   $$("[data-drop]").forEach((b) => b.addEventListener("click", () => {
@@ -445,17 +643,17 @@ function renderJourney() {
     renderJourney();
   }));
   $("#journey-go").disabled = journey.length < 2;
-  const pts = journey.map((cc) => ({ lat: globe.__centers[cc][1], lng: globe.__centers[cc][0], text: names[cc].name }));
-  globe.labelsData(pts);
+  const pts = journey.map((cc) => ({ lat: window.__centers[cc][1], lng: window.__centers[cc][0], text: names[cc].name }));
+  if (globe) globe.labelsData(pts);
   journeyArcs = pts.slice(1).map((p, i) => ({ startLat: pts[i].lat, startLng: pts[i].lng, endLat: p.lat, endLng: p.lng,
     color: [css("--accent"), css("--accent")], label: `${pts[i].text} → ${p.text}` }));
-  globe.arcsData(journeyArcs);
+  if (globe) globe.arcsData(journeyArcs);
   $("#journey-result").innerHTML = "";
 }
 
 async function runJourney() {
   if (journey.length < 2) return;
-  const names = globe.__data.countries, centers = globe.__centers;
+  const names = window.__data.countries, centers = window.__centers;
   const gap = Math.max(1, +$("#journey-minutes").value || 1);
   const btn = $("#journey-go");
   $("#journey-err").textContent = "";
@@ -483,7 +681,7 @@ async function runJourney() {
       a.color = [tierColor[steps[i].tier], tierColor[steps[i].tier]];
       a.label = `${a.label}: ${fmt(Math.round(steps[i].distance_km))} km in ${gap} min, ${steps[i].tier}`;
     });
-    globe.arcsData([...journeyArcs]);
+    if (globe) globe.arcsData([...journeyArcs]);
     $("#journey-result").innerHTML = steps.map((s, i) => `<div class="hop ${s.tier}"><b>${esc(names[journey[i]].name)} → ${esc(names[journey[i + 1]].name)}</b>:
       ${fmt(Math.round(s.distance_km))} km in ${gap} min${s.velocity_kmph ? ` (${fmt(Math.round(s.velocity_kmph))} km/h)` : ""}.
       <span class="badge ${s.tier}">${s.tier}</span><br><span class="muted">${esc(s.reasons[0])}</span></div>`).join("") +
@@ -653,7 +851,7 @@ const ensureCheck = () => (checkReady ??= setupCheck());
 loaders.check = ensureCheck;
 
 async function setupCheck() {
-  api("/v1/model").then(() => $("#tab-check .updated") || $("#tab-check h2").insertAdjacentHTML("afterend",
+  api("/v1/model").then(() => $("#tab-check .updated") || $("#tab-check .page-head").insertAdjacentHTML("afterend",
     '<p class="fineprint updated">Network checks use today\'s threat data; the model was trained on 2020 to 2021 logins.</p>'));
   const [{ data }] = await Promise.all([world(), need("leaflet")]);
   const names = data.countries;
@@ -730,7 +928,7 @@ async function runCheck() {
     $("#f-err").textContent = err.message;
   } finally {
     btn.disabled = false;
-    btn.textContent = "Check this sign-in";
+    btn.textContent = "Run check";
   }
 }
 
@@ -751,7 +949,7 @@ function renderVerdict(v, usual, ip, home, there, fails) {
   ];
   if (v.distance_km > 0) facts.push(["Distance from last sign-in", `${fmt(Math.round(v.distance_km))} km`],
     ["Speed needed", `${fmt(Math.round(v.velocity_kmph))} km/h`]);
-  $("#verdict").innerHTML = `
+  $("#verdict").innerHTML = `<h3>Verdict</h3>
     <span class="badge ${v.risk_tier}">${v.risk_tier}</span>
     <p class="say">${say(v)}</p>
     <div class="meter"><div style="width:${v.risk_score}%;background:${TIER_COLOR[v.risk_tier]}"></div></div>
@@ -790,7 +988,7 @@ loaders.news = async () => {
     return `<li class="vid">${id ? `<img src="https://i.ytimg.com/vi/${esc(id)}/mqdefault.jpg" alt="" loading="lazy">` : "<span></span>"}
       <div><a href="${esc(v.url)}" target="_blank" rel="noopener">${esc(v.title)}</a><small>${esc(v.source)} · ${ago(v.published)}</small></div></li>`;
   }).join("");
-  $("#video-list").closest(".card").hidden = !videos.length; // no videos: hide the panel rather than show an error
+  $("#video-list").closest(".panel").hidden = !videos.length; // no videos: hide the panel rather than show an error
 };
 
 // ---------- data & accuracy ----------
@@ -840,3 +1038,4 @@ loaders.results = async () => {
 };
 
 show(location.hash.slice(1) || "home");
+headerStatus();
