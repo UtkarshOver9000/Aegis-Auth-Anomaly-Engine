@@ -28,6 +28,7 @@ async function api(path, opts) {
 const kpi = (v, l) => `<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`;
 
 function bars(el, rows, label = (n) => fmt(n)) {
+  if (!rows.length) return void (el.innerHTML = '<p class="muted empty">Nothing recorded in this snapshot.</p>');
   const max = Math.max(...rows.map((r) => r[1]), 1);
   el.innerHTML = rows.map(([k, n]) => `<div class="bar"><span>${esc(k)}</span>
     <div class="track"><div class="fill" style="width:${(n / max) * 100}%"></div></div><span class="n">${label(n)}</span></div>`).join("");
@@ -37,16 +38,31 @@ function bars(el, rows, label = (n) => fmt(n)) {
 const loaders = {};
 const loaded = new Set();
 
+// Run a tab's loader with a skeleton while it loads and a retry card if it fails; never a blank panel.
+function load(tab) {
+  const section = $(`#tab-${tab}`);
+  loaded.add(tab);
+  section.querySelector(".load-error")?.remove();
+  section.classList.add("is-loading");
+  loaders[tab]()
+    .catch((err) => {
+      console.error(tab, err);
+      loaded.delete(tab);
+      section.querySelector("h1, h2").insertAdjacentHTML("afterend", `<div class="card load-error" role="alert">
+        <b>This section didn't load.</b> The server or your connection had a hiccup (${esc(err.message.slice(0, 80))}).
+        <button class="btn">Try again</button></div>`);
+      section.querySelector(".load-error button").addEventListener("click", () => load(tab));
+    })
+    .finally(() => section.classList.remove("is-loading"));
+}
+
 function show(hash) {
   // "#check/travel" opens a tab and, for the sign-in check, runs that story
   let [tab, story] = hash.split("/");
   if (!$(`#tab-${tab}`)) tab = "home";
   $$(".tab").forEach((s) => (s.hidden = s.id !== `tab-${tab}`));
   $$("nav a").forEach((a) => a.classList.toggle("on", a.dataset.tab === tab));
-  if (!loaded.has(tab) && loaders[tab]) {
-    loaded.add(tab);
-    loaders[tab]().catch((err) => console.error(tab, err));
-  }
+  if (!loaded.has(tab) && loaders[tab]) load(tab);
   if (tab === "check" && tripMap) setTimeout(() => tripMap.invalidateSize(), 50);
   if (tab === "globe" && globe) setTimeout(sizeGlobe, 50);
   window.scrollTo(0, 0);

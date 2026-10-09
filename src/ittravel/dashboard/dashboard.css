@@ -140,3 +140,12 @@ button.link { border: 0; background: none; color: var(--accent); cursor: pointer
 .globe-poster span { position: relative; color: #fff; background: rgba(0, 0, 0, 0.55); padding: 6px 12px; border-radius: 8px; }
 .howto { font-size: 0.85rem; color: var(--muted); margin: 4px 0 10px; }
 .howto summary { cursor: pointer; color: var(--accent); }
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.is-loading .kpis:empty, .is-loading .bars:empty, .is-loading tbody:empty, .is-loading .feed:empty {
+  min-height: 96px; border-radius: var(--radius);
+  background: linear-gradient(90deg, var(--card) 25%, var(--line) 50%, var(--card) 75%); background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite; }
+.is-loading tbody:empty { display: block; }
+.load-error { border-color: var(--risk); display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.empty { margin: 6px 0; }
+@media (prefers-reduced-motion: reduce) { .is-loading .kpis:empty, .is-loading .bars:empty { animation: none; } }
