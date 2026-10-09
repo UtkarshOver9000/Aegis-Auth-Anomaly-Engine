@@ -263,3 +263,15 @@ def test_flaw_priority_is_explained_and_filterable():
     assert scores == sorted(scores, reverse=True) and all(0 <= s <= 100 for s in scores)
     top = res["flaws"][0]
     assert round(sum(res["weights"][k] * v for k, v in top["priority_parts"].items()), 0) == round(top["priority"], 0)
+
+
+def test_readme_numbers_and_sources_match_the_data():
+    import importlib.util
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    spec = importlib.util.spec_from_file_location("readme_numbers", root / "scripts" / "readme_numbers.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    assert mod.render(readme) == readme, "run: PYTHONPATH=src python scripts/readme_numbers.py"
