@@ -4,7 +4,9 @@ FastAPI service for Alibi: login-risk scoring plus threat intelligence.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
+from uuid import uuid4
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,7 +39,7 @@ app.add_middleware(
     allow_origins=["*"],
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type", "X-API-Key"],
-    expose_headers=["X-Data-As-Of", "Retry-After"],
+    expose_headers=["X-Data-As-Of", "X-Request-ID", "Retry-After"],
     allow_credentials=False,
 )
 app.add_middleware(GZipMiddleware, minimum_size=2048)
@@ -57,6 +59,19 @@ PAGE_CSP = (
     "img-src 'self' data: blob: https://tile.openstreetmap.org https://i.ytimg.com; connect-src 'self'; "
     "font-src 'self'; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
 )
+
+
+REQUEST_ID = re.compile(r"[A-Za-z0-9-]{8,64}")
+
+
+@app.middleware("http")
+async def request_id(request, call_next):
+    """Echo a caller's X-Request-ID (or make one) so a request can be traced through logs."""
+    rid = request.headers.get("x-request-id", "")
+    rid = rid if REQUEST_ID.fullmatch(rid) else uuid4().hex
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = rid
+    return response
 
 
 @app.middleware("http")

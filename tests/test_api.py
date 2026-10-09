@@ -136,3 +136,11 @@ def test_security_txt():
 def test_read_endpoints_are_cacheable_and_health_is_not():
     assert "s-maxage" in client.get("/v1/intel/overview").headers["cache-control"]
     assert client.get("/v1/health").headers["cache-control"] == "no-store"
+
+
+def test_request_ids_are_echoed_or_made():
+    assert (
+        client.get("/v1/health", headers={"X-Request-ID": "trace-12345678"}).headers["x-request-id"] == "trace-12345678"
+    )
+    made = client.get("/v1/health", headers={"X-Request-ID": "bad id!"}).headers["x-request-id"]
+    assert len(made) == 32 and made != "bad id!"
