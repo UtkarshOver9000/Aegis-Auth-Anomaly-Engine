@@ -526,6 +526,16 @@ def build_states(raw: Path) -> dict:
     """State / province borders, simplified for the globe (needs shapely at build time only)."""
     from shapely.geometry import shape
 
+    from .validate import InvalidFeed, check
+
+    try:
+        check("natural_earth_admin1", raw / "ne_10m_admin1.geojson")
+    except (InvalidFeed, FileNotFoundError):
+        # borders are reference geography: keep the last good copy rather than fail the whole snapshot
+        if (OUT / "states.json").exists():
+            old = json.loads((OUT / "meta.json").read_text()).get("states", {})
+            return {**old, "reused": True}
+        raise
     data = json.loads((raw / "ne_10m_admin1.geojson").read_text(encoding="utf-8"))
     out = []
     for f in data["features"]:
