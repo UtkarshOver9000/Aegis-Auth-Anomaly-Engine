@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import json
 import math
-import os
 from collections import deque
 from datetime import UTC, datetime
 from pathlib import Path
@@ -26,6 +25,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 
+from . import settings
 from .geo import haversine_km
 from .intel.network import lookup
 from .rba.features import FEATURE_COLUMNS
@@ -45,7 +45,7 @@ TIER_RANK = {"LOW": 0, "MEDIUM": 1, "HIGH": 2, "CRITICAL": 3}
 
 
 def _velocity_threshold() -> float:
-    return float(os.getenv("AEGIS_VELOCITY_THRESHOLD", "900"))
+    return settings.velocity_threshold_kmh()
 
 
 def tier_for(percentile: float) -> str:
@@ -185,9 +185,16 @@ class RiskEngine:
             ato_percentile=pct["ato"],
             attack_ip_percentile=pct["attack_ip"],
             reasons=reasons,
-            network={"asn": net.asn, "network": net.network, "country": net.country, "type": net.label,
-                     "tor_exit": net.tor_exit, "hosting": net.hosting, "threat": net.threat,
-                     "criminal_network": net.criminal_network},
+            network={
+                "asn": net.asn,
+                "network": net.network,
+                "country": net.country,
+                "type": net.label,
+                "tor_exit": net.tor_exit,
+                "hosting": net.hosting,
+                "threat": net.threat,
+                "criminal_network": net.criminal_network,
+            },
             features={k: round(float(v), 4) for k, v in feats.items()},
             velocity_kmph=round(velocity, 1),
             distance_km=round(distance_km, 1),

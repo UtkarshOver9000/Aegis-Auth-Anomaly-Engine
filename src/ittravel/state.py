@@ -8,17 +8,18 @@ record.
 
 from __future__ import annotations
 
-import os
 import secrets
 from collections import deque
 from datetime import UTC, datetime
+
+from . import settings
 
 HISTORY_LIMIT = 50
 
 
 def master_key() -> str | None:
     """The admin key, from ALIBI_API_KEY on the server. Unset means the keyed endpoints are switched off."""
-    return os.getenv("ALIBI_API_KEY") or None
+    return settings.api_key()
 
 
 class UserState:
