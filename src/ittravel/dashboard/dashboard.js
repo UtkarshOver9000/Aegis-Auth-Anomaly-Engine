@@ -37,7 +37,9 @@ function bars(el, rows, label = (n) => fmt(n)) {
 const loaders = {};
 const loaded = new Set();
 
-function show(tab) {
+function show(hash) {
+  // "#check/travel" opens a tab and, for the sign-in check, runs that story
+  let [tab, story] = hash.split("/");
   if (!$(`#tab-${tab}`)) tab = "home";
   $$(".tab").forEach((s) => (s.hidden = s.id !== `tab-${tab}`));
   $$("nav a").forEach((a) => a.classList.toggle("on", a.dataset.tab === tab));
@@ -48,6 +50,7 @@ function show(tab) {
   if (tab === "check" && tripMap) setTimeout(() => tripMap.invalidateSize(), 50);
   if (tab === "globe" && globe) setTimeout(sizeGlobe, 50);
   window.scrollTo(0, 0);
+  if (tab === "check" && PRESETS[story]) applyPreset(story);
 }
 window.addEventListener("hashchange", () => show(location.hash.slice(1)));
 

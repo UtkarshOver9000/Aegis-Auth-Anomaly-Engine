@@ -91,6 +91,10 @@ more, and CRITICAL is 99.9 or more.
 Every verdict comes with plain-English reasons, such as "Impossible travel: 7,471 km in 45 min = 9,962 km/h", and
 with the network that owns the IP.
 
+![Mumbai, then London 10 minutes later: HIGH, impossible travel at 43,150 km/h](docs/img/mumbai-london.jpg)
+
+*The "Mumbai, then London 10 min later" story, live from the app (open it directly at `/#check/travel`).*
+
 ## Account-takeover model results
 
 Trained and tested on the RBA login dataset: 31,269,264 logins from 4,304,857 users. The test periods are months
