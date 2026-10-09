@@ -1,0 +1,207 @@
+# Every external data source Alibi uses. The fetcher (python -m ittravel.intel.fetch) reads the
+# `feeds` list; the snapshot builder parses each saved file with the named parser.
+#
+# cadence: how often the scheduled job re-downloads it. max_age: older than this counts as stale.
+# url may use {yyyy_mm}, {prev_yyyy_mm}, {since} (30 days ago) and {until} (today), all UTC.
+
+feeds:
+  - id: hibp_breaches
+    name: Have I Been Pwned breach list
+    url: https://haveibeenpwned.com/api/v3/breaches
+    file: hibp_breaches.json
+    licence: CC BY 4.0 (attribution and link required)
+    auth: none
+    cadence: 1d
+    max_age: 7d
+    parser: snapshot.build_breaches
+    description: Every published breach with its date, size, data types and write-up.
+
+  - id: cisa_kev
+    name: CISA Known Exploited Vulnerabilities catalog
+    url: https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json
+    file: cisa_kev.json
+    licence: US government public data
+    auth: none
+    cadence: 1d
+    max_age: 7d
+    parser: snapshot.build_flaws
+    description: Vulnerabilities confirmed as exploited in real attacks.
+
+  - id: iptoasn
+    name: iptoasn.com IP-to-ASN table
+    url: https://iptoasn.com/data/ip2asn-v4.tsv.gz
+    file: ip2asn-v4.tsv.gz
+    licence: PDDL (public domain)
+    auth: none
+    cadence: 1d
+    max_age: 14d
+    parser: snapshot.build_network
+    description: Which network (ASN) and country announce every IPv4 range.
+
+  - id: public_dns
+    name: public-dns.info nameserver list
+    url: https://public-dns.info/nameservers.csv
+    file: public_dns_nameservers.csv
+    licence: public list; only counts and city locations are published
+    auth: none
+    cadence: 1d
+    max_age: 14d
+    parser: snapshot.build_countries, snapshot.build_heat
+    description: Working public DNS resolvers by country.
+
+  - id: ooni
+    name: OONI web-connectivity aggregation, last 30 days
+    url: https://api.ooni.io/api/v1/aggregation?test_name=web_connectivity&since={since}&until={until}&axis_x=probe_cc
+    file: ooni_by_country.json
+    licence: CC BY-NC-SA 4.0
+    auth: none
+    cadence: 1d
+    max_age: 7d
+    parser: snapshot.build_countries
+    description: Censorship tests, anomalies and confirmed blocks per country.
+
+  - id: feodo
+    name: abuse.ch Feodo Tracker botnet C2 blocklist
+    url: https://feodotracker.abuse.ch/downloads/ipblocklist.json
+    file: feodo_c2.json
+    licence: CC0
+    auth: none
+    cadence: 1d
+    max_age: 3d
+    parser: snapshot.build_threats
+    description: Botnet command-and-control servers.
+
+  - id: urlhaus
+    name: abuse.ch URLhaus recent malware URLs
+    url: https://urlhaus.abuse.ch/downloads/csv_recent/
+    file: urlhaus_recent.csv
+    licence: CC0
+    auth: none
+    cadence: 1d
+    max_age: 3d
+    parser: snapshot.build_threats
+    description: Malware download URLs reported in the last 30 days.
+
+  - id: threatfox
+    name: abuse.ch ThreatFox recent indicators
+    url: https://threatfox.abuse.ch/export/json/recent/
+    file: threatfox_recent.json
+    licence: CC0
+    auth: none
+    cadence: 1d
+    max_age: 3d
+    parser: snapshot.build_threats
+    description: Indicators of compromise shared in the last 48 hours.
+
+  - id: spamhaus_drop
+    name: Spamhaus DROP (IPv4)
+    url: https://www.spamhaus.org/drop/drop_v4.json
+    file: spamhaus_drop_v4.json
+    licence: free to use per the Spamhaus DROP terms
+    auth: none
+    cadence: 1d
+    max_age: 7d
+    parser: snapshot.build_threats
+    description: Address blocks hijacked or run by criminals.
+
+  - id: spamhaus_asndrop
+    name: Spamhaus ASN-DROP
+    url: https://www.spamhaus.org/drop/asndrop.json
+    file: spamhaus_asndrop.json
+    licence: free to use per the Spamhaus DROP terms
+    auth: none
+    cadence: 1d
+    max_age: 7d
+    parser: snapshot.build_threats
+    description: Whole networks (ASNs) run by criminals.
+
+  - id: ransomware_live
+    name: ransomware.live recent victims
+    url: https://api.ransomware.live/v2/recentvictims
+    file: ransomware_recent.json
+    licence: no licence published; only aggregate counts are shown, never names, links or files
+    auth: none
+    cadence: 1d
+    max_age: 3d
+    parser: snapshot.build_threats
+    description: The latest victims posted on ransomware leak sites.
+
+  - id: cables
+    name: TeleGeography Submarine Cable Map, cables
+    url: https://www.submarinecablemap.com/api/v3/cable/cable-geo.json
+    file: cable_geo.json
+    licence: CC BY-NC-SA 3.0 (as published by TeleGeography; not re-confirmed on their site in Oct 2026)
+    auth: none
+    cadence: 7d
+    max_age: 180d
+    parser: snapshot.build_cables
+    description: Undersea internet cable routes.
+
+  - id: cable_landings
+    name: TeleGeography Submarine Cable Map, landing points
+    url: https://www.submarinecablemap.com/api/v3/landing-point/landing-point-geo.json
+    file: landing_points.json
+    licence: CC BY-NC-SA 3.0 (as above)
+    auth: none
+    cadence: 7d
+    max_age: 180d
+    parser: snapshot.build_cables
+    description: Where undersea cables come ashore.
+
+  - id: dbip_city
+    name: DB-IP IP to City Lite
+    url: https://download.db-ip.com/free/dbip-city-lite-{yyyy_mm}.csv.gz
+    fallback_url: https://download.db-ip.com/free/dbip-city-lite-{prev_yyyy_mm}.csv.gz
+    file: dbip-city-lite.csv.gz
+    licence: CC BY 4.0 ("IP Geolocation by DB-IP")
+    auth: none
+    cadence: 30d
+    max_age: 180d
+    parser: snapshot.build_heat
+    description: Approximate city of each IP range, used to pin servers to places.
+
+  - id: natural_earth_admin1
+    name: Natural Earth admin-1 states and provinces (1:10m)
+    url: https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_1_states_provinces.geojson
+    file: ne_10m_admin1.geojson
+    licence: public domain
+    auth: none
+    cadence: 180d
+    max_age: 1825d
+    parser: snapshot.build_states
+    description: State and province borders (reference geography, changes rarely).
+
+  - id: tor_onionoo
+    name: Tor Project Onionoo exit relays
+    url: https://onionoo.torproject.org/details?flag=Exit&running=true&fields=exit_addresses,country
+    file: onionoo_exits.json
+    licence: Tor Metrics data, public
+    auth: none
+    cadence: 1d
+    max_age: 3d
+    optional: true  # blocked on some networks; the API then fetches the bulk exit list live
+    parser: snapshot.build_countries
+    description: Running Tor exit relays and their addresses.
+
+# Used live by the API, not by the snapshot job.
+live:
+  - id: tor_bulk_exits
+    url: https://check.torproject.org/torbulkexitlist
+    licence: public list
+    cache: 1h
+  - id: news_rss
+    url: The Hacker News, BleepingComputer, Krebs on Security and CISA advisories RSS (see intel/news.py)
+    licence: headlines and links only
+    cache: 30m
+  - id: youtube_feeds
+    url: John Hammond, NetworkChuck, Marcus Hutchins and Hak5 channel feeds (see intel/news.py)
+    licence: titles and links only
+    cache: 30m
+
+# Static, used once to train the models.
+static:
+  - id: rba_logins
+    name: Login Data Set for Risk-Based Authentication (Wiefling et al., 2022)
+    url: https://zenodo.org/records/6782156
+    licence: CC BY 4.0
+    period: 2020-02-03 to 2021-02-28

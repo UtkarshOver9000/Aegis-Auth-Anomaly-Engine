@@ -154,3 +154,18 @@ def test_a_failed_feed_refresh_serves_the_last_good_copy(monkeypatch):
     monkeypatch.setattr(news.urllib.request, "urlopen", down)
     assert news._fetch("Blog", "https://example.org/feed")[0]["title"] == "Kept"
     assert news._fetch("Other", "https://example.org/never-worked") == []
+
+
+def test_sources_yaml_lists_every_raw_file_the_snapshot_reads():
+    import re
+    from pathlib import Path
+
+    import yaml
+
+    root = Path(__file__).resolve().parents[1]
+    feeds = yaml.safe_load((root / "sources.yaml").read_text(encoding="utf-8"))["feeds"]
+    required = {"id", "name", "url", "file", "licence", "auth", "cadence", "max_age", "parser", "description"}
+    for f in feeds:
+        assert required <= f.keys(), f["id"]
+    read = set(re.findall(r'raw / "([^"]+)"', (root / "src/ittravel/intel/snapshot.py").read_text(encoding="utf-8")))
+    assert read - {"fetched_at.txt", "fetched_at_threats.txt"} <= {f["file"] for f in feeds}
