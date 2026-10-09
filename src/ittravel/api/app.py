@@ -45,6 +45,7 @@ async def data_age_header(request, call_next):
         response.headers["X-Data-As-Of"] = service.meta()["fetched_at"]
     return response
 
+
 DASHBOARD_DIR = Path(__file__).resolve().parent.parent / "dashboard"
 if DASHBOARD_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(DASHBOARD_DIR)), name="static")
@@ -134,6 +135,15 @@ async def intel_flaws():
     return service.flaws_summary()
 
 
+@app.get("/v1/intel/flaws/priority", tags=["Intel"])
+async def intel_flaw_priority(vendors: str = Query("", max_length=300)):
+    """Exploited flaws ranked for patching (EPSS, ransomware use, vendor reach, recency).
+    `vendors` is a comma-separated filter, for example `Fortinet,Citrix,Microsoft`."""
+    picked = [v for v in vendors.split(",") if v.strip()]
+    return {"weights": service.PRIORITY_WEIGHTS, "vendors": picked, "flaws": service.prioritised_flaws(picked),
+            "as_of": service.meta()["fetched_at"]}
+
+
 @app.get("/v1/intel/countries", tags=["Intel"])
 async def intel_countries():
     """Per-country Tor exits, public DNS resolvers, hosting IP space and OONI censorship measurements."""
@@ -196,8 +206,11 @@ async def globe_pick():
 @app.get("/v1/intel/globe/places", tags=["Globe"])
 async def globe_places():
     """Per state, in pick-image order: name, country, type, malware servers, DNS servers, IPv4 addresses."""
-    return {"columns": ["name", "country", "type", "malware", "dns", "ipv4"], "rows": globe.places(),
-            "as_of": service.meta()["fetched_at"]}
+    return {
+        "columns": ["name", "country", "type", "malware", "dns", "ipv4"],
+        "rows": globe.places(),
+        "as_of": service.meta()["fetched_at"],
+    }
 
 
 @app.get("/v1/intel/globe/state/{index}", tags=["Globe"])

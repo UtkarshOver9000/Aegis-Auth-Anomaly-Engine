@@ -254,3 +254,12 @@ def test_epss_scores_join_the_exploited_flaws():
     top = f["most_likely_exploited"]
     assert top and all(0 <= r["epss"] <= 1 for r in top)
     assert [r["epss"] for r in top] == sorted((r["epss"] for r in top), reverse=True)
+
+
+def test_flaw_priority_is_explained_and_filterable():
+    res = client.get("/v1/intel/flaws/priority", params={"vendors": "Microsoft"}).json()
+    assert res["flaws"] and all("microsoft" in (r["vendor"] + r["product"]).lower() for r in res["flaws"])
+    scores = [r["priority"] for r in res["flaws"]]
+    assert scores == sorted(scores, reverse=True) and all(0 <= s <= 100 for s in scores)
+    top = res["flaws"][0]
+    assert round(sum(res["weights"][k] * v for k, v in top["priority_parts"].items()), 0) == round(top["priority"], 0)

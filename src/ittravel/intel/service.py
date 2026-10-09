@@ -300,3 +300,33 @@ def health(now: datetime | None = None) -> dict:
         )
     degraded = any(x["status"] in ("stale", "missing") for x in feeds)
     return {"status": "degraded" if degraded else "ok", "snapshot": meta()["fetched_at"], "feeds": feeds}
+
+
+# How much each signal counts towards a flaw's patch priority (0 to 100). Every flaw here is already being
+# exploited (CISA KEV); the score orders them by what is likely to hit next and how widely.
+PRIORITY_WEIGHTS = {"epss": 50, "ransomware": 20, "vendor_reach": 15, "recency": 15}
+
+
+def prioritised_flaws(vendors: list[str] | None = None, limit: int = 20) -> list[dict]:
+    """KEV flaws ranked by EPSS percentile, ransomware use, how often the vendor appears in KEV, and recency."""
+    import math
+
+    rows = _load("flaws.json")
+    per_vendor = Counter(r["vendor"] for r in rows)
+    top_vendor = max(per_vendor.values())
+    today = snapshot_date()
+    wanted = [v.lower() for v in vendors or [] if v.strip()]
+    out = []
+    for r in rows:
+        if wanted and not any(w in r["vendor"].lower() or w in r["product"].lower() for w in wanted):
+            continue
+        days = (today - date.fromisoformat(r["added"])).days
+        parts = {
+            "epss": r.get("epss_pct") or 0.0,
+            "ransomware": 1.0 if r["ransomware"] else 0.0,
+            "vendor_reach": math.log1p(per_vendor[r["vendor"]]) / math.log1p(top_vendor),
+            "recency": max(0.0, 1 - days / 365),
+        }
+        score = sum(PRIORITY_WEIGHTS[k] * v for k, v in parts.items())
+        out.append({**r, "priority": round(score, 1), "priority_parts": {k: round(v, 3) for k, v in parts.items()}})
+    return sorted(out, key=lambda r: -r["priority"])[:limit]
