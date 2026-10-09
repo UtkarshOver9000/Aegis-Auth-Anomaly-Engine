@@ -180,3 +180,8 @@ def overview(model_card: dict) -> dict:
         "countries_with_confirmed_blocking": sum(1 for v in c.values() if v["confirmed_blocks"] > 0),
         "as_of": meta()["fetched_at"],
     }
+
+
+def bad_ip(ip: str) -> dict | None:
+    """The abuse.ch report behind a malware-server IP, if it is in the snapshot."""
+    return _load("bad_ips.json").get(ip)

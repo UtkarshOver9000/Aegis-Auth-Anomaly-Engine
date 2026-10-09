@@ -15,7 +15,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .. import __version__
 from ..engine import get_engine
-from ..intel import globe, news, service
+from ..intel import globe, news, service, stix
 from ..intel.network import lookup, malware_ip, sample_ips, tor_exits
 from ..schema import APIKeyCreate, APIKeyResponse, DemoStory, EvaluationResult, LoginEvent
 from ..state import store
@@ -204,6 +204,17 @@ async def intel_ip(ip: str):
     """Who owns an IP address, and whether it is a Tor exit or a hosting / VPN network."""
     net = lookup(ip)
     return {**net.__dict__, "type": net.label}
+
+
+@app.get("/v1/intel/ip/{ip}/stix", tags=["Intel"])
+async def intel_ip_stix(ip: str):
+    """Everything Alibi knows about an IP as a STIX 2.1 bundle (observable, indicator, malware, sightings)."""
+    net = lookup(ip)
+    report = service.bad_ip(ip)
+    objects = stix.malware_server(ip, report) if report else [stix.ipv4(ip, net.asn)]
+    if net.asn and not report:
+        objects.append(stix.autonomous_system(net.asn, net.network))
+    return stix.bundle(objects)
 
 
 @app.get("/v1/intel/sample-ips", tags=["Intel"])

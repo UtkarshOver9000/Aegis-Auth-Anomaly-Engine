@@ -191,3 +191,27 @@ def test_globe_textures_bins_and_pick_map():
     rows = client.get("/v1/intel/globe/places").json()["rows"]
     r, g, _ = pick.getpixel((int((75.5 + 180) / 360 * 2048), int((90 - 19.2) / 180 * 1024)))  # inside Maharashtra
     assert rows[(r << 8 | g) - 1][0] == "Maharashtra"
+
+
+
+def test_stix_bundle_for_a_malware_server():
+    import re
+
+    from ittravel.intel import stix
+    from ittravel.intel.network import malware_ip
+
+    ip = malware_ip("IN")
+    bundle = client.get(f"/v1/intel/ip/{ip}/stix").json()
+    assert bundle["type"] == "bundle"
+    by_type = {}
+    for o in bundle["objects"]:
+        assert o["spec_version"] == "2.1" and re.fullmatch(r"[a-z0-9-]+--[0-9a-f-]{36}", o["id"])
+        assert o["type"] in stix.TYPES
+        if o["type"] not in ("ipv4-addr", "autonomous-system"):
+            assert o["created"].endswith("Z") and o["modified"].endswith("Z")
+        by_type.setdefault(o["type"], []).append(o)
+    (ind,) = by_type["indicator"]
+    assert ind["pattern"] == f"[ipv4-addr:value = '{ip}']" and 0 <= ind["confidence"] <= 100
+    assert by_type["ipv4-addr"][0]["id"] == stix.ipv4(ip)["id"]  # same IP, same id, every time
+    assert {r["relationship_type"] for r in by_type["relationship"]} >= {"based-on"}
+    assert by_type["sighting"][0]["sighting_of_ref"] == ind["id"]
