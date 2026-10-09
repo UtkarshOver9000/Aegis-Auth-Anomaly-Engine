@@ -8,7 +8,8 @@ daily data snapshot, and login-risk scoring with two models trained on the RBA d
 
 | Path | What it does |
 |---|---|
-| `api/app.py` | All HTTP routes: `/` (dashboard), `/v1/intel/*`, `/v1/demo/check`, `/v1/auth/evaluate`, `/v1/keys/generate`, `/v1/model`, `/v1/stats`, `/v1/health` |
+| `api/app.py` | The app: middleware (CORS, gzip, rate limits, `X-Data-As-Of`), static files, the dashboard page |
+| `api/routes/` | One router per area: `intel` (snapshot data, search, IP lookup, STIX), `globe` (textures, pick map, legends), `demo` (keyless story scoring, model metrics), `auth` (keyed evaluate, audit, stats, keys), `health` (per-feed status) |
 | `api/auth.py` | `X-API-Key` checks for the keyed routes (key from `ALIBI_API_KEY` only) |
 | `api/ratelimit.py` | Per-IP token-bucket limits on `/v1/*` |
 | `engine.py` | `RiskEngine`: builds the 19 live features, scores both models, maps percentiles to tiers, then applies the rule layer: malware IP → CRITICAL; criminal network, Tor, new hosting / VPN network, 5+ failed passwords, or > 900 km/h travel → at least HIGH |
@@ -52,7 +53,6 @@ Browser ──GET /──> dashboard ──fetch /v1/intel/*──> service.py �
 
 ## Known limits
 
-- A single `app.py` holds every route.
 - Login history is in memory only.
 - The snapshot ships inside the deploy bundle, not in shared storage.
 - The models are trained on 2020–2021 data.
