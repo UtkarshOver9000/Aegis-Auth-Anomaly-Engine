@@ -2,7 +2,7 @@
    Threat-type colours follow the Okabe-Ito palette, which stays distinguishable with colour blindness. */
 :root {
   --bg: #0e1116; --panel: #151a21; --panel-2: #1b2129; --raise: #222a33; --line: #2a323c; --line-2: #3a4450;
-  --ink: #e6edf3; --muted: #9aa5b1; --dim: #6e7a87; --blue: #4c90f0; --blue-soft: rgba(76, 144, 240, 0.14);
+  --ink: #e6edf3; --muted: #9aa5b1; --dim: #8b96a3; --blue: #4c90f0; --blue-soft: rgba(76, 144, 240, 0.14);
   --ok: #3fb950; --warn: #d29922; --orange: #f0883e; --risk: #f85149; --risk-soft: rgba(248, 81, 73, 0.14);
   --c2: #d55e00; --dl: #e69f00; --tor: #cc79a7; --drop: #f0e442; --cable: #56b4e9;
   --sans: "Plex Sans", "Segoe UI", system-ui, sans-serif; --mono: "Plex Mono", ui-monospace, Consolas, monospace;
