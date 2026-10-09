@@ -235,3 +235,13 @@ def test_search_finds_ips_cves_and_names():
     assert r["kind"] == "cve" and r["flaws"][0]["cve"] == flaw["cve"]
     r = client.get("/v1/intel/search", params={"q": "linkedin"}).json()
     assert r["kind"] == "text" and any("LinkedIn" in b["name"] for b in r["breaches"])
+
+
+def test_every_api_response_carries_the_snapshot_date():
+    stamp = service.meta()["fetched_at"]
+    for path in ("/v1/intel/overview", "/v1/intel/cables", "/v1/intel/globe/places", "/v1/intel/ip/8.8.8.8",
+                 "/v1/intel/globe/pick.png", "/v1/intel/states"):
+        res = client.get(path)
+        assert res.headers["x-data-as-of"] == stamp, path
+    for path in ("/v1/intel/overview", "/v1/intel/cables", "/v1/intel/ip/8.8.8.8", "/v1/intel/search?q=adobe"):
+        assert client.get(path).json()["as_of"] == stamp, path

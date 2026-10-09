@@ -36,6 +36,15 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "P
 app.add_middleware(GZipMiddleware, minimum_size=2048)
 app.add_middleware(RateLimitMiddleware)
 
+
+@app.middleware("http")
+async def data_age_header(request, call_next):
+    """Every API response says which snapshot it was built from, including images and files."""
+    response = await call_next(request)
+    if request.url.path.startswith("/v1/"):
+        response.headers["X-Data-As-Of"] = service.meta()["fetched_at"]
+    return response
+
 DASHBOARD_DIR = Path(__file__).resolve().parent.parent / "dashboard"
 if DASHBOARD_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(DASHBOARD_DIR)), name="static")
@@ -141,13 +150,13 @@ async def intel_threats():
 @app.get("/v1/intel/cables", tags=["Intel"])
 async def intel_cables():
     """Submarine internet cables and landing stations (TeleGeography, CC BY-NC-SA 3.0)."""
-    return service.cables()
+    return {**service.cables(), "as_of": service.meta()["fetched_at"]}
 
 
 @app.get("/v1/intel/search", tags=["Intel"])
 async def intel_search(q: str = Query(..., min_length=2, max_length=100)):
     """Search an IP address, a CVE id, or a company / product name across breaches and exploited flaws."""
-    return service.search(q)
+    return {**service.search(q), "as_of": service.meta()["fetched_at"]}
 
 
 @app.get("/v1/intel/freshness", tags=["Intel"])
@@ -187,7 +196,8 @@ async def globe_pick():
 @app.get("/v1/intel/globe/places", tags=["Globe"])
 async def globe_places():
     """Per state, in pick-image order: name, country, type, malware servers, DNS servers, IPv4 addresses."""
-    return {"columns": ["name", "country", "type", "malware", "dns", "ipv4"], "rows": globe.places()}
+    return {"columns": ["name", "country", "type", "malware", "dns", "ipv4"], "rows": globe.places(),
+            "as_of": service.meta()["fetched_at"]}
 
 
 @app.get("/v1/intel/globe/state/{index}", tags=["Globe"])
@@ -225,7 +235,7 @@ async def intel_news():
 async def intel_ip(ip: str):
     """Who owns an IP address, and whether it is a Tor exit or a hosting / VPN network."""
     net = lookup(ip)
-    return {**net.__dict__, "type": net.label}
+    return {**net.__dict__, "type": net.label, "as_of": service.meta()["fetched_at"]}
 
 
 @app.get("/v1/intel/ip/{ip}/stix", tags=["Intel"])
