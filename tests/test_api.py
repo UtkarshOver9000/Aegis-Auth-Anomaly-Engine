@@ -97,3 +97,11 @@ def test_demo_endpoint_is_rate_limited_per_ip():
     assert codes[:20] == [422] * 20 and codes[20] == 429
     other = client.post("/v1/demo/check", json={}, headers={"X-Forwarded-For": "198.51.100.78"})
     assert other.status_code == 422
+
+
+def test_security_headers():
+    page = client.get("/")
+    assert "script-src 'self'" in page.headers["content-security-policy"]
+    assert page.headers["x-frame-options"] == "DENY"
+    api = client.get("/v1/health")
+    assert api.headers["x-content-type-options"] == "nosniff" and "max-age" in api.headers["strict-transport-security"]

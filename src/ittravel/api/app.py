@@ -36,6 +36,31 @@ app.add_middleware(GZipMiddleware, minimum_size=2048)
 app.add_middleware(RateLimitMiddleware)
 
 
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+}
+# The dashboard loads only its own files, plus map tiles and YouTube thumbnails as images.
+PAGE_CSP = (
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data: blob: https://tile.openstreetmap.org https://i.ytimg.com; connect-src 'self'; "
+    "font-src 'self'; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+)
+
+
+@app.middleware("http")
+async def security_headers(request, call_next):
+    response = await call_next(request)
+    for name, value in SECURITY_HEADERS.items():
+        response.headers.setdefault(name, value)
+    if request.url.path == "/":
+        response.headers["Content-Security-Policy"] = PAGE_CSP
+    return response
+
+
 @app.middleware("http")
 async def data_age_header(request, call_next):
     """Every API response says which snapshot it was built from, including images and files."""
