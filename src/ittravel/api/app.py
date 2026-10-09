@@ -253,6 +253,7 @@ async def intel_sample_ips(country: str = Query(..., min_length=2, max_length=2)
     }
 
 
-@app.get("/v1/health", include_in_schema=False)
+@app.get("/v1/health", tags=["Health"])
 async def health_check():
-    return {"status": "ok"}
+    """Overall status plus every feed's last download, age and record count. "degraded" if any feed is stale."""
+    return service.health()

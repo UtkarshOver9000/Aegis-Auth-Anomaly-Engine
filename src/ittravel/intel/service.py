@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import json
 from collections import Counter
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from functools import cache
 from pathlib import Path
 
@@ -240,6 +240,54 @@ def search(q: str, limit: int = 10) -> dict:
     needle = q.lower()
     breaches = [b for b in _load("breaches.json") if needle in b["name"].lower() or needle in b["domain"].lower()]
     flaws = [f for f in _load("flaws.json") if needle in f["vendor"].lower() or needle in f["product"].lower()]
-    return {"kind": "text", "query": q,
-            "breaches": sorted(breaches, key=lambda b: -b["accounts"])[:limit], "breach_matches": len(breaches),
-            "flaws": flaws[:limit], "flaw_matches": len(flaws)}
+    return {
+        "kind": "text",
+        "query": q,
+        "breaches": sorted(breaches, key=lambda b: -b["accounts"])[:limit],
+        "breach_matches": len(breaches),
+        "flaws": flaws[:limit],
+        "flaw_matches": len(flaws),
+    }
+
+
+def _records(feed_id: str) -> int | None:
+    """How many records each feed contributed to the snapshot."""
+    m, threats = meta(), _load("threats.json")
+    by_source = dict(threats["by_source"])
+    return {
+        "hibp_breaches": m["breaches"]["breaches"],
+        "cisa_kev": m["flaws"]["flaws"],
+        "iptoasn": m["network"]["ranges"],
+        "public_dns": m["countries"]["dns_resolvers"],
+        "ooni": m["countries"]["ooni_measurements"],
+        "feodo": by_source.get("Feodo Tracker", 0),
+        "urlhaus": threats["urlhaus_urls_30d"],
+        "threatfox": threats["threatfox_iocs_48h"],
+        "spamhaus_drop": threats["spamhaus_drop_ranges"],
+        "spamhaus_asndrop": threats["spamhaus_asn_drop"],
+        "ransomware_live": threats["ransomware"]["victims"],
+        "cables": m["cables"]["cables"],
+        "cable_landings": m["cables"]["landing_points"],
+        "dbip_city": m.get("heat", {}).get("malware_located"),
+        "natural_earth_admin1": m["states"]["states_provinces"],
+        "tor_onionoo": m["countries"]["tor_exit_relays"],
+    }.get(feed_id)
+
+
+def health(now: datetime | None = None) -> dict:
+    """Per-feed status: last successful download, age, record count, and whether it is past its max age."""
+    from datetime import UTC
+
+    now = now or datetime.now(UTC)
+    units = {"h": 3600, "d": 86400}
+    feeds = []
+    for f in meta().get("feeds", []):
+        age = (now - datetime.fromisoformat(f["updated"])).total_seconds() if f["updated"] else None
+        limit = int(f["max_age"][:-1]) * units[f["max_age"][-1]]
+        status = "missing" if not f["available"] else ("stale" if age is None or age > limit else "ok")
+        if status != "ok" and f["optional"]:
+            status = "optional, " + status
+        feeds.append({"id": f["id"], "status": status, "last_success": f["updated"],
+                      "age_hours": round(age / 3600, 1) if age is not None else None, "records": _records(f["id"])})
+    degraded = any(x["status"] in ("stale", "missing") for x in feeds)
+    return {"status": "degraded" if degraded else "ok", "snapshot": meta()["fetched_at"], "feeds": feeds}

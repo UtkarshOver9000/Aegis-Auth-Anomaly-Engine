@@ -17,7 +17,10 @@ EVENT = {
 
 
 def test_health_and_dashboard():
-    assert client.get("/v1/health").json() == {"status": "ok"}
+    health = client.get("/v1/health").json()
+    assert health["status"] in ("ok", "degraded") and health["snapshot"]
+    for feed in health["feeds"]:
+        assert {"id", "status", "last_success", "age_hours", "records"} <= feed.keys()
     assert "Alibi" in client.get("/").text
 
 
