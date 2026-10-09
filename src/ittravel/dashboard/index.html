@@ -7,11 +7,7 @@
 <meta name="description" content="Alibi tracks data breaches at major companies and how they happened, live malware and botnet servers, criminal networks, ransomware, exploited software flaws and suspicious sign-ins, on one live 3D globe." />
 <link rel="stylesheet" href="/static/vendor/fonts/fonts.css">
 <link rel="stylesheet" href="/static/vendor/leaflet.css">
-<script src="/static/vendor/leaflet.js"></script>
-<script src="/static/vendor/d3.min.js"></script>
-<script src="/static/vendor/topojson-client.min.js"></script>
-<script src="/static/vendor/globe.gl.min.js"></script>
-<link rel="stylesheet" href="/static/dashboard.css?v=6">
+<link rel="stylesheet" href="/static/dashboard.css?v=7">
 </head>
 <body>
 <header class="top">
@@ -57,9 +53,9 @@
 
   <section id="tab-globe" class="tab" hidden>
     <h2>The live globe</h2>
-    <p class="muted">The real Earth with every country and state outlined. Each state is coloured by the number
-      you pick: blue is low, red is high, uncoloured means nothing recorded. Hover a state for its numbers, click it for
-      the details. Data refreshes daily from public sources.</p>
+    <p class="muted">The real Earth with every country and state outlined. Each state is coloured by the number you
+      pick, from pale yellow (low) to dark red (high); grey means no data. Malware and DNS servers are counted per
+      million IP addresses in each state. Hover a state for its numbers, click it for the details.</p>
     <div class="chips" id="metric-chips">
       <button data-metric="malicious_ips" class="on">Malware servers now</button>
       <button data-metric="ransomware_victims">Ransomware victims this week</button>
@@ -72,7 +68,7 @@
     <div class="globe-layout">
       <div class="card globe-card"><div id="globe"></div><div id="globe-tip" class="globe-tip floating" hidden></div>
         <div class="toggle"><label><input type="checkbox" id="show-cables"> Undersea cables</label><button class="link" id="reset-view">Reset view</button></div>
-        <div class="legend"><span>low</span><i id="legend-bar"></i><span id="legend-max"></span></div>
+        <div class="legend" id="legend"></div>
       </div>
       <aside class="globe-side">
         <div class="card" id="country-panel"><h3>Pick a country</h3><p class="muted">Click a country on the globe.</p></div>
@@ -219,6 +215,6 @@
 <footer class="wrap foot">
   Alibi is a portfolio project built on public data. <a href="/docs">API</a> · <a href="https://github.com/UtkarshOver9000/alibi">Source code</a>
 </footer>
-<script src="/static/dashboard.js?v=6"></script>
+<script src="/static/dashboard.js?v=7"></script>
 </body>
 </html>

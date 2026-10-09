@@ -54,6 +54,24 @@ function show(hash) {
 }
 window.addEventListener("hashchange", () => show(location.hash.slice(1)));
 
+// ---------- libraries, loaded only when a tab needs them ----------
+const LIBS = {
+  d3: "/static/vendor/d3.min.js",
+  topojson: "/static/vendor/topojson-client.min.js",
+  globe: "/static/vendor/globe.gl.min.js", // includes three.js, about 1.9 MB
+  leaflet: "/static/vendor/leaflet.js",
+};
+const libLoads = {};
+function need(...names) {
+  return Promise.all(names.map((n) => (libLoads[n] ??= new Promise((ok, fail) => {
+    const tag = document.createElement("script");
+    tag.src = LIBS[n];
+    tag.onload = ok;
+    tag.onerror = () => fail(new Error(`Could not load ${n}`));
+    document.head.append(tag);
+  }))));
+}
+
 // ---------- shared country data ----------
 const WORLD_URL = "/static/vendor/countries-110m.json"; // world-atlas 2.0.2, self-hosted
 let worldPromise;
@@ -66,7 +84,7 @@ function center(f) {
 }
 
 function world() {
-  worldPromise ??= Promise.all([fetch(WORLD_URL).then((r) => r.json()), api("/v1/intel/countries")]).then(([topo, data]) => {
+  worldPromise ??= Promise.all([fetch(WORLD_URL).then((r) => r.json()), api("/v1/intel/countries"), need("d3", "topojson")]).then(([topo, data]) => {
     const byNumeric = {};
     for (const [a2, c] of Object.entries(data.countries)) byNumeric[+c.numeric] = { a2, ...c };
     const features = topojson.feature(topo, topo.objects.countries).features.filter((f) => f.id !== "010"); // no Antarctica
@@ -155,90 +173,56 @@ function sizeGlobe() {
 }
 
 const IMG = "/static/vendor/img/"; // NASA Blue Marble imagery (public domain), self-hosted
-// low → high: blue, green, yellow, orange, red
-const HEAT = d3.interpolateRgbBasis(["#2b83ba", "#66c2a5", "#ffffbf", "#fdae61", "#d7191c"]);
-const HEAT_CSS = "linear-gradient(90deg, #2b83ba, #66c2a5, #ffffbf, #fdae61, #d7191c)";
-const withAlpha = (color, a) => { const c = d3.color(color); c.opacity = a; return c.formatRgb(); };
-// Everything (state colours, state and country borders) is painted into ONE globe texture: no extra 3D objects, no lag.
-const TW = 4096, TH = 2048;
-let states = [], heat = {}, cablePaths = [], landings = [], tex, baseImg, borders, selState = null;
+// Phones and tablets get 2048-pixel textures; desktops keep the full 4096.
+const SMALL_SCREEN = matchMedia("(pointer: coarse)").matches || innerWidth < 900;
+const TEX_W = SMALL_SCREEN ? 2048 : 4096;
+const REDUCED_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let places = [], pickData = null, pickW = 0, pickH = 0, heatPromise, cablesLoaded = null, selState = null, snapshotAt = "";
 
-const toXY = (lng, lat) => [((lng + 180) / 360) * TW, ((90 - lat) / 180) * TH];
+// The server paints each metric's states into the Earth texture (see intel/globe.py), so the browser
+// downloads one image instead of drawing 4,596 states itself.
+const texUrl = (m) => `/v1/intel/globe/${m}.jpg?w=${TEX_W}&v=${encodeURIComponent(snapshotAt)}`;
 
-function traceRing(ctx, ring) {
-  const crosses = ring.some((p, i) => i && Math.abs(p[1] - ring[i - 1][1]) > 180); // straddles the date line
-  for (const shift of crosses ? [0, -TW] : [0]) {
-    ring.forEach(([lat, lng], i) => {
-      const [x, y] = toXY(crosses && lng < 0 ? lng + 360 : lng, lat);
-      i ? ctx.lineTo(x + shift, y) : ctx.moveTo(x + shift, y);
-    });
-    ctx.closePath();
-  }
+async function loadPickMap() {
+  const [img, rows] = await Promise.all([
+    new Promise((ok, fail) => { const i = new Image(); i.onload = () => ok(i); i.onerror = fail; i.src = "/v1/intel/globe/pick.png"; }),
+    api("/v1/intel/globe/places"),
+  ]);
+  const c = document.createElement("canvas");
+  c.width = pickW = img.width;
+  c.height = pickH = img.height;
+  const ctx = c.getContext("2d", { willReadFrequently: true });
+  ctx.drawImage(img, 0, 0);
+  pickData = ctx.getImageData(0, 0, pickW, pickH).data;
+  places = rows.rows.map(([n, c2, t, m, d, ip], i) => ({ i, n, c: c2, t, m, d, ip }));
 }
 
-function stateValue(s) {
-  const m = METRICS[metric];
-  return m.state ? s[m.state] || 0 : globe.__data.countries[s.c]?.[metric] || 0;
+function stateAt(at) {
+  if (!at || !pickData) return null;
+  const x = Math.min(pickW - 1, Math.floor(((at.lng + 180) / 360) * pickW));
+  const y = Math.min(pickH - 1, Math.floor(((90 - at.lat) / 180) * pickH));
+  const k = (y * pickW + x) * 4;
+  const index = ((pickData[k] << 8) | pickData[k + 1]) - 1;
+  return index >= 0 ? places[index] : null;
 }
 
-function paintTexture() {
-  const mat = globe.globeMaterial();
-  if (!mat.map || !baseImg?.complete) return setTimeout(paintTexture, 300); // wait for the Earth image
-  const ctx = tex.getContext("2d");
-  ctx.drawImage(baseImg, 0, 0, TW, TH);
-  const vals = states.map(stateValue);
-  const top = Math.log1p(Math.max(...vals, 1));
-  states.forEach((s, i) => {
-    if (!vals[i]) return; // no recorded activity: leave the real Earth showing
-    ctx.beginPath();
-    s.r.forEach((r) => traceRing(ctx, r));
-    ctx.fillStyle = withAlpha(HEAT(Math.log1p(vals[i]) / top), 0.62);
-    ctx.fill("evenodd");
-  });
-  ctx.beginPath();
-  states.forEach((s) => s.r.forEach((r) => traceRing(ctx, r)));
-  ctx.strokeStyle = "rgba(255,255,255,0.45)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
-  const path = d3.geoPath(d3.geoEquirectangular().scale(TW / (2 * Math.PI)).translate([TW / 2, TH / 2]), ctx);
-  ctx.beginPath();
-  path(borders);
-  ctx.strokeStyle = "rgba(255,255,255,0.95)";
-  ctx.lineWidth = 2.2;
-  ctx.stroke();
-  if (selState) {
-    ctx.beginPath();
-    selState.r.forEach((r) => traceRing(ctx, r));
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 5;
-    ctx.stroke();
-  }
-  mat.map.image = tex;
-  mat.map.needsUpdate = true;
-}
+const perMillion = (count, ip) => (ip >= 100000 ? `${(count / ip * 1e6).toFixed(2)} per million addresses` : "too few addresses to rate");
 
 loaders.globe = async () => {
-  const [{ features, data, centers, topo }, cab, st, ht] = await Promise.all([
-    world(), api("/v1/intel/cables"), api("/v1/intel/states"), api("/v1/intel/heat")]);
-  if (!data.totals.tor_exit_relays) $('[data-metric="tor_exits"]').remove(); // Tor list unreachable when the snapshot was built
-  states = st;
-  heat = ht;
-  borders = topojson.mesh(topo, topo.objects.countries);
-  cablePaths = cab.cables.flatMap((c) => c.paths.map((p) => ({ name: c.name, color: c.color, coords: p })));
-  landings = cab.landings;
-  tex = document.createElement("canvas");
-  tex.width = TW;
-  tex.height = TH;
-  baseImg = new Image();
-  baseImg.crossOrigin = "anonymous";
-  baseImg.src = `${IMG}earth-blue-marble.jpg`;
   const el = $("#globe");
-  globe = Globe({ animateIn: true, rendererConfig: { antialias: true, powerPreference: "high-performance" } })(el)
-    .globeImageUrl(`${IMG}earth-blue-marble.jpg`).bumpImageUrl(`${IMG}earth-topology.png`)
-    .backgroundImageUrl(`${IMG}night-sky.png`)
+  // poster: the flat map of the same data while three.js loads
+  el.innerHTML = `<div class="globe-poster"><img alt="" src="${texUrl(metric)}"><span>Loading the 3D globe…</span></div>`;
+  const [{ features, data, centers }] = await Promise.all([world(), need("globe"), loadPickMap()]);
+  snapshotAt = data.as_of;
+  if (!data.totals.tor_exit_relays) $('[data-metric="tor_exits"]').remove(); // Tor list unreachable when the snapshot was built
+  globe = Globe({ animateIn: !REDUCED_MOTION, rendererConfig: { antialias: !SMALL_SCREEN, powerPreference: "high-performance" } })(el)
+    .globeImageUrl(texUrl(metric))
     .showAtmosphere(true).atmosphereColor("#9ec9ff").atmosphereAltitude(0.16)
-    .onGlobeReady(() => paintTexture())
+    .onGlobeReady(() => $(".globe-poster")?.remove())
     .onGlobeClick((at) => pickAt(features, at))
+    .polygonsData([]).polygonCapColor(() => "rgba(255,255,255,0.18)").polygonSideColor(() => "rgba(0,0,0,0)")
+    .polygonStrokeColor(() => "#ffffff").polygonAltitude(0.006)
+    .onPolygonClick((_p, _e, at) => pickAt(features, at))
     .pathPoints("coords").pathPointLat((p) => p[0]).pathPointLng((p) => p[1]).pathPointAlt(0.004)
     .pathColor((p) => p.color).pathDashLength(0.08).pathDashGap(0.01).pathDashAnimateTime(16000).pathTransitionDuration(0)
     .pathLabel((p) => `<div class="globe-tip">Undersea cable: ${esc(p.name)}</div>`)
@@ -248,18 +232,21 @@ loaders.globe = async () => {
     .arcAltitudeAutoScale(0.45).arcLabel((a) => `<div class="globe-tip">${esc(a.label)}</div>`)
     .labelsData([]).labelLat("lat").labelLng("lng").labelText("text").labelSize(1.1).labelDotRadius(0.45)
     .labelColor(() => "#ffffff").labelResolution(2);
+  if (!SMALL_SCREEN) globe.bumpImageUrl(`${IMG}earth-topology.png`).backgroundImageUrl(`${IMG}night-sky.png`);
   globe.renderer().setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-  globe.pointOfView({ lat: 22, lng: 40, altitude: 2 });
-  Object.assign(globe.controls(), { autoRotate: true, autoRotateSpeed: 0.35, minDistance: 112, maxDistance: 520 });
+  globe.pointOfView({ lat: 22, lng: 40, altitude: SMALL_SCREEN ? 2.4 : 2 });
+  Object.assign(globe.controls(), { autoRotate: !REDUCED_MOTION && !SMALL_SCREEN, autoRotateSpeed: 0.35, minDistance: 112, maxDistance: 520 });
   $("#reset-view").addEventListener("click", () => globe.pointOfView({ lat: 22, lng: 40, altitude: 2 }, 800));
   el.addEventListener("pointerdown", () => (globe.controls().autoRotate = false), { once: true });
   sizeGlobe();
   window.addEventListener("resize", sizeGlobe);
+  // stop drawing frames while the globe is scrolled out of view
+  new IntersectionObserver(([e]) => (e.isIntersecting ? globe.resumeAnimation() : globe.pauseAnimation())).observe(el);
   globe.__centers = centers;
   globe.__data = data;
   globe.__features = features;
 
-  // hover: which state is under the mouse (looked up on the 2D data, not with 3D objects)
+  // hover: which state is under the mouse, read from the pick image (no 3D objects, no lag)
   const tip = $("#globe-tip");
   let frame = 0;
   el.addEventListener("mousemove", (e) => {
@@ -267,8 +254,7 @@ loaders.globe = async () => {
     frame = requestAnimationFrame(() => {
       frame = 0;
       const box = el.getBoundingClientRect();
-      const at = globe.toGlobeCoords(e.clientX - box.left, e.clientY - box.top);
-      const s = at && stateAt(at);
+      const s = stateAt(globe.toGlobeCoords(e.clientX - box.left, e.clientY - box.top));
       if (!s) return void (tip.hidden = true);
       tip.hidden = false;
       tip.style.left = `${Math.min(e.clientX - box.left + 14, box.width - 260)}px`;
@@ -284,9 +270,12 @@ loaders.globe = async () => {
     paint();
     if (selected) selectCountry(selected, globe.__lastAt);
   }));
-  $("#show-cables").addEventListener("change", () => {
+  $("#show-cables").addEventListener("change", async () => {
     const on = $("#show-cables").checked;
-    globe.pathsData(on ? cablePaths : []).pointsData(on ? landings : []);
+    if (on) cablesLoaded ??= api("/v1/intel/cables"); // the 733 cable paths load only when asked for
+    const cab = on ? await cablesLoaded : null;
+    globe.pathsData(on ? cab.cables.flatMap((c) => c.paths.map((p) => ({ name: c.name, color: c.color, coords: p }))) : [])
+      .pointsData(on ? cab.landings : []);
   });
   $$("[data-journey]").forEach((b) => b.addEventListener("click", () => {
     journey = b.dataset.journey.split(",");
@@ -297,20 +286,6 @@ loaders.globe = async () => {
   paint();
 };
 
-function inRing(lat, lng, ring) {
-  let inside = false;
-  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-    const [yi, xi] = ring[i], [yj, xj] = ring[j];
-    if ((yi > lat) !== (yj > lat) && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside;
-  }
-  return inside;
-}
-
-function stateAt(at) {
-  return at && states.find((s) => at.lat >= s.b[0] && at.lat <= s.b[2] && at.lng >= s.b[1] && at.lng <= s.b[3]
-    && s.r.some((ring) => inRing(at.lat, at.lng, ring)));
-}
-
 function pickAt(features, at) {
   const f = at && features.find((x) => d3.geoContains(x, [at.lng, at.lat]));
   if (f) selectCountry(f, at);
@@ -319,30 +294,35 @@ function pickAt(features, at) {
 function stateTip(s) {
   const c = globe.__data.countries[s.c];
   const m = METRICS[metric];
+  const rate = m.state ? `<br>${perMillion(m.state === "m" ? s.m : s.d, s.ip)}` : "";
   return `<b>${esc(s.n)}</b> <span class="muted">${esc(s.t)}${c ? `, ${esc(c.name)}` : ""}</span>
-    <br>${fmt(s.m)} malware servers · ${fmt(s.d)} public DNS servers here` +
-    (c && !m.state ? `<br>${esc(c.name)}: ${fmt(c[metric])} ${esc(m.unit)}` : "");
+    <br>${fmt(s.m)} malware servers · ${fmt(s.d)} public DNS servers here${rate}` +
+    (c && !m.state ? `<br>${esc(c.name)} (country-level data): ${fmt(c[metric])} ${esc(m.unit)}` : "");
 }
 
-function paint() {
+async function paint() {
   const data = globe.__data;
   const m = METRICS[metric];
-  paintTexture();
-  const rows = m.state
-    ? states.filter((s) => s[m.state] > 0).sort((a, b) => b[m.state] - a[m.state]).slice(0, 10)
-      .map((s) => [`${s.n}, ${data.countries[s.c]?.name || s.c}`, s[m.state]])
-    : Object.values(data.countries).filter((c) => c[metric] > 0).sort((a, b) => b[metric] - a[metric]).slice(0, 10)
-      .map((c) => [c.name, c[metric]]);
-  $("#legend-bar").style.background = HEAT_CSS;
-  $("#legend-max").textContent = m.state ? "high, per state (log scale)" : "high, per country (log scale)";
-  $("#top-title").textContent = `Top 10 ${m.state ? "states and provinces" : "countries"}: ${m.title.toLowerCase()}`;
-  $("#top-list").innerHTML = rows.map(([n, v]) => `<li><span>${esc(n)}</span><b>${fmt(v)}</b></li>`).join("");
+  globe.globeImageUrl(texUrl(metric));
+  const lg = await api(`/v1/intel/globe/${metric}/legend`);
+  $("#legend").innerHTML = `<b>${esc(lg.unit)}</b>${lg.level === "country" ? " · country-level" : ""}<div class="bins">` +
+    [...lg.bins, lg.no_data].map((b) => `<span><i style="background:${b.color}"></i>${esc(b.label)}</span>`).join("") + "</div>";
+  $("#top-title").textContent = `Top 10 ${lg.level === "state" ? "states and provinces" : "countries"}: ${m.title.toLowerCase()}`;
+  $("#top-list").innerHTML = lg.top.map((t) => `<li><span>${esc(t.name)}</span><b>${fmt(t.value)}${
+    t.count !== undefined ? ` <span class="muted">(${fmt(t.count)})</span>` : ""}</b></li>`).join("");
   $("#metric-explain").textContent = m.explain;
   const s = data.sources[m.source];
-  const located = m.state
-    ? ` All ${fmt(heat[`${m.state === "m" ? "malware" : "dns"}_located`])} servers are placed in their state by IP geolocation (IP Geolocation by <a href="https://db-ip.com" target="_blank" rel="noopener">DB-IP</a>, CC BY 4.0), accurate to roughly city level.`
+  const how = lg.level === "state"
+    ? ` Each server is placed in its state by IP geolocation (IP Geolocation by <a href="https://db-ip.com" target="_blank" rel="noopener">DB-IP</a>, CC BY 4.0), then divided by the IPv4 addresses DB-IP places in that state. States with fewer than ${fmt(lg.min_addresses)} addresses are grey.`
     : " This number is only known per country, so every state in a country shares its colour.";
-  $("#map-sources").innerHTML = s ? `Source: <a href="${s.url}" target="_blank" rel="noopener">${esc(s.name)}</a> (${esc(s.license)}).${located} Data as of ${day(data.as_of)}; refreshed daily.` : "";
+  $("#map-sources").innerHTML = s ? `Source: <a href="${s.url}" target="_blank" rel="noopener">${esc(s.name)}</a> (${esc(s.license)}).${how} Colours are ColorBrewer YlOrRd (colour-blind safe). Data as of ${day(lg.as_of)}.` : "";
+}
+
+async function highlightState(s) {
+  if (!s) return globe.polygonsData([]);
+  const { rings } = await api(`/v1/intel/globe/state/${s.i}`);
+  globe.polygonsData([{ type: "Feature", properties: {}, geometry: { type: "MultiPolygon",
+    coordinates: rings.map((r) => [r.map(([lat, lng]) => [lng, lat])]) } }]);
 }
 
 async function selectCountry(f, at) {
@@ -352,7 +332,7 @@ async function selectCountry(f, at) {
   globe.__lastAt = at;
   const st = stateAt(at);
   selState = st && st.c === c.a2 ? st : null;
-  paintTexture();
+  highlightState(selState);
   const [lng, lat] = globe.__centers[c.a2];
   globe.controls().autoRotate = false;
   globe.pointOfView(at ? { lat: at.lat, lng: at.lng, altitude: 1.2 } : { lat, lng, altitude: 1.5 }, 900);
@@ -367,12 +347,14 @@ async function selectCountry(f, at) {
   if (globe.__data.totals.tor_exit_relays) facts.push(["Tor exits", fmt(c.tor_exits)]);
   const key = METRICS[metric].state === "d" ? "d" : "m";
   const label = key === "d" ? "public DNS servers" : "malware servers";
-  const topStates = states.filter((s) => s.c === c.a2 && s[key] > 0).sort((a, b) => b[key] - a[key]).slice(0, 6);
-  const layer = key === "d" ? "dns" : "malware";
-  const spots = heat.places?.[c.a2]?.[layer] || [];
+  const topStates = places.filter((s) => s.c === c.a2 && s[key] > 0).sort((a, b) => b[key] - a[key]).slice(0, 6);
+  heatPromise ??= api("/v1/intel/heat"); // city lists load only when a country is opened
+  const spots = (await heatPromise).places?.[c.a2]?.[key === "d" ? "dns" : "malware"] || [];
   $("#country-panel").innerHTML = `${selState ? `<div class="place"><b>${esc(selState.t)}: ${esc(selState.n)}</b><br>
-      ${fmt(selState.m)} malware servers · ${fmt(selState.d)} public DNS servers located here</div>` : ""}
+      ${fmt(selState.m)} malware servers · ${fmt(selState.d)} public DNS servers located here
+      <br><span class="muted">${perMillion(selState[key], selState.ip)} (${label})</span></div>` : ""}
     <h3>${esc(c.name)}</h3>
+    <p class="fineprint">The boxes below are country-level totals.</p>
     <div class="facts">${facts.map(([k, v]) => `<div><b>${k}</b>${v}</div>`).join("")}</div>
     ${topStates.length ? `<p class="fineprint"><b>States with the most ${label}:</b> ${topStates.map((s) => `${esc(s.n)} (${fmt(s[key])})`).join(" · ")}</p>` : ""}
     ${spots.length ? `<p class="fineprint"><b>Top cities:</b> ${spots.slice(0, 6).map(([city, n]) => `${esc(city)} (${fmt(n)})`).join(" · ")}</p>` : ""}
@@ -586,7 +568,8 @@ const ensureCheck = () => (checkReady ??= setupCheck());
 loaders.check = ensureCheck;
 
 async function setupCheck() {
-  const names = (await world()).data.countries;
+  const [{ data }] = await Promise.all([world(), need("leaflet")]);
+  const names = data.countries;
   const opts = Object.keys(CITIES)
     .sort((a, b) => names[a].name.localeCompare(names[b].name))
     .map((cc) => `<option value="${cc}">${esc(names[cc].name)} (${CITIES[cc][0]})</option>`).join("");
