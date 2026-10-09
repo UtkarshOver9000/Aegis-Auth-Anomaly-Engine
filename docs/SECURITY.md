@@ -33,9 +33,16 @@ Login events sent to the demo are kept only in that server instance's memory (th
 per user and the last 200 HIGH/CRITICAL results) and are lost when the instance stops.
 Do not send real user data to the public demo.
 
-## Reporting a problem
+## Reporting a vulnerability
 
-Open a GitHub issue using the bug template; don't include real credentials or personal data.
+Please report security issues privately through GitHub's "Report a vulnerability" form
+(https://github.com/UtkarshOver9000/alibi/security/advisories/new), not in a public issue. Include the steps
+to reproduce and what an attacker could do. You can expect a first reply within 7 days and a fix or a plan
+within 30 days. Good-faith research that avoids privacy violations, data destruction and service disruption
+is welcome; please give a reasonable time to fix before disclosing. The same contact is published at
+`/.well-known/security.txt` (RFC 9116).
+
+For ordinary bugs, open an issue with the bug template; don't include real credentials or personal data.
 
 ## Secret scan of the git history (9 October 2026)
 

@@ -9,7 +9,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
 from .. import __version__
@@ -81,6 +81,20 @@ async def data_age_header(request, call_next):
 DASHBOARD_DIR = Path(__file__).resolve().parent.parent / "dashboard"
 if DASHBOARD_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(DASHBOARD_DIR)), name="static")
+
+
+SECURITY_TXT = """Contact: https://github.com/UtkarshOver9000/alibi/security/advisories/new
+Expires: 2027-10-01T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://impossible-travel-auth-anomaly-engi.vercel.app/.well-known/security.txt
+Policy: https://github.com/UtkarshOver9000/alibi/blob/main/docs/SECURITY.md#reporting-a-vulnerability
+"""
+
+
+@app.get("/.well-known/security.txt", include_in_schema=False)
+async def security_txt():
+    """RFC 9116: where to report a vulnerability."""
+    return PlainTextResponse(SECURITY_TXT)
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)

@@ -126,3 +126,8 @@ def test_cors_allows_only_known_headers():
         },
     )
     assert bad.status_code == 400
+
+
+def test_security_txt():
+    txt = client.get("/.well-known/security.txt").text
+    assert txt.startswith("Contact: https://") and "Expires: 2027-" in txt
