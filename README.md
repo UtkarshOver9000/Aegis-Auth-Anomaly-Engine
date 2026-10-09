@@ -24,8 +24,8 @@ Numbers from the snapshot of **9 October 2026** (the live app shows the current 
 | Module | Today |
 |---|---|
 | Breaches | 1,024 breaches, 16.29 billion accounts; 104 breaches and 479.6 million accounts in the last 12 months |
-| Attacks | 8,907 malware and botnet servers; 6,754 threat indicators in 48 hours; 431 criminal networks; 214 ransomware victims (2 October 2026 to 9 October 2026) |
-| Exploited flaws | 1,739 flaws; 40 added in the last 30 days; 361 used by ransomware |
+| Attacks | 8,905 malware and botnet servers; 6,728 threat indicators in 48 hours; 431 criminal networks; 215 ransomware victims (2 October 2026 to 9 October 2026) |
+| Exploited flaws | 1,739 flaws; 40 added in the last 30 days; 361 used by ransomware; highest exploit chance CVE-2021-26086 at 100.0% |
 | Live globe | 4,596 states and provinces, 733 undersea cables, websites confirmed blocked in 67 countries |
 
 **A finding worth knowing:** only 11% of the malware servers sit on hosting or VPN networks, about the same as those networks' 11% share of all addresses; 49% are home routers, cameras and other devices hijacked by botnets such as Mozi and Mirai. Blocking data centers alone misses most of them.

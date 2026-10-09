@@ -1,17 +1,17 @@
 {
- "malicious_ips": 8907,
+ "malicious_ips": 8905,
  "malicious_ips_on_hosting": 982,
- "hosting_share_of_malicious_ips": 0.1106,
+ "hosting_share_of_malicious_ips": 0.1107,
  "hosting_share_of_internet": 0.1092,
  "iot_botnet_ips": 4402,
  "by_source": [
   [
    "URLhaus",
-   6490
+   6494
   ],
   [
    "ThreatFox",
-   2412
+   2406
   ],
   [
    "Feodo Tracker",
@@ -21,11 +21,11 @@
  "what": [
   [
    "Malware download site",
-   6493
+   6497
   ],
   [
    "Botnet control server",
-   2414
+   2408
   ]
  ],
  "top_malware": [
@@ -35,7 +35,7 @@
   ],
   [
    "unnamed",
-   1718
+   1722
   ],
   [
    "mirai",
@@ -94,7 +94,7 @@
   {
    "asn": 4837,
    "network": "CHINA169-BACKBONE CHINA UNICOM China169 Backbone",
-   "count": 3667,
+   "count": 3670,
    "hosting": false,
    "criminal_network": false
   },
@@ -200,11 +200,11 @@
  "top_countries": [
   [
    "CN",
-   4850
+   4853
   ],
   [
    "US",
-   1022
+   1008
   ],
   [
    "IN",
@@ -212,7 +212,7 @@
   ],
   [
    "HK",
-   201
+   200
   ],
   [
    "ZA",
@@ -259,15 +259,15 @@
    69
   ]
  ],
- "threatfox_iocs_48h": 6754,
+ "threatfox_iocs_48h": 6728,
  "threatfox_types": [
   [
    "Botnet control server",
-   4275
+   4264
   ],
   [
    "Malware download site",
-   1771
+   1756
   ],
   [
    "Malware file",
@@ -285,7 +285,7 @@
   ],
   [
    "Unknown Loader",
-   742
+   717
   ],
   [
    "PureRAT",
@@ -293,11 +293,11 @@
   ],
   [
    "ClearFake",
-   414
+   425
   ],
   [
    "Unknown malware",
-   396
+   399
   ],
   [
    "AsyncRAT",
@@ -321,7 +321,7 @@
   ],
   [
    "Vidar",
-   199
+   194
   ],
   [
    "Remcos",
@@ -340,8 +340,8 @@
    98
   ]
  ],
- "urlhaus_urls_30d": 33013,
- "urlhaus_online": 16812,
+ "urlhaus_urls_30d": 33021,
+ "urlhaus_online": 16806,
  "spamhaus_drop_ranges": 1684,
  "spamhaus_drop_addresses": 14901248,
  "spamhaus_asn_drop": 431,
@@ -388,7 +388,7 @@
   ]
  ],
  "ransomware": {
-  "victims": 214,
+  "victims": 215,
   "from": "2026-10-02",
   "to": "2026-10-09",
   "by_day": [
@@ -422,7 +422,7 @@
    ],
    [
     "2026-10-09",
-    35
+    36
    ]
   ],
   "by_group": [
