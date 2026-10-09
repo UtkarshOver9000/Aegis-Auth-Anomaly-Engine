@@ -11,7 +11,7 @@ from uuid import uuid4
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
 from .. import __version__
@@ -62,6 +62,16 @@ PAGE_CSP = (
 
 
 REQUEST_ID = re.compile(r"[A-Za-z0-9-]{8,64}")
+
+
+MAX_BODY = 256 * 1024  # a 30-event demo story is about 12 KB
+
+
+@app.middleware("http")
+async def body_limit(request, call_next):
+    if int(request.headers.get("content-length") or 0) > MAX_BODY:
+        return JSONResponse({"detail": "Request body too large"}, status_code=413)
+    return await call_next(request)
 
 
 @app.middleware("http")

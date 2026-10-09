@@ -144,3 +144,13 @@ def test_request_ids_are_echoed_or_made():
     )
     made = client.get("/v1/health", headers={"X-Request-ID": "bad id!"}).headers["x-request-id"]
     assert len(made) == 32 and made != "bad id!"
+
+
+def test_inputs_are_validated_and_bodies_capped():
+    bad_ip = {**EVENT, "user_id": "v1", "ip": "999.1.1.1"}
+    bad_lat = {**EVENT, "user_id": "v2", "lat": 120.0, "lon": 10.0}
+    bad_ts = {**EVENT, "user_id": "v3", "login_ts": "yesterday"}
+    for body in (bad_ip, bad_lat, bad_ts):
+        assert client.post("/v1/auth/evaluate", json=body, headers=KEY).status_code == 422
+    huge = client.post("/v1/demo/check", content=b"x" * (300 * 1024), headers={"Content-Type": "application/json"})
+    assert huge.status_code == 413
