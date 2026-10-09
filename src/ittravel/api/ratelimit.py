@@ -51,7 +51,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if tokens < 1:
             wait = math.ceil((1 - tokens) / refill)
             return JSONResponse(
-                {"detail": f"Too many requests. Try again in {wait} s."}, status_code=429,
+                {"detail": f"Too many requests. Try again in {wait} s."},
+                status_code=429,
                 headers={"Retry-After": str(wait)},
             )
         self.buckets[key] = (tokens - 1, now)

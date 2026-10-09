@@ -51,8 +51,12 @@ class EvaluationResult(BaseModel):
 
 
 class DemoStory(BaseModel):
-    events: list[LoginEvent] = Field(..., min_length=1, max_length=30,
-                                     description="The account's usual sign-ins, oldest first; the last one is scored")
+    events: list[LoginEvent] = Field(
+        ...,
+        min_length=1,
+        max_length=30,
+        description="The account's usual sign-ins, oldest first; the last one is scored",
+    )
 
 
 class APIKeyCreate(BaseModel):
