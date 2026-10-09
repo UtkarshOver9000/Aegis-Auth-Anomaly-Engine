@@ -38,6 +38,17 @@ function bars(el, rows, label = (n) => fmt(n)) {
 const loaders = {};
 const loaded = new Set();
 
+// "Updated 3 hours ago" line under a tab's title
+function stamp(tab, iso, extra = "") {
+  const section = $(`#tab-${tab}`);
+  let el = section.querySelector(".updated");
+  if (!el) {
+    section.querySelector("h1, h2").insertAdjacentHTML("afterend", '<p class="fineprint updated"></p>');
+    el = section.querySelector(".updated");
+  }
+  el.textContent = `Updated ${ago(iso)} (${day(iso)})${extra}`;
+}
+
 // Run a tab's loader with a skeleton while it loads and a retry card if it fails; never a blank panel.
 function load(tab) {
   const section = $(`#tab-${tab}`);
@@ -120,6 +131,7 @@ const samples = (cc) => (sampleCache[cc] ??= api(`/v1/intel/sample-ips?country=$
 // ---------- home ----------
 loaders.home = async () => {
   const o = await api("/v1/intel/overview");
+  stamp("home", o.as_of, ". Threat data refreshes daily; news is live.");
   const t = o.takeovers_caught, rw = o.ransomware_victims;
   $("#home-kpis").innerHTML = [
     kpi(compact(o.accounts_exposed_last_12_months), `accounts exposed in ${o.breaches_last_12_months} published breaches in the last 12 months`),
@@ -321,6 +333,7 @@ async function paint() {
   const m = METRICS[metric];
   globe.globeImageUrl(texUrl(metric));
   const lg = await api(`/v1/intel/globe/${metric}/legend`);
+  stamp("globe", lg.as_of, ". Refreshed daily.");
   $("#legend").innerHTML = `<b>${esc(lg.unit)}</b>${lg.level === "country" ? " · country-level" : ""}<div class="bins">` +
     [...lg.bins, lg.no_data].map((b) => `<span><i style="background:${b.color}"></i>${esc(b.label)}</span>`).join("") + "</div>";
   $("#top-title").textContent = `Top 10 ${lg.level === "state" ? "states and provinces" : "countries"}: ${m.title.toLowerCase()}`;
@@ -473,6 +486,7 @@ $("#breach-rows").addEventListener("click", (e) => {
 
 loaders.breaches = async () => {
   const s = await api("/v1/intel/breaches");
+  stamp("breaches", s.as_of, ". Breach list from Have I Been Pwned, refreshed daily.");
   const top = s.biggest_companies[0];
   $("#breach-kpis").innerHTML = [
     kpi(fmt(s.total_breaches), "breaches on record"),
@@ -501,6 +515,7 @@ loaders.attacks = async () => {
   const [t, { data }] = await Promise.all([api("/v1/intel/threats"), world()]);
   const name = (cc) => data.countries[cc]?.name || cc;
   const rw = t.ransomware;
+  stamp("attacks", t.as_of, ". Malware feeds refresh daily.");
   $("#attack-kpis").innerHTML = [
     kpi(fmt(t.malicious_ips), "servers caught spreading malware or running botnets"),
     kpi(fmt(t.threatfox_iocs_48h), "new threat indicators shared by researchers in the last 48 hours"),
@@ -533,6 +548,7 @@ loaders.attacks = async () => {
 // ---------- exploited flaws ----------
 loaders.flaws = async () => {
   const f = await api("/v1/intel/flaws");
+  stamp("flaws", f.as_of, ". CISA adds flaws on weekdays; refreshed daily.");
   $("#flaw-kpis").innerHTML = [
     kpi(fmt(f.added_last_7_days), "added in the last 7 days"),
     kpi(fmt(f.added_last_30_days), "added in the last 30 days"),
@@ -585,6 +601,8 @@ const ensureCheck = () => (checkReady ??= setupCheck());
 loaders.check = ensureCheck;
 
 async function setupCheck() {
+  api("/v1/model").then(() => $("#tab-check .updated") || $("#tab-check h2").insertAdjacentHTML("afterend",
+    '<p class="fineprint updated">Network checks use today\'s threat data; the model was trained on 2020 to 2021 logins.</p>'));
   const [{ data }] = await Promise.all([world(), need("leaflet")]);
   const names = data.countries;
   const opts = Object.keys(CITIES)
@@ -711,7 +729,8 @@ function renderVerdict(v, usual, ip, home, there, fails) {
 
 // ---------- news ----------
 loaders.news = async () => {
-  const { news, videos } = await api("/v1/intel/news");
+  const { news, videos, as_of } = await api("/v1/intel/news");
+  stamp("news", as_of, ". Fetched live from the feeds, at most 30 minutes old.");
   $("#news-list").innerHTML = news.map((n) => `<li><a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.title)}</a>
     <small>${esc(n.source)} · ${ago(n.published)}</small></li>`).join("") || '<li class="muted">Headlines are refreshing. Check back in a few minutes.</li>';
   $("#video-list").innerHTML = videos.map((v) => {
@@ -729,6 +748,7 @@ const spanMs = (span) => +span.slice(0, -1) * (span.endsWith("h") ? 3600e3 : 864
 
 loaders.results = async () => {
   const [m, fr, src] = await Promise.all([api("/v1/model"), api("/v1/intel/freshness"), api("/v1/intel/sources")]);
+  stamp("results", fr.snapshot, ". Snapshot of all threat data; the models were trained on 2020 to 2021 data.");
   const ato = m.test_metrics.ato, ip = m.test_metrics.attack_ip;
   $("#model-kpis").innerHTML = [
     kpi(`${ato.confusion_matrix.tp} of ${ato.positives}`, `account takeovers caught in the Oct to Nov 2020 test data (recall ${pct(ato.recall, 1)})`),

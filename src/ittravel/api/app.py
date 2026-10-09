@@ -211,7 +211,8 @@ async def globe_legend(metric: str):
 @app.get("/v1/intel/news", tags=["Intel"])
 async def intel_news():
     """Latest security headlines and videos from public feeds (cached for 30 minutes)."""
-    return {"news": news.latest(news.NEWS_FEEDS, "news")[:40], "videos": news.latest(news.VIDEO_FEEDS, "videos")[:12]}
+    items = {"news": news.latest(news.NEWS_FEEDS, "news")[:40], "videos": news.latest(news.VIDEO_FEEDS, "videos")[:12]}
+    return {**items, "as_of": news.fetched_at("news")}
 
 
 @app.get("/v1/intel/ip/{ip}", tags=["Intel"])

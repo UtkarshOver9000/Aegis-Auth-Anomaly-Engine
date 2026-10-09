@@ -9,7 +9,7 @@ import time
 import urllib.request
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
+from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 
 NEWS_FEEDS = {
@@ -110,3 +110,9 @@ def latest(feeds: dict[str, str], key: str) -> list[dict]:
     items.sort(key=lambda i: i["published"] or "", reverse=True)
     _cache[key] = (now, items)
     return items
+
+
+def fetched_at(key: str) -> str | None:
+    """When the cached copy for this key was fetched (ISO, UTC)."""
+    hit = _cache.get(key)
+    return datetime.fromtimestamp(hit[0], UTC).isoformat() if hit else None
