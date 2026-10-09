@@ -721,7 +721,7 @@ loaders.results = async () => {
   ].join("");
   $("#model-plain").textContent = `Out of ${fmt(ato.logins)} sign-ins in the test months, ${ato.positives} were real account takeovers. ` +
     `Asking for a one-time code on the riskiest ${pct(ato.alert_rate)} of sign-ins would have stopped ${ato.confusion_matrix.tp} of them. ` +
-    `The other ${fmt(ato.confusion_matrix.fp)} people asked for a code were real owners who typed it and carried on. ` +
+    `The other ${fmt(ato.confusion_matrix.fp)} people asked for a code were not labelled as takeovers. ` +
     `Spotting sign-ins from known attack IPs is harder: the model ranks them well above chance (ROC-AUC ${ip.roc_auc.toFixed(2)}) ` +
     `but catches only ${pct(ip.recall, 1)} at that budget, which is why Alibi adds the Tor, VPN, malware-server and criminal-network checks on top.`;
   const { news_feeds: nf, video_feeds: vf, ...sources } = src;
