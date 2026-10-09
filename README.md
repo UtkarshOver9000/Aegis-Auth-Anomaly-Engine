@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/img/logo.svg" width="132" alt="Alibi logo: a dark-red @ wrapped in an iron chain"></p>
+
 # Alibi: who's breaking in, how, and from where
 
 ![CI](https://github.com/UtkarshOver9000/alibi/actions/workflows/ci.yml/badge.svg)
