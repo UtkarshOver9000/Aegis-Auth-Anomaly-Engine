@@ -66,10 +66,25 @@ Changes from the Alibi master plan (`#` numbers refer to its 299 items). Newest 
 - Redesign the dashboard as an analyst console with a full-screen globe (#152, #160, #169)
 - Log the console redesign in the changelog
 
+- Add the Alibi logo: a dark-red @ wrapped in an iron chain
+- Show the logo at the top of the README
+- Add Open Graph and Twitter share cards with a 1200x630 image (#175)
+- Raise dim text to WCAG AA contrast (#172)
+- Send security headers and a strict CSP for the dashboard (#259)
+- Tighten CORS to the headers the API uses (#260)
+- Publish security.txt and a responsible-disclosure policy (#265)
+- Add cache headers to the read endpoints (#241)
+- Add request IDs to every response (#243)
+- Validate login inputs and cap request bodies (#244)
+- Fall back to a rule-based verdict when model files are missing (#246)
+- Use a multi-stage Dockerfile with a non-root user and a healthcheck (#248)
+- Audit dependencies for known vulnerabilities in CI (#261)
+- Log the security hardening batch in the changelog
+
 Covered without a separate change:
 
 - API keys are issued server-side only and never shown in the UI (done with #12 and #13) (#14)
 - The globe legend names what is counted and per what unit (done with #151) (#20)
 - Each feed has its own max age in sources.yaml, and stale feeds are flagged (done with #29, #30 and #36) (#38)
 
-Plan items done so far: 57 of 299 (#152, #160, #169, #1, #2, #3, #4, #5, #6, #7, #8, #9, #10, #11, #12, #13, #14, #15, #16, #17, #18, #19, #20, #21, #22, #23, #24, #25, #26, #27, #28, #29, #30, #31, #32, #33, #35, #36, #38, #39, #40, #42, #61, #62, #115, #136, #137, #151, #153, #154, #155, #158, #159, #168, #276, #277, #293).
+Plan items done so far: 68 of 299 (#172, #175, #241, #243, #244, #246, #248, #259, #260, #261, #265, #152, #160, #169, #1, #2, #3, #4, #5, #6, #7, #8, #9, #10, #11, #12, #13, #14, #15, #16, #17, #18, #19, #20, #21, #22, #23, #24, #25, #26, #27, #28, #29, #30, #31, #32, #33, #35, #36, #38, #39, #40, #42, #61, #62, #115, #136, #137, #151, #153, #154, #155, #158, #159, #168, #276, #277, #293).
