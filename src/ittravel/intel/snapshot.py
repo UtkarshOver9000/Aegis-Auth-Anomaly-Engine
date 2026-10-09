@@ -704,6 +704,18 @@ def build_countries(
     }
 
 
+def content_hashes() -> tuple[dict, str]:
+    """SHA-256 of every snapshot file, and one hash over all of them that identifies this snapshot version."""
+    import hashlib
+
+    files = {}
+    for path in sorted(OUT.iterdir()):
+        if path.is_file() and path.name != "meta.json":
+            files[path.name] = {"sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "bytes": path.stat().st_size}
+    overall = hashlib.sha256("".join(f"{n}:{v['sha256']}" for n, v in files.items()).encode()).hexdigest()
+    return files, overall
+
+
 def feed_currency(raw: Path) -> list[dict]:
     """When each feed was last downloaded, from the fetcher's state (or the file date), plus its licence."""
     import yaml
@@ -770,6 +782,7 @@ def main() -> None:
         for f in meta["feeds"]:
             if f["id"] == "iptoasn":
                 f.update(updated=net["reused_from"], available=True)
+    meta["files"], meta["content_hash"] = content_hashes()
     (OUT / "meta.json").write_text(json.dumps(meta, indent=2))
     print(json.dumps(meta, indent=2))
 
