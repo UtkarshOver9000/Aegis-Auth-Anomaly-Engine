@@ -11,3 +11,4 @@ Served from `/static/vendor/` so the page works when public CDNs are slow or blo
 | `countries-110m.json` | world-atlas 2.0.2 (Natural Earth data) | ISC; data public domain |
 | `img/earth-blue-marble.jpg`, `img/earth-topology.png`, `img/night-sky.png` | three-globe example images (NASA Blue Marble and topography) | public domain (NASA) |
 | `fonts/PlexSans-*.woff2`, `fonts/PlexMono-*.woff2` | IBM Plex Sans and IBM Plex Mono, latin subset (via Fontsource) | SIL Open Font License 1.1 |
+| `fonts/ChakraPetch-*.woff2` | Chakra Petch 500, 600 and 700, latin subset (via Fontsource 5.1.0); licence in `fonts/ChakraPetch-OFL.txt` | SIL Open Font License 1.1 |

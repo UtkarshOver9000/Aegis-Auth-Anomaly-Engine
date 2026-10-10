@@ -4,3 +4,7 @@
 @font-face { font-family: "Plex Sans"; font-style: normal; font-weight: 600; font-display: swap; src: url(/static/vendor/fonts/PlexSans-600.woff2) format("woff2"); }
 @font-face { font-family: "Plex Mono"; font-style: normal; font-weight: 400; font-display: swap; src: url(/static/vendor/fonts/PlexMono-400.woff2) format("woff2"); }
 @font-face { font-family: "Plex Mono"; font-style: normal; font-weight: 500; font-display: swap; src: url(/static/vendor/fonts/PlexMono-500.woff2) format("woff2"); }
+/* Chakra Petch (SIL Open Font License 1.1, see ChakraPetch-OFL.txt), latin subset via Fontsource 5.1.0: HUD labels and headings */
+@font-face { font-family: "Chakra Petch"; font-style: normal; font-weight: 500; font-display: swap; src: url(/static/vendor/fonts/ChakraPetch-500.woff2) format("woff2"); }
+@font-face { font-family: "Chakra Petch"; font-style: normal; font-weight: 600; font-display: swap; src: url(/static/vendor/fonts/ChakraPetch-600.woff2) format("woff2"); }
+@font-face { font-family: "Chakra Petch"; font-style: normal; font-weight: 700; font-display: swap; src: url(/static/vendor/fonts/ChakraPetch-700.woff2) format("woff2"); }
