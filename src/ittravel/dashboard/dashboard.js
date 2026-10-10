@@ -70,9 +70,46 @@ function load(tab) {
     .finally(() => section.classList.remove("is-loading"));
 }
 
+// ---------- shareable state: the module, map colour, layers and selection live in the URL ----------
+// #globe?m=dns_resolvers&l=c2,dl,tor&c=IN opens the globe coloured by DNS servers, three point layers on, India selected.
+let worldReady = false;
+const route = () => {
+  const [path, query = ""] = location.hash.slice(1).split("?");
+  return { path, params: new URLSearchParams(query) };
+};
+
+function syncUrl() {
+  if (!worldReady || !document.body.classList.contains("on-globe")) return;
+  const p = new URLSearchParams();
+  if (metric !== "malicious_ips") p.set("m", metric);
+  const on = $$("[data-layer]").filter((c) => c.checked).map((c) => c.dataset.layer);
+  if ($("#show-cables").checked) on.push("cables");
+  if (on.join() !== "c2,dl") p.set("l", on.join() || "none");
+  const cc = selected?.properties?.c?.a2;
+  if (cc) p.set("c", cc);
+  const q = p.toString().replaceAll("%2C", ",");
+  history.replaceState(null, "", `#globe${q ? `?${q}` : ""}`); // no new history entry for a layer toggle
+}
+
+function applyUrlState() {
+  if (!worldReady) return;
+  const { params } = route();
+  const m = params.get("m");
+  if (m && m !== metric) $(`[data-metric="${CSS.escape(m)}"]`)?.click();
+  if (params.has("l")) {
+    const want = new Set(params.get("l").split(","));
+    $$("[data-layer]").forEach((c) => (c.checked = want.has(c.dataset.layer)));
+    refreshPoints();
+    if (want.has("cables") !== $("#show-cables").checked) $("#show-cables").click();
+  }
+  const cc = params.get("c")?.toUpperCase();
+  const f = cc && window.__features.find((x) => x.properties.c?.a2 === cc);
+  if (f && f !== selected) selectCountry(f, null);
+}
+
 function show(hash) {
   // "#check/travel" opens a tab and, for the sign-in check, runs that story
-  let [tab, story] = hash.split("/");
+  let [tab, story] = hash.split("?")[0].split("/");
   if (tab === "home" || !$(`#tab-${tab}`)) tab = "globe"; // the old overview now lives on the globe
   $$(".tab").forEach((s) => (s.hidden = s.id !== `tab-${tab}`));
   $$("nav a").forEach((a) => a.classList.toggle("on", a.dataset.tab === tab));
@@ -84,6 +121,7 @@ function show(hash) {
   if (globe && !flat) tab === "globe" ? globe.resumeAnimation() : globe.pauseAnimation(); // a covered globe costs nothing
   window.scrollTo(0, 0);
   if (tab === "check" && PRESETS[story]) applyPreset(story);
+  if (tab === "globe") [...route().params].length ? applyUrlState() : syncUrl();
 }
 window.addEventListener("hashchange", () => show(location.hash.slice(1)));
 
@@ -394,8 +432,9 @@ loaders.globe = async () => {
     $$("[data-metric]").forEach((x) => x.classList.toggle("on", x === b));
     paint();
     if (selected) selectCountry(selected, window.__lastAt);
+    syncUrl();
   }));
-  $$("[data-layer]").forEach((c) => c.addEventListener("change", refreshPoints));
+  $$("[data-layer]").forEach((c) => c.addEventListener("change", () => { refreshPoints(); syncUrl(); }));
   $("#show-cables").addEventListener("change", async () => {
     if (!globe) return;
     const on = $("#show-cables").checked;
@@ -405,6 +444,7 @@ loaders.globe = async () => {
     landingPoints = on ? cab.landings.map((l) => ({ lat: l.lat, lng: l.lng, kind: "landing" })) : [];
     globe.pathsData(cablePaths);
     refreshPoints();
+    syncUrl();
   });
   $$("[data-toggle]").forEach((b) => b.addEventListener("click", () => {
     const target = $(`#${b.dataset.toggle}`);
@@ -420,6 +460,8 @@ loaders.globe = async () => {
   $("#journey-go").addEventListener("click", runJourney);
   $("#tour-btn").addEventListener("click", () => (touring ? stopTour() : tour()));
   paint();
+  worldReady = true;
+  applyUrlState();
   if (new URLSearchParams(location.search).has("tour")) tour();
 };
 
@@ -629,6 +671,7 @@ async function selectCountry(f, at) {
     if (!touring) globe.pointOfView(at ? { lat: at.lat, lng: at.lng, altitude: 1.2 } : { lat, lng, altitude: 1.5 }, 900);
   }
   if (SMALL_SCREEN) { $$(".ov-left").forEach((p) => p.classList.remove("open")); $("#inspector").classList.add("open"); }
+  syncUrl();
   const rank = legendData?.ranks?.[c.a2];
   const facts = [
     ["Malware servers", fmt(c.malicious_ips)],

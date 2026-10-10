@@ -102,3 +102,4 @@ Items from the Alibi 1.0 plan (148 items), newest last.
 - Add a HUD status strip: UTC clock, live state, data age, feeds, points (1.0 #16)
 - Keep the live globe behind every module and pause it when covered (1.0 #18)
 - Open on the live globe and turn the overview into its situation panel (1.0 #18)
+- Keep the globe's colour, layers and selected country in the URL (1.0 #19)
