@@ -1,14 +1,35 @@
-/* Alibi console. Dense, dark, data-first: inspired by analyst tools such as Palantir's Blueprint.
-   Threat-type colours follow the Okabe-Ito palette, which stays distinguishable with colour blindness. */
+/* Alibi console, Design 1.0: a dark operations floor in the logo's crimson and iron, glass panels over a live globe.
+   Crimson is the brand and alerts, ice-blue is anything you can select, amber warns. Threat-type colours follow the
+   Okabe-Ito palette, which stays distinguishable with colour blindness. Every text colour passes WCAG AA on --bg. */
 :root {
-  --bg: #0e1116; --panel: #151a21; --panel-2: #1b2129; --raise: #222a33; --line: #2a323c; --line-2: #3a4450;
-  --ink: #e6edf3; --muted: #9aa5b1; --dim: #8b96a3; --blue: #4c90f0; --blue-soft: rgba(76, 144, 240, 0.14);
-  --ok: #3fb950; --warn: #d29922; --orange: #f0883e; --risk: #f85149; --risk-soft: rgba(248, 81, 73, 0.14);
+  /* surfaces, darkest first */
+  --bg: #06080b; --panel: #0b1017; --panel-2: #111821; --raise: #18212c;
+  --glass: rgba(10, 14, 20, 0.74); --glass-strong: rgba(7, 10, 15, 0.92);
+  --line: rgba(148, 163, 184, 0.14); --line-2: rgba(148, 163, 184, 0.26);
+  /* text */
+  --ink: #e8eef5; --muted: #a9b5c2; --dim: #8b98a7;
+  /* brand and interaction */
+  --brand: #e5383b; --brand-hi: #ff5a5f; --brand-soft: rgba(229, 56, 59, 0.14);
+  --accent: #7dd3fc; --accent-soft: rgba(125, 211, 252, 0.12); --blue: var(--accent); --blue-soft: var(--accent-soft);
+  --amber: #f5a524;
+  /* severity, worst first */
+  --sev-critical: #ff4d4f; --sev-high: #ff8a3d; --sev-medium: #f5a524; --sev-low: #3fb950; --sev-info: #7dd3fc;
+  --ok: var(--sev-low); --warn: var(--sev-medium); --orange: var(--sev-high); --risk: var(--sev-critical);
+  --risk-soft: rgba(255, 77, 79, 0.14);
+  /* threat types (Okabe-Ito) */
   --c2: #d55e00; --dl: #e69f00; --tor: #cc79a7; --drop: #f0e442; --cable: #56b4e9;
+  /* type, spacing, shape, depth, motion */
   --sans: "Plex Sans", "Segoe UI", system-ui, sans-serif; --mono: "Plex Mono", ui-monospace, Consolas, monospace;
-  --bar-h: 48px; --r: 3px;
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px;
+  --r: 4px; --r-lg: 6px;
+  --e1: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --e2: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 24px 60px rgba(0, 0, 0, 0.55);
+  --t-fast: 120ms; --t: 200ms; --t-slow: 320ms; --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --bar-h: 48px;
   color-scheme: dark;
 }
+::selection { background: var(--brand-soft); color: #fff; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--ink); }
 body { font: 14px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
@@ -25,7 +46,7 @@ h2 { font-size: 18px; }
 
 /* ---- top bar ---- */
 .topbar { position: sticky; top: 0; z-index: 1000; height: var(--bar-h); display: flex; align-items: center; gap: 18px;
-  padding: 0 16px; background: #0b0e12; border-bottom: 1px solid var(--line); }
+  padding: 0 16px; background: var(--glass-strong); border-bottom: 1px solid var(--line); }
 .brand { display: flex; align-items: center; gap: 9px; font: 600 14px var(--mono); letter-spacing: 0.18em; color: var(--ink); }
 .brand:hover { text-decoration: none; }
 .mark { width: 30px; height: 30px; display: block; }
@@ -106,7 +127,7 @@ tr.detail td { background: var(--panel-2); color: var(--muted); font-size: 12.5p
 .btn { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: var(--r);
   border: 1px solid var(--line-2); background: var(--raise); color: var(--ink); font: 500 12.5px var(--sans); cursor: pointer; }
 .btn:hover { border-color: var(--muted); }
-.btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #06121a; font-weight: 600; }
 .btn:disabled { opacity: 0.5; cursor: default; }
 .btn.icon { width: 34px; justify-content: center; padding: 0; font-size: 12px; }
 .btn.on { border-color: var(--blue); color: var(--blue); }
