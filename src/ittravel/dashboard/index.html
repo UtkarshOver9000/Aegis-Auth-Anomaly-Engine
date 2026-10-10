@@ -21,12 +21,18 @@
 </head>
 <body>
 <header class="topbar">
-  <a class="brand" href="#home" aria-label="Alibi home"><img class="mark" src="/static/logo.svg" alt="" width="30" height="30">ALIBI</a>
+  <a class="brand" href="#home" aria-label="Alibi home"><img class="mark" src="/static/logo.svg" alt="" width="32" height="32"><span class="word">ALIBI<small>Open threat intelligence</small></span></a>
+  <div class="hud" id="status">
+    <div class="cell clock" title="Coordinated Universal Time"><span class="k">UTC</span><span class="v" id="utc">--:--:--</span></div>
+    <div class="cell live" id="live"><i class="dot"></i><span class="v" id="live-label">CONNECTING</span></div>
+    <div class="cell data" title="When the threat snapshot was built, and how old it is"><span class="k">Data</span><span class="v" id="data-age">-</span></div>
+    <div class="cell feeds" id="feeds-cell"><span class="k">Feeds</span><span class="v" id="feeds-ok">-</span></div>
+    <div class="cell map" title="Points on the globe: malware servers, Tor exits and criminal address blocks"><span class="k">On map</span><span class="v" id="on-map">-</span></div>
+  </div>
   <form class="search" id="search" role="search">
     <svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-search"/></svg>
     <input id="search-q" type="search" placeholder="IP, CVE, domain or company" aria-label="Search" autocomplete="off">
   </form>
-  <div class="status" id="status" title="Snapshot and feed health"><i class="dot"></i><span>loading</span></div>
 </header>
 <nav class="rail" aria-label="Modules">
   <a href="#home" data-tab="home" aria-label="Overview"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-activity"/></svg><span class="lbl">Overview</span></a>

@@ -176,6 +176,7 @@ def overview(model_card: dict) -> dict:
         "ransomware_victims": _load("threats.json")["ransomware"],
         "submarine_cables": meta()["cables"]["cables"],
         "tor_exit_relays": meta()["countries"]["tor_exit_relays"],
+        "map_points": dict(Counter(p[2] for p in _load("events.json")["points"])),
         "tor_exit_ips_known": len(tor_exits()),
         "public_dns_resolvers": meta()["countries"]["dns_resolvers"],
         "censorship_tests_30d": meta()["countries"]["ooni_measurements"],

@@ -237,6 +237,12 @@ def test_search_finds_ips_cves_and_names():
     assert r["kind"] == "text" and any("LinkedIn" in b["name"] for b in r["breaches"])
 
 
+def test_overview_counts_the_points_on_the_map():
+    points = client.get("/v1/intel/events").json()["points"]
+    counts = client.get("/v1/intel/overview").json()["map_points"]
+    assert set(counts) <= {"c2", "dl", "tor", "drop"} and sum(counts.values()) == len(points)
+
+
 def test_every_api_response_carries_the_snapshot_date():
     stamp = service.meta()["fetched_at"]
     for path in (

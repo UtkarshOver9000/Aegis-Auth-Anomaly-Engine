@@ -171,18 +171,32 @@ function world() {
 const sampleCache = {};
 const samples = (cc) => (sampleCache[cc] ??= api(`/v1/intel/sample-ips?country=${cc}`));
 
-// ---------- header status ----------
+// ---------- HUD status strip ----------
+const STALE_AFTER_H = 8; // feeds refresh every 6 hours; past 8 the snapshot is late
+const late = (f) => f.status !== "ok" && !f.status.startsWith("optional");
+
 async function headerStatus() {
+  const tick = () => ($("#utc").textContent = new Date().toISOString().slice(11, 19));
+  tick();
+  setInterval(tick, 1000);
   try {
-    const h = await api("/v1/health");
-    const ok = h.feeds.filter((f) => f.status === "ok" || f.status.startsWith("optional")).length;
-    const el = $("#status");
-    el.className = `status ${h.status}`;
-    el.querySelector("span").textContent = `SNAPSHOT ${new Date(h.snapshot).toISOString().slice(5, 16).replace("T", " ")}Z · ${ok}/${h.feeds.length} FEEDS OK`;
-    const late = h.feeds.filter((f) => f.status !== "ok" && !f.status.startsWith("optional"));
-    el.title = late.map((f) => `${f.name}: ${f.status}${f.age_hours != null ? `, ${f.age_hours} h old` : ""}`).join("\n") || "All feeds within their max age";
+    const [h, o] = await Promise.all([api("/v1/health"), api("/v1/intel/overview")]);
+    const built = new Date(h.snapshot), ageH = (Date.now() - built) / 3600e3;
+    const stale = ageH > STALE_AFTER_H;
+    $("#live").classList.toggle("stale", stale);
+    $("#live-label").textContent = stale ? "STALE" : "LIVE";
+    $("#live").title = stale ? `The threat snapshot is ${Math.round(ageH)} hours old; feeds normally refresh every 6 hours.`
+      : "Threat feeds refresh every 6 hours; news is fetched live.";
+    $("#data-age").textContent = `${built.toISOString().slice(5, 16).replace("T", " ").replace("-", "/")}Z · ${ageH < 1 ? "<1" : Math.round(ageH)}h`;
+    const bad = h.feeds.filter(late);
+    $("#feeds-ok").textContent = `${h.feeds.length - bad.length}/${h.feeds.length}`;
+    $("#feeds-cell").classList.toggle("warn", bad.length > 0);
+    $("#feeds-cell").title = bad.map((f) => `${f.name}: ${f.status}${f.age_hours != null ? `, ${f.age_hours} h old` : ""}`).join("\n")
+      || "Every feed is within its maximum age";
+    $("#on-map").textContent = fmt(Object.values(o.map_points).reduce((s, n) => s + n, 0));
   } catch {
-    $("#status span").textContent = "STATUS UNAVAILABLE";
+    $("#live").classList.add("stale");
+    $("#live-label").textContent = "OFFLINE";
   }
 }
 
