@@ -45,6 +45,11 @@
   <a href="#news" data-tab="news" aria-label="News"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-newspaper"/></svg><span class="lbl">News</span></a>
   <a href="#results" data-tab="results" aria-label="Sources and accuracy"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-shield-check"/></svg><span class="lbl">Sources and accuracy</span></a>
 </nav>
+<div class="world" id="world">
+  <div id="globe"></div>
+  <div id="globe-tip" class="globe-tip floating" hidden></div>
+  <div class="tour-caption" id="tour-caption" hidden></div>
+</div>
 <div class="search-wrap"><div class="panel search-results" id="search-results" hidden></div></div>
 
 <main>
@@ -78,9 +83,6 @@
 
   <section id="tab-globe" class="tab stage-tab" hidden>
     <div class="stage">
-      <div id="globe"></div>
-      <div id="globe-tip" class="globe-tip floating" hidden></div>
-      <div class="tour-caption" id="tour-caption" hidden></div>
 
       <aside class="ov ov-left panel" id="layers-panel" aria-label="Layers">
         <h3>Layers <button class="link ov-close" data-toggle="layers-panel" aria-label="Close layers"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-x"/></svg></button></h3>

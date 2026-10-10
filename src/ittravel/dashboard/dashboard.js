@@ -79,7 +79,9 @@ function show(hash) {
   if (!loaded.has(tab) && loaders[tab]) load(tab);
   if (tab === "check" && tripMap) setTimeout(() => tripMap.invalidateSize(), 50);
   document.body.classList.toggle("on-globe", tab === "globe");
+  document.body.classList.toggle("on-sheet", tab !== "globe");
   if (tab === "globe" && globe) setTimeout(sizeGlobe, 50);
+  if (globe && !flat) tab === "globe" ? globe.resumeAnimation() : globe.pauseAnimation(); // a covered globe costs nothing
   window.scrollTo(0, 0);
   if (tab === "check" && PRESETS[story]) applyPreset(story);
 }
@@ -456,7 +458,8 @@ function setupGlobe(el, features, data, centers) {
   el.querySelector("canvas")?.addEventListener("webglcontextlost", () => { globe.pauseAnimation(); flatMap(features); paint(); });
   sizeGlobe();
   new ResizeObserver(sizeGlobe).observe(el);
-  new IntersectionObserver(([e]) => (e.isIntersecting ? globe.resumeAnimation() : globe.pauseAnimation())).observe(el);
+  // drawn once behind a module sheet, then paused until the globe is opened again
+  globe.onGlobeReady(() => setTimeout(() => !document.body.classList.contains("on-globe") && globe.pauseAnimation(), 1200));
   refreshPoints();
 
   const tip = $("#globe-tip");
@@ -1075,6 +1078,14 @@ loaders.results = async () => {
   $("#sources").innerHTML = rows.map(([n, u, l]) => `<li><a href="${esc(u)}" target="_blank" rel="noopener">${esc(n)}</a>: ${esc(l)}</li>`).join("");
 };
 
+// The globe is the backdrop of every module: desktops load it as soon as the browser is idle, phones (to save
+// data) when the globe is first opened.
+function startWorld() {
+  if (SMALL_SCREEN || loaded.has("globe")) return;
+  (window.requestIdleCallback || ((f) => setTimeout(f, 300)))(() => loaded.has("globe") || load("globe"));
+}
+
 show(location.hash.slice(1) || "home");
+startWorld();
 headerStatus();
 railBadges();
