@@ -95,3 +95,4 @@ Items from the Alibi 1.0 plan (148 items), newest last.
 - Keep the last EPSS scores when the daily download fails (1.0 #1)
 - Add the Design 1.0 colour, spacing, depth and motion tokens (1.0 #4)
 - Self-host Chakra Petch for HUD labels and use tabular numerals (1.0 #5)
+- Turn panels into glass with HUD corner brackets (1.0 #6)
