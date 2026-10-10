@@ -26,7 +26,7 @@ Numbers from the snapshot of **10 October 2026** (the live app shows the current
 | Module | Today |
 |---|---|
 | Breaches | 1,024 breaches, 16.29 billion accounts; 104 breaches and 479.6 million accounts in the last 12 months |
-| Attacks | 8,913 malware and botnet servers; 7,242 threat indicators in 48 hours; 431 criminal networks; 215 ransomware victims (3 October 2026 to 10 October 2026) |
+| Attacks | 8,905 malware and botnet servers; 6,728 threat indicators in 48 hours; 431 criminal networks; 215 ransomware victims (2 October 2026 to 9 October 2026) |
 | Exploited flaws | 1,739 flaws; 36 added in the last 30 days; 361 used by ransomware; highest exploit chance CVE-2021-26086 at 100.0% |
 | Live globe | 4,596 states and provinces, 733 undersea cables, websites confirmed blocked in 67 countries |
 
