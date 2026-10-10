@@ -185,6 +185,26 @@ async function headerStatus() {
   }
 }
 
+// ---------- rail badges: what is new since the snapshot's day began ----------
+async function railBadges() {
+  const put = (name, n, cap) => {
+    const el = $(`[data-badge="${name}"]`);
+    if (!el || !n) return;
+    el.textContent = n >= cap ? `${cap}+` : n;
+    el.hidden = false;
+    el.closest("a").setAttribute("aria-label", `${el.closest("a").getAttribute("aria-label")}: ${n} new`);
+  };
+  try {
+    const [act, f, b] = await Promise.all([api("/v1/intel/activity"), api("/v1/intel/flaws"), api("/v1/intel/breaches")]);
+    put("attacks", act.new_today, 999);
+    put("flaws", f.added_last_7_days, 99);
+    const weekAgo = new Date(new Date(b.as_of) - 7 * 86400e3).toISOString().slice(0, 10);
+    put("breaches", b.latest.filter((r) => r.added >= weekAgo).length, b.latest.length);
+  } catch (err) {
+    console.warn("rail badges", err);
+  }
+}
+
 // ---------- overview ----------
 const hhmm = (unix) => new Date(unix * 1000).toISOString().slice(5, 16).replace("T", " ") + "Z";
 
@@ -1042,3 +1062,4 @@ loaders.results = async () => {
 
 show(location.hash.slice(1) || "home");
 headerStatus();
+railBadges();

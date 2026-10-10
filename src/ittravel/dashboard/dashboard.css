@@ -53,12 +53,7 @@ h2 { font-size: 20px; }
 .brand { display: flex; align-items: center; gap: 10px; font: 700 19px var(--hud); letter-spacing: 0.3em; color: var(--ink); }
 .brand:hover { text-decoration: none; }
 .mark { width: 30px; height: 30px; display: block; }
-nav { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; flex: 1; min-width: 0; }
-nav::-webkit-scrollbar { display: none; }
-nav a { color: var(--muted); padding: 0 11px; height: var(--bar-h); display: flex; align-items: center; white-space: nowrap;
-  font-size: 13px; border-bottom: 2px solid transparent; }
-nav a:hover { color: var(--ink); text-decoration: none; }
-nav a.on { color: var(--ink); border-bottom-color: var(--blue); }
+.search { margin-left: auto; }
 .search input { width: 240px; height: 30px; padding: 0 10px; border-radius: var(--r); border: 1px solid var(--line-2);
   background: var(--panel); color: var(--ink); font: 13px var(--mono); }
 .search input:focus { outline: 1px solid var(--blue); }
@@ -292,9 +287,38 @@ body.on-globe .foot { display: none; }
 .ico { width: 16px; height: 16px; flex: none; display: inline-block; vertical-align: -3px; stroke: currentColor; fill: none; }
 .btn .ico { width: 15px; height: 15px; }
 .btn.icon .ico { width: 16px; height: 16px; }
-nav a .ico { width: 15px; height: 15px; margin-right: 7px; opacity: 0.85; }
-nav a.on .ico { color: var(--accent); opacity: 1; }
 .search { position: relative; }
 .search .ico { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--dim); pointer-events: none; }
 .search input { padding-left: 30px; width: 268px; }
 .ov-close .ico, .journey button .ico { width: 14px; height: 14px; }
+/* ---- module rail: icons on the left, labels on hover, counts of what is new ---- */
+:root { --rail-w: 64px; }
+.rail { position: fixed; z-index: 990; top: var(--bar-h); bottom: 0; left: 0; width: var(--rail-w); display: flex; flex-direction: column;
+  align-items: center; gap: 4px; padding: 12px 0; background: var(--glass-strong); border-right: 1px solid var(--line);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+main, .foot, .search-wrap { margin-left: var(--rail-w); }
+.rail a { position: relative; width: 44px; height: 44px; display: grid; place-items: center; color: var(--dim); border: 1px solid transparent;
+  border-radius: var(--r); transition: color var(--t-fast), background var(--t-fast), border-color var(--t-fast); }
+.rail a .ico { width: 21px; height: 21px; }
+.rail a:hover { color: var(--ink); background: var(--accent-soft); text-decoration: none; }
+.rail a.on { color: var(--accent); background: var(--accent-soft); border-color: rgba(125, 211, 252, 0.25); }
+.rail a.on::before { content: ""; position: absolute; left: -11px; top: 9px; bottom: 9px; width: 3px; background: var(--brand);
+  box-shadow: 0 0 12px var(--brand); }
+.rail .lbl { position: absolute; left: calc(100% + 12px); top: 50%; transform: translate(-4px, -50%); padding: 5px 9px; white-space: nowrap;
+  font: 600 11px var(--hud); letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink); background: var(--glass-strong);
+  border: 1px solid var(--line-2); border-radius: var(--r); opacity: 0; pointer-events: none; transition: opacity var(--t-fast), transform var(--t-fast); }
+.rail a:hover .lbl, .rail a:focus-visible .lbl { opacity: 1; transform: translate(0, -50%); }
+.rail .count { position: absolute; top: 2px; right: 1px; min-width: 16px; height: 15px; padding: 0 4px; border-radius: 2px;
+  font: 600 9.5px/15px var(--mono); color: #fff; background: var(--brand); text-align: center; }
+.rail .sep { width: 28px; height: 1px; background: var(--line); margin: 6px 0; }
+@media (max-width: 900px) {
+  :root { --rail-w: 0px; --rail-h: 58px; }
+  .rail { top: auto; bottom: 0; right: 0; width: auto; height: calc(var(--rail-h) + env(safe-area-inset-bottom)); flex-direction: row;
+    justify-content: space-around; padding: 0 4px env(safe-area-inset-bottom); border-right: 0; border-top: 1px solid var(--line); }
+  .rail a { width: 40px; height: 44px; }
+  .rail a .ico { width: 20px; height: 20px; }
+  .rail a.on::before { left: 8px; right: 8px; top: -8px; bottom: auto; width: auto; height: 3px; }
+  .rail .lbl, .rail .sep { display: none; }
+  main, .foot { padding-bottom: calc(var(--rail-h) + env(safe-area-inset-bottom)); }
+  .stage { height: calc(100dvh - var(--bar-h) - var(--rail-h) - env(safe-area-inset-bottom)); }
+}

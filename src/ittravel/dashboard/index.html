@@ -22,22 +22,23 @@
 <body>
 <header class="topbar">
   <a class="brand" href="#home" aria-label="Alibi home"><img class="mark" src="/static/logo.svg" alt="" width="30" height="30">ALIBI</a>
-  <nav aria-label="Modules">
-    <a href="#home" data-tab="home"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-activity"/></svg>Overview</a>
-    <a href="#globe" data-tab="globe"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-globe"/></svg>Globe</a>
-    <a href="#breaches" data-tab="breaches"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-database-zap"/></svg>Breaches</a>
-    <a href="#attacks" data-tab="attacks"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-biohazard"/></svg>Attacks</a>
-    <a href="#flaws" data-tab="flaws"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-bug"/></svg>Flaws</a>
-    <a href="#check" data-tab="check"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-fingerprint"/></svg>Sign-in check</a>
-    <a href="#news" data-tab="news"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-newspaper"/></svg>News</a>
-    <a href="#results" data-tab="results"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-shield-check"/></svg>Sources</a>
-  </nav>
   <form class="search" id="search" role="search">
     <svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-search"/></svg>
     <input id="search-q" type="search" placeholder="IP, CVE, domain or company" aria-label="Search" autocomplete="off">
   </form>
   <div class="status" id="status" title="Snapshot and feed health"><i class="dot"></i><span>loading</span></div>
 </header>
+<nav class="rail" aria-label="Modules">
+  <a href="#home" data-tab="home" aria-label="Overview"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-activity"/></svg><span class="lbl">Overview</span></a>
+  <a href="#globe" data-tab="globe" aria-label="Live globe"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-globe"/></svg><span class="lbl">Live globe</span></a>
+  <a href="#attacks" data-tab="attacks" aria-label="Threats"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-biohazard"/></svg><span class="lbl">Threats</span><b class="count" data-badge="attacks" hidden></b></a>
+  <a href="#breaches" data-tab="breaches" aria-label="Leaks"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-database-zap"/></svg><span class="lbl">Leaks</span><b class="count" data-badge="breaches" hidden></b></a>
+  <a href="#flaws" data-tab="flaws" aria-label="Exploited flaws"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-bug"/></svg><span class="lbl">Exploited flaws</span><b class="count" data-badge="flaws" hidden></b></a>
+  <span class="sep" aria-hidden="true"></span>
+  <a href="#check" data-tab="check" aria-label="Sign-in check"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-fingerprint"/></svg><span class="lbl">Sign-in check</span></a>
+  <a href="#news" data-tab="news" aria-label="News"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-newspaper"/></svg><span class="lbl">News</span></a>
+  <a href="#results" data-tab="results" aria-label="Sources and accuracy"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-shield-check"/></svg><span class="lbl">Sources and accuracy</span></a>
+</nav>
 <div class="search-wrap"><div class="panel search-results" id="search-results" hidden></div></div>
 
 <main>
