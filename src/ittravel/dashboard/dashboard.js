@@ -237,6 +237,51 @@ $("#palette-list").addEventListener("click", (e) => {
   if (li) choose(+li.dataset.i);
 });
 $("#palette").addEventListener("click", (e) => e.target.id === "palette" && closePalette());
+
+// ---------- keyboard shortcuts ("?" lists them) ----------
+const onGlobe = () => document.body.classList.contains("on-globe");
+function stepMetric(d) {
+  if (!onGlobe()) return;
+  const chips = $$("[data-metric]");
+  const i = chips.findIndex((x) => x.classList.contains("on"));
+  chips[(i + d + chips.length) % chips.length]?.click();
+}
+const KEYS = [
+  ["g", "Live globe", () => (location.hash = "#globe")],
+  ["t", "Threats", () => (location.hash = "#attacks")],
+  ["l", "Leaks", () => (location.hash = "#breaches")],
+  ["f", "Exploited flaws", () => (location.hash = "#flaws")],
+  ["c", "Sign-in check", () => (location.hash = "#check")],
+  ["n", "News", () => (location.hash = "#news")],
+  ["s", "Sources and accuracy", () => (location.hash = "#results")],
+  ["r", "Replay the last 48 hours (globe)", () => onGlobe() && $("#replay-play").click()],
+  ["[", "Previous map colour (globe)", () => stepMetric(-1)],
+  ["]", "Next map colour (globe)", () => stepMetric(1)],
+  ["0", "Reset the globe view", () => onGlobe() && $("#reset-view").click()],
+];
+$("#help-keys").innerHTML = [["Ctrl K or /", "Search"], ...KEYS, ["?", "Show this list"], ["Esc", "Close a dialog"]]
+  .map(([k, label]) => `<dt><kbd>${esc(k)}</kbd></dt><dd>${esc(label)}</dd>`).join("");
+function toggleHelp(open = $("#help").hidden) {
+  $("#help").hidden = !open;
+  if (open) $("#help-close").focus();
+}
+$("#open-help").addEventListener("click", () => toggleHelp(true));
+$("#help-close").addEventListener("click", () => toggleHelp(false));
+$("#help").addEventListener("click", (e) => e.target.id === "help" && toggleHelp(false));
+document.addEventListener("keydown", (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey || typing() || !$("#palette").hidden) return;
+  if (e.key === "?") {
+    e.preventDefault();
+    return toggleHelp();
+  }
+  if (e.key === "Escape") return toggleHelp(false);
+  if (!$("#help").hidden) return;
+  const hit = KEYS.find(([k]) => k === e.key.toLowerCase());
+  if (hit) {
+    e.preventDefault();
+    hit[2]();
+  }
+});
 const typing = () => /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || "") || document.activeElement?.isContentEditable;
 document.addEventListener("keydown", (e) => {
   if ((e.key.toLowerCase() === "k" && (e.ctrlKey || e.metaKey)) || (e.key === "/" && !typing())) {

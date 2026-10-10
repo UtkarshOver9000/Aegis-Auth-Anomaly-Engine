@@ -30,6 +30,7 @@
     <div class="cell map" title="Points on the globe: malware servers, Tor exits and criminal address blocks"><span class="k">On map</span><span class="v" id="on-map">-</span></div>
   </div>
   <button class="search" id="open-palette" type="button" aria-label="Search (Ctrl K)"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-search"/></svg><span>Search IP, CVE, company, country</span><kbd>Ctrl K</kbd></button>
+  <button class="hbtn" id="open-help" type="button" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-keyboard"/></svg></button>
 </header>
 <nav class="rail" aria-label="Modules">
   <a href="#globe" data-tab="globe" aria-label="Live globe"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-globe"/></svg><span class="lbl">Live globe</span></a>
@@ -259,6 +260,12 @@
     <ul class="palette-list" id="palette-list" role="listbox" aria-label="Matches"></ul>
     <div class="palette-detail" id="palette-detail" aria-live="polite"></div>
     <div class="palette-foot"><span><kbd>Up</kbd> <kbd>Down</kbd> move</span><span><kbd>Enter</kbd> open</span><span><kbd>Esc</kbd> close</span></div>
+  </div>
+</div>
+<div class="palette" id="help" hidden>
+  <div class="palette-box panel help-box" role="dialog" aria-modal="true" aria-labelledby="help-title">
+    <h3 id="help-title">Keyboard shortcuts <button class="link" id="help-close" type="button" aria-label="Close"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-x"/></svg></button></h3>
+    <dl class="keys" id="help-keys"></dl>
   </div>
 </div>
 <script src="/static/dashboard.js?v=10"></script>

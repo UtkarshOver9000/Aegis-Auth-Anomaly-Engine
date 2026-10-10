@@ -104,3 +104,4 @@ Items from the Alibi 1.0 plan (148 items), newest last.
 - Open on the live globe and turn the overview into its situation panel (1.0 #18)
 - Keep the globe's colour, layers and selected country in the URL (1.0 #19)
 - Add a command palette for search: Ctrl+K or / (1.0 #20)
+- Add keyboard shortcuts and a "?" list of them (1.0 #21)
