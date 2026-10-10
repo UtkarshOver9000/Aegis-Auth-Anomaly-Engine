@@ -98,3 +98,4 @@ Items from the Alibi 1.0 plan (148 items), newest last.
 - Turn panels into glass with HUD corner brackets (1.0 #6)
 - Add a self-hosted icon sprite and replace text glyphs (1.0 #7)
 - Move navigation to a left icon rail with counts of what is new (1.0 #17)
+- Name a late feed in the header's feed-health tooltip (1.0 #3)

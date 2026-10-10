@@ -179,7 +179,8 @@ async function headerStatus() {
     const el = $("#status");
     el.className = `status ${h.status}`;
     el.querySelector("span").textContent = `SNAPSHOT ${new Date(h.snapshot).toISOString().slice(5, 16).replace("T", " ")}Z · ${ok}/${h.feeds.length} FEEDS OK`;
-    el.title = h.feeds.filter((f) => f.status !== "ok").map((f) => `${f.id}: ${f.status}`).join("\n") || "All feeds within their max age";
+    const late = h.feeds.filter((f) => f.status !== "ok" && !f.status.startsWith("optional"));
+    el.title = late.map((f) => `${f.name}: ${f.status}${f.age_hours != null ? `, ${f.age_hours} h old` : ""}`).join("\n") || "All feeds within their max age";
   } catch {
     $("#status span").textContent = "STATUS UNAVAILABLE";
   }

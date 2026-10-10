@@ -20,7 +20,8 @@ def test_health_and_dashboard():
     health = client.get("/v1/health").json()
     assert health["status"] in ("ok", "degraded") and health["snapshot"]
     for feed in health["feeds"]:
-        assert {"id", "status", "last_success", "age_hours", "records"} <= feed.keys()
+        assert {"id", "name", "status", "last_success", "age_hours", "records"} <= feed.keys()
+        assert feed["name"]  # the header names a late feed in words, not by its id
     assert "Alibi" in client.get("/").text
 
 

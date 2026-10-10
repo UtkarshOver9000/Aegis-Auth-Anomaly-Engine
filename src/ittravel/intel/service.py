@@ -294,6 +294,7 @@ def health(now: datetime | None = None) -> dict:
         feeds.append(
             {
                 "id": f["id"],
+                "name": f["name"],
                 "status": status,
                 "last_success": f["updated"],
                 "age_hours": round(age / 3600, 1) if age is not None else None,
