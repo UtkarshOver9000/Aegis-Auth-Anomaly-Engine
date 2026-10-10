@@ -29,10 +29,7 @@
     <div class="cell feeds" id="feeds-cell"><span class="k">Feeds</span><span class="v" id="feeds-ok">-</span></div>
     <div class="cell map" title="Points on the globe: malware servers, Tor exits and criminal address blocks"><span class="k">On map</span><span class="v" id="on-map">-</span></div>
   </div>
-  <form class="search" id="search" role="search">
-    <svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-search"/></svg>
-    <input id="search-q" type="search" placeholder="IP, CVE, domain or company" aria-label="Search" autocomplete="off">
-  </form>
+  <button class="search" id="open-palette" type="button" aria-label="Search (Ctrl K)"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-search"/></svg><span>Search IP, CVE, company, country</span><kbd>Ctrl K</kbd></button>
 </header>
 <nav class="rail" aria-label="Modules">
   <a href="#globe" data-tab="globe" aria-label="Live globe"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-globe"/></svg><span class="lbl">Live globe</span></a>
@@ -49,7 +46,6 @@
   <div id="globe-tip" class="globe-tip floating" hidden></div>
   <div class="tour-caption" id="tour-caption" hidden></div>
 </div>
-<div class="search-wrap"><div class="panel search-results" id="search-results" hidden></div></div>
 
 <main>
 
@@ -256,6 +252,15 @@
   <span>Alibi · non-commercial portfolio project on public data</span>
   <a href="/docs">API</a><a href="/v1/health">Health</a><a href="https://github.com/UtkarshOver9000/alibi">Source</a>
 </footer>
+<div class="palette" id="palette" hidden>
+  <div class="palette-box panel" role="dialog" aria-modal="true" aria-label="Search">
+    <label class="palette-input"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-search"/></svg><input id="palette-q" type="search" placeholder="IP address, CVE, company, country or module"
+      autocomplete="off" spellcheck="false" aria-controls="palette-list"><kbd>Esc</kbd></label>
+    <ul class="palette-list" id="palette-list" role="listbox" aria-label="Matches"></ul>
+    <div class="palette-detail" id="palette-detail" aria-live="polite"></div>
+    <div class="palette-foot"><span><kbd>Up</kbd> <kbd>Down</kbd> move</span><span><kbd>Enter</kbd> open</span><span><kbd>Esc</kbd> close</span></div>
+  </div>
+</div>
 <script src="/static/dashboard.js?v=10"></script>
 </body>
 </html>

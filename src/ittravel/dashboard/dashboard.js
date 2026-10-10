@@ -125,21 +125,124 @@ function show(hash) {
 }
 window.addEventListener("hashchange", () => show(location.hash.slice(1)));
 
-// ---------- global search ----------
-$("#search").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const q = $("#search-q").value.trim();
-  const box = $("#search-results");
-  if (q.length < 2) return void (box.hidden = true);
-  box.hidden = false;
-  box.innerHTML = '<p class="muted">Searching…</p>';
+// ---------- command palette (Ctrl+K or /): modules, countries, recent searches and live lookups ----------
+const MODULES = $$(".rail a").map((a) => ({ kind: "Module", label: a.getAttribute("aria-label"), go: a.getAttribute("href") }));
+let paletteItems = [], paletteActive = 0, paletteTimer, countryIndex = [];
+const looksLookup = (q) => /^(\d{1,3}\.){3}\d{1,3}$/.test(q) || /^cve-\d{4}-\d{3,}$/i.test(q) || q.length >= 3;
+
+function recent() {
   try {
-    box.innerHTML = searchHtml(await api(`/v1/intel/search?q=${encodeURIComponent(q)}`)) +
-      '<p><button class="link" id="search-close">Close</button></p>';
-  } catch (err) {
-    box.innerHTML = `<p class="err">Search failed: ${esc(err.message.slice(0, 80))}</p>`;
+    return JSON.parse(localStorage.getItem("alibi.recent") || "[]");
+  } catch {
+    return [];
   }
-  $("#search-close")?.addEventListener("click", () => (box.hidden = true));
+}
+function remember(q) {
+  try {
+    localStorage.setItem("alibi.recent", JSON.stringify([q, ...recent().filter((x) => x !== q)].slice(0, 6)));
+  } catch {
+    // private windows can refuse storage; recent searches are a convenience only
+  }
+}
+
+async function openPalette(q = "") {
+  $("#palette").hidden = false;
+  const input = $("#palette-q");
+  input.value = q;
+  input.focus();
+  if (!countryIndex.length) {
+    try {
+      const { countries } = await api("/v1/intel/countries");
+      countryIndex = Object.entries(countries).map(([a2, c]) => ({ kind: "Country", label: c.name, go: `#globe?c=${a2}` }));
+    } catch {
+      countryIndex = [];
+    }
+  }
+  paletteQuery(input.value);
+}
+
+function closePalette() {
+  $("#palette").hidden = true;
+  $("#palette-detail").innerHTML = "";
+  $("#open-palette").focus({ preventScroll: true });
+}
+
+function paletteQuery(raw) {
+  const q = raw.trim(), lq = q.toLowerCase();
+  clearTimeout(paletteTimer);
+  $("#palette-detail").innerHTML = "";
+  let items;
+  if (!q) items = [...recent().map((r) => ({ kind: "Recent", label: r, query: r })), ...MODULES];
+  else {
+    const at = (x) => x.label.toLowerCase().indexOf(lq);
+    items = [...MODULES, ...countryIndex].filter((x) => at(x) >= 0).sort((a, b) => at(a) - at(b)).slice(0, 8);
+    if (looksLookup(q)) {
+      items.unshift({ kind: "Look up", label: q, query: q });
+      paletteTimer = setTimeout(() => lookup(q), 250);
+    }
+  }
+  paletteItems = items;
+  paletteActive = 0;
+  renderPalette();
+}
+
+function renderPalette() {
+  $("#palette-list").innerHTML = paletteItems.map((x, i) => `<li role="option" id="pal-${i}" aria-selected="${i === paletteActive}" data-i="${i}">
+    <span class="k">${esc(x.kind)}</span><span class="t">${esc(x.label)}</span>${x.go ? ico("chevron-right") : ""}</li>`).join("")
+    || '<li class="none">No matches. Try an IP address, a CVE id or a company name.</li>';
+  $("#palette-q").setAttribute("aria-activedescendant", paletteItems.length ? `pal-${paletteActive}` : "");
+  $(`#pal-${paletteActive}`)?.scrollIntoView({ block: "nearest" });
+}
+
+async function lookup(q) {
+  const box = $("#palette-detail");
+  box.innerHTML = '<p class="muted">Looking up…</p>';
+  try {
+    const r = await api(`/v1/intel/search?q=${encodeURIComponent(q)}`);
+    if ($("#palette-q").value.trim() !== q) return; // a newer query is on its way
+    box.innerHTML = searchHtml(r);
+    remember(q);
+  } catch (err) {
+    box.innerHTML = `<p class="err">Lookup failed: ${esc(err.message.slice(0, 80))}</p>`;
+  }
+}
+
+function choose(i) {
+  const x = paletteItems[i];
+  if (!x) return;
+  if (x.go) {
+    closePalette();
+    location.hash = x.go;
+  } else {
+    $("#palette-q").value = x.query;
+    lookup(x.query);
+  }
+}
+
+$("#open-palette").addEventListener("click", () => openPalette());
+$("#palette-q").addEventListener("input", (e) => paletteQuery(e.target.value));
+$("#palette-q").addEventListener("keydown", (e) => {
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    e.preventDefault();
+    const n = Math.max(paletteItems.length, 1);
+    paletteActive = (paletteActive + (e.key === "ArrowDown" ? 1 : -1) + n) % n;
+    renderPalette();
+  } else if (e.key === "Enter") {
+    e.preventDefault();
+    choose(paletteActive);
+  }
+});
+$("#palette-list").addEventListener("click", (e) => {
+  const li = e.target.closest("[data-i]");
+  if (li) choose(+li.dataset.i);
+});
+$("#palette").addEventListener("click", (e) => e.target.id === "palette" && closePalette());
+const typing = () => /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || "") || document.activeElement?.isContentEditable;
+document.addEventListener("keydown", (e) => {
+  if ((e.key.toLowerCase() === "k" && (e.ctrlKey || e.metaKey)) || (e.key === "/" && !typing())) {
+    e.preventDefault();
+    $("#palette").hidden ? openPalette() : closePalette();
+  } else if (e.key === "Escape" && !$("#palette").hidden) closePalette();
 });
 
 function searchHtml(r) {
