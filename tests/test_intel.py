@@ -237,6 +237,13 @@ def test_search_finds_ips_cves_and_names():
     assert r["kind"] == "text" and any("LinkedIn" in b["name"] for b in r["breaches"])
 
 
+def test_wire_lists_real_events_newest_first():
+    items = client.get("/v1/intel/wire").json()["items"]
+    assert items and {i["kind"] for i in items} <= {"c2", "dl", "kev", "breach"}
+    assert [i["time"] for i in items] == sorted((i["time"] for i in items), reverse=True)
+    assert all(i["title"] and i["query"] and i["source"] and i["precision"] in ("second", "day") for i in items)
+
+
 def test_overview_counts_the_points_on_the_map():
     points = client.get("/v1/intel/events").json()["points"]
     counts = client.get("/v1/intel/overview").json()["map_points"]

@@ -408,6 +408,28 @@ async function railBadges() {
   }
 }
 
+// ---------- the wire: newest real events, scrolling along the bottom ----------
+const WIRE_LABEL = { c2: "C2", dl: "PAYLOAD", kev: "EXPLOITED", breach: "BREACH" };
+async function loadWire() {
+  try {
+    const { items } = await api("/v1/intel/wire");
+    if (!items.length) return;
+    const when = (x) => (x.precision === "day" ? x.time.slice(0, 10) : `${x.time.slice(11, 16)}Z`);
+    const html = items.map((x) => `<button class="wire-item ${x.kind}" type="button" data-q="${esc(x.query)}"
+      title="${esc(x.source)}: open in search"><b>${WIRE_LABEL[x.kind]}</b><time>${esc(when(x))}</time><em>${esc(x.title)}</em>
+      <span>${esc(x.detail)}</span></button>`).join("");
+    const run = $("#wire-run");
+    run.innerHTML = html + html.replaceAll('type="button"', 'type="button" tabindex="-1" aria-hidden="true"'); // twice, for a seamless loop
+    run.style.setProperty("--wire-dur", `${Math.max(60, items.length * 4)}s`);
+    run.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-q]");
+      if (b) openPalette(b.dataset.q);
+    });
+  } catch (err) {
+    console.warn("wire", err);
+  }
+}
+
 // ---------- overview ----------
 const hhmm = (unix) => new Date(unix * 1000).toISOString().slice(5, 16).replace("T", " ") + "Z";
 
@@ -1275,3 +1297,4 @@ show(location.hash.slice(1) || "globe");
 startWorld();
 headerStatus();
 railBadges();
+loadWire();

@@ -101,6 +101,13 @@ async def intel_activity():
     return service.activity()
 
 
+@router.get("/v1/intel/wire", tags=["Intel"])
+async def intel_wire():
+    """The newest real events across the feeds, newest first, for the ticker: malware servers, flaws added to
+    CISA's exploited list and published breaches. `precision` says whether a time is exact or only a date."""
+    return service.wire()
+
+
 @router.get("/v1/intel/heat", tags=["Intel"])
 async def intel_heat():
     """City-level hotspots of malware servers and public DNS servers (located with DB-IP, CC BY 4.0)."""

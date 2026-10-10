@@ -279,6 +279,54 @@ def _records(feed_id: str) -> int | None:
     }.get(feed_id)
 
 
+def wire(limit: int = 40) -> dict:
+    """The newest real events across the feeds, newest first: malware servers as reported (to the second),
+    flaws added to CISA's exploited list and breaches published by HIBP (to the day)."""
+    from datetime import UTC
+
+    items = []
+    bad = _load("bad_ips.json")
+    for t, ip, v in sorted(((v["t"], ip, v) for ip, v in bad.items() if v.get("t")), reverse=True)[:25]:
+        named = v.get("malware") and v["malware"].lower() not in ("unnamed", "unknown malware", "none")
+        items.append(
+            {
+                "kind": "c2" if v["what"].startswith("Botnet") else "dl",
+                "time": datetime.fromtimestamp(t, UTC).isoformat(),
+                "precision": "second",
+                "title": v["malware"] if named else v["what"],
+                "detail": f"{v.get('country') or '??'} · {v.get('network') or 'unknown network'}",
+                "source": v.get("source"),
+                "query": ip,
+            }
+        )
+    for f in _load("flaws.json")[:6]:  # stored newest first
+        items.append(
+            {
+                "kind": "kev",
+                "time": f"{f['added']}T00:00:00+00:00",
+                "precision": "day",
+                "title": f["cve"],
+                "detail": f"{f['vendor']} {f['product']}" + (" · used by ransomware" if f["ransomware"] else ""),
+                "source": "CISA KEV",
+                "query": f["cve"],
+            }
+        )
+    for b in sorted(_load("breaches.json"), key=lambda r: r["added"], reverse=True)[:6]:
+        items.append(
+            {
+                "kind": "breach",
+                "time": f"{b['added'][:10]}T00:00:00+00:00",
+                "precision": "day",
+                "title": b["name"],
+                "detail": f"{b['accounts']:,} accounts · {b['how'].lower()}",
+                "source": "Have I Been Pwned",
+                "query": b["name"],
+            }
+        )
+    items.sort(key=lambda x: x["time"], reverse=True)
+    return {"items": items[:limit], "as_of": meta()["fetched_at"]}
+
+
 def health(now: datetime | None = None) -> dict:
     """Per-feed status: last successful download, age, record count, and whether it is past its max age."""
     from datetime import UTC

@@ -400,3 +400,28 @@ kbd { font: 500 10.5px var(--mono); color: var(--muted); border: 1px solid var(-
 .keys dt { text-align: right; }
 .keys dd { margin: 0; color: var(--muted); }
 @media (max-width: 900px) { .hbtn { display: none; } }
+/* ---- the wire: a ticker of the newest real events ---- */
+:root { --wire-h: 34px; }
+body { padding-bottom: var(--wire-h); }
+.stage, .world { bottom: var(--wire-h); }
+.wire { position: fixed; z-index: 995; left: var(--rail-w); right: 0; bottom: 0; height: var(--wire-h); display: flex; align-items: stretch;
+  background: var(--glass-strong); border-top: 1px solid var(--line); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.wire-label { display: flex; align-items: center; gap: 8px; padding: 0 14px; border-right: 1px solid var(--line);
+  font: 700 11px var(--hud); letter-spacing: 0.22em; text-transform: uppercase; color: var(--brand-hi); }
+.wire-label .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--brand); animation: live-pulse 1.6s infinite; }
+.wire-track { flex: 1; overflow: hidden; position: relative; -webkit-mask-image: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent); }
+.wire-run { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; gap: 34px; white-space: nowrap; padding-left: 20px;
+  animation: wire-scroll var(--wire-dur, 90s) linear infinite; }
+.wire:hover .wire-run, .wire:focus-within .wire-run { animation-play-state: paused; }
+@keyframes wire-scroll { to { transform: translateX(-50%); } }
+.wire-item { display: inline-flex; align-items: baseline; gap: 8px; border: 0; background: none; padding: 0; cursor: pointer; color: var(--muted);
+  font: 12.5px var(--sans); }
+.wire-item:hover em { color: #fff; text-decoration: underline; }
+.wire-item b { font: 700 10px var(--hud); letter-spacing: 0.16em; }
+.wire-item time { font: 11px var(--mono); color: var(--dim); }
+.wire-item em { font-style: normal; color: var(--ink); }
+.wire-item.c2 b { color: var(--c2); } .wire-item.dl b { color: var(--dl); } .wire-item.kev b { color: var(--amber); }
+.wire-item.breach b { color: var(--accent); }
+@media (prefers-reduced-motion: reduce) { .wire-run { animation: none; position: static; } .wire-track { overflow-x: auto; } }
+@media (max-width: 900px) { :root { --wire-h: 0px; } .wire { display: none; } }
