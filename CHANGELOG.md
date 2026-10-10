@@ -88,3 +88,8 @@ Covered without a separate change:
 - Each feed has its own max age in sources.yaml, and stale feeds are flagged (done with #29, #30 and #36) (#38)
 
 Plan items done so far: 68 of 299 (#172, #175, #241, #243, #244, #246, #248, #259, #260, #261, #265, #152, #160, #169, #1, #2, #3, #4, #5, #6, #7, #8, #9, #10, #11, #12, #13, #14, #15, #16, #17, #18, #19, #20, #21, #22, #23, #24, #25, #26, #27, #28, #29, #30, #31, #32, #33, #35, #36, #38, #39, #40, #42, #61, #62, #115, #136, #137, #151, #153, #154, #155, #158, #159, #168, #276, #277, #293).
+
+## 1.0 plan
+
+Items from the Alibi 1.0 plan (148 items), newest last.
+- Keep the last EPSS scores when the daily download fails (1.0 #1)

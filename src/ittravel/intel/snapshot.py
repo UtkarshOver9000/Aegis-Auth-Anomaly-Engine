@@ -234,9 +234,27 @@ def _epss(raw: Path) -> tuple[dict[str, tuple[float, float]], str | None]:
     return scores, date
 
 
+def _previous_epss() -> tuple[dict[str, tuple[float, float]], str | None, str | None]:
+    """The last snapshot's EPSS scores, so a failed download keeps yesterday's scores instead of blanking them.
+
+    Returns the scores, their score date and when that copy was downloaded."""
+    try:
+        rows = json.loads((OUT / "flaws.json").read_text(encoding="utf-8"))
+        meta = json.loads((OUT / "meta.json").read_text(encoding="utf-8"))
+        date = meta["flaws"].get("epss_date")
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return {}, None, None
+    feed = next((f for f in meta.get("feeds", []) if f.get("id") == "epss" and f.get("available")), {})
+    scores = {r["cve"]: (r["epss"], r["epss_pct"]) for r in rows if r.get("epss") is not None}
+    return scores, date, feed.get("updated")
+
+
 def build_flaws(raw: Path) -> dict:
     data = json.loads((raw / "cisa_kev.json").read_text(encoding="utf-8"))
     epss, epss_date = _epss(raw)
+    reused_from = None
+    if not epss:
+        epss, epss_date, reused_from = _previous_epss()
     rows = [
         {
             "cve": v["cveID"],
@@ -260,6 +278,8 @@ def build_flaws(raw: Path) -> dict:
         "released": data.get("dateReleased"),
         "epss_date": epss_date,
         "epss_scored": sum(r["epss"] is not None for r in rows),
+        "epss_from_previous_snapshot": bool(epss) and not (raw / "epss_scores.csv.gz").exists(),
+        "reused_from": reused_from if epss else None,
     }
 
 
@@ -844,7 +864,7 @@ def main() -> None:
     meta["countries"] = build_countries(args.raw, hosting_ips, bad_by_country, landings)
     meta["window_ooni"] = "last 30 days to fetch date"
     meta["feeds"] = feed_currency(args.raw)
-    for feed_id, part in (("iptoasn", net), ("natural_earth_admin1", meta["states"])):
+    for feed_id, part in (("iptoasn", net), ("natural_earth_admin1", meta["states"]), ("epss", meta["flaws"])):
         if part.get("reused_from"):  # say honestly how old a reused table is
             for f in meta["feeds"]:
                 if f["id"] == feed_id:

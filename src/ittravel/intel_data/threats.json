@@ -1,17 +1,17 @@
 {
- "malicious_ips": 8907,
- "malicious_ips_on_hosting": 982,
- "hosting_share_of_malicious_ips": 0.1107,
+ "malicious_ips": 8913,
+ "malicious_ips_on_hosting": 975,
+ "hosting_share_of_malicious_ips": 0.1098,
  "hosting_share_of_internet": 0.1092,
- "iot_botnet_ips": 4402,
+ "iot_botnet_ips": 4329,
  "by_source": [
   [
    "URLhaus",
-   6490
+   6480
   ],
   [
    "ThreatFox",
-   2412
+   2428
   ],
   [
    "Feodo Tracker",
@@ -21,37 +21,37 @@
  "what": [
   [
    "Malware download site",
-   6493
+   6484
   ],
   [
    "Botnet control server",
-   2414
+   2429
   ]
  ],
  "top_malware": [
   [
    "Mozi",
-   2741
+   2712
   ],
   [
    "unnamed",
-   1718
+   1785
   ],
   [
    "mirai",
-   1632
+   1589
   ],
   [
    "Cobalt Strike",
-   554
+   558
   ],
   [
    "PureRAT",
-   331
+   335
   ],
   [
    "Unknown malware",
-   258
+   259
   ],
   [
    "AdaptixC2",
@@ -59,31 +59,31 @@
   ],
   [
    "AsyncRAT",
-   166
+   172
   ],
   [
    "Remcos",
-   109
+   102
   ],
   [
    "DCRat",
    88
   ],
   [
-   "Evilginx",
-   86
+   "Havoc",
+   84
   ],
   [
-   "Havoc",
-   85
+   "Evilginx",
+   84
   ],
   [
    "DanaBot",
-   59
+   81
   ],
   [
    "Jackskid",
-   54
+   46
   ],
   [
    "Tsundere",
@@ -94,21 +94,21 @@
   {
    "asn": 4837,
    "network": "CHINA169-BACKBONE CHINA UNICOM China169 Backbone",
-   "count": 3667,
+   "count": 3661,
    "hosting": false,
    "criminal_network": false
   },
   {
    "asn": 4134,
    "network": "CHINANET-BACKBONE No.31,Jin-rong Street",
-   "count": 438,
+   "count": 442,
    "hosting": false,
    "criminal_network": false
   },
   {
    "asn": 37457,
    "network": "Telkom-Internet",
-   "count": 179,
+   "count": 173,
    "hosting": false,
    "criminal_network": false
   },
@@ -122,35 +122,35 @@
   {
    "asn": 14061,
    "network": "DIGITALOCEAN-ASN",
-   "count": 163,
+   "count": 162,
    "hosting": true,
    "criminal_network": false
   },
   {
    "asn": 17816,
    "network": "CHINA169-GZ China Unicom IP network China169 Guangdong province",
-   "count": 157,
+   "count": 156,
    "hosting": false,
-   "criminal_network": false
-  },
-  {
-   "asn": 45090,
-   "network": "TENCENT-NET-AP Shenzhen Tencent Computer Systems Company Limited",
-   "count": 146,
-   "hosting": true,
    "criminal_network": false
   },
   {
    "asn": 132199,
    "network": "GLOBE-MOBILE-5TH-GEN-AS Globe Telecom Inc.",
-   "count": 144,
+   "count": 145,
    "hosting": false,
    "criminal_network": false
   },
   {
    "asn": 37963,
    "network": "ALIBABA-CN-NET Hangzhou Alibaba Advertising Co.,Ltd.",
-   "count": 139,
+   "count": 144,
+   "hosting": true,
+   "criminal_network": false
+  },
+  {
+   "asn": 45090,
+   "network": "TENCENT-NET-AP Shenzhen Tencent Computer Systems Company Limited",
+   "count": 144,
    "hosting": true,
    "criminal_network": false
   },
@@ -164,35 +164,35 @@
   {
    "asn": 219502,
    "network": "STORMCLOUD-AS - Storm Industries LLC",
-   "count": 83,
+   "count": 82,
    "hosting": false,
    "criminal_network": true
   },
   {
    "asn": 36352,
    "network": "AS-COLOCROSSING",
-   "count": 77,
+   "count": 78,
    "hosting": true,
    "criminal_network": false
   },
   {
    "asn": 17813,
    "network": "MTNL-AP Mahanagar Telephone Nigam Limited",
-   "count": 73,
+   "count": 75,
    "hosting": false,
    "criminal_network": false
   },
   {
    "asn": 23969,
    "network": "TOT-NET TOT Public Company Limited",
-   "count": 63,
+   "count": 64,
    "hosting": false,
    "criminal_network": false
   },
   {
    "asn": 140293,
    "network": "CHINATELECOM-JIANGSU-CHANGZHOU-5G-NETWORK CHINATELECOM Jiangsu province Changzhou 5G network",
-   "count": 58,
+   "count": 59,
    "hosting": false,
    "criminal_network": false
   }
@@ -200,39 +200,39 @@
  "top_countries": [
   [
    "CN",
-   4850
+   4841
   ],
   [
    "US",
-   1013
+   1015
   ],
   [
    "IN",
-   288
+   290
   ],
   [
    "HK",
-   201
+   202
   ],
   [
    "ZA",
-   184
+   178
   ],
   [
    "GB",
-   170
+   168
   ],
   [
    "RU",
-   163
+   165
   ],
   [
    "ID",
-   156
+   155
   ],
   [
    "PH",
-   153
+   154
   ],
   [
    "DE",
@@ -244,7 +244,7 @@
   ],
   [
    "SC",
-   124
+   121
   ],
   [
    "BR",
@@ -252,96 +252,92 @@
   ],
   [
    "CA",
-   79
+   80
   ],
   [
    "FR",
    69
   ]
  ],
- "threatfox_iocs_48h": 6754,
+ "threatfox_iocs_48h": 7242,
  "threatfox_types": [
   [
    "Botnet control server",
-   4275
+   4267
   ],
   [
    "Malware download site",
-   1771
+   2064
   ],
   [
    "Malware file",
-   703
-  ],
-  [
-   "Card-skimming site",
-   5
+   911
   ]
  ],
  "threatfox_malware": [
   [
    "Cobalt Strike",
-   1290
+   1300
   ],
   [
    "Unknown Loader",
-   742
+   686
   ],
   [
    "PureRAT",
-   621
+   624
   ],
   [
    "ClearFake",
-   414
+   521
   ],
   [
    "Unknown malware",
-   396
-  ],
-  [
-   "AsyncRAT",
-   390
-  ],
-  [
-   "Unknown Stealer",
-   287
-  ],
-  [
-   "AdaptixC2",
-   264
+   486
   ],
   [
    "IClickFix",
-   236
+   436
+  ],
+  [
+   "AsyncRAT",
+   399
   ],
   [
    "Mirai",
-   202
+   364
+  ],
+  [
+   "AdaptixC2",
+   265
+  ],
+  [
+   "Unknown Stealer",
+   210
   ],
   [
    "Vidar",
-   199
+   184
+  ],
+  [
+   "php.shin_webshell",
+   129
   ],
   [
    "Remcos",
-   133
+   125
   ],
   [
    "DCRat",
    115
   ],
   [
-   "php.shin_webshell",
-   111
-  ],
-  [
    "Havoc",
-   98
+   97
   ]
  ],
- "urlhaus_urls_30d": 33013,
- "urlhaus_online": 16812,
+ "urlhaus_urls_30d": 32711,
+ "urlhaus_online": 16785,
  "spamhaus_drop_ranges": 1684,
  "spamhaus_drop_addresses": 14901248,
  "spamhaus_asn_drop": 431,
@@ -388,17 +384,13 @@
   ]
  ],
  "ransomware": {
-  "victims": 214,
-  "from": "2026-10-02",
-  "to": "2026-10-09",
+  "victims": 215,
+  "from": "2026-10-03",
+  "to": "2026-10-10",
   "by_day": [
    [
-    "2026-10-02",
-    4
-   ],
-   [
     "2026-10-03",
-    9
+    6
    ],
    [
     "2026-10-04",
@@ -422,7 +414,11 @@
    ],
    [
     "2026-10-09",
-    35
+    38
+   ],
+   [
+    "2026-10-10",
+    5
    ]
   ],
   "by_group": [
@@ -432,15 +428,15 @@
    ],
    [
     "qilin",
-    23
+    22
    ],
    [
     "nightspire",
-    23
+    22
    ],
    [
     "safepay",
-    10
+    12
    ],
    [
     "umbra",

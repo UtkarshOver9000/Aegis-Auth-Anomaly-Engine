@@ -38,6 +38,18 @@ def test_flaws_parse_newest_first_without_epss(out):
     assert all(r["cve"].startswith("CVE-") for r in rows)
 
 
+def test_flaws_keep_the_last_epss_scores_when_the_download_fails(out):
+    cve = json.loads((RAW / "cisa_kev.json").read_text(encoding="utf-8"))["vulnerabilities"][0]["cveID"]
+    (out / "flaws.json").write_text(json.dumps([{"cve": cve, "epss": 0.97, "epss_pct": 0.999}]))
+    feed = {"id": "epss", "available": True, "updated": "2026-10-09T18:28:30+00:00"}
+    (out / "meta.json").write_text(json.dumps({"flaws": {"epss_date": "2026-10-09"}, "feeds": [feed]}))
+    meta = snapshot.build_flaws(RAW)  # the fixtures have no EPSS file, like a failed download
+    rows = {r["cve"]: r for r in json.loads((out / "flaws.json").read_text())}
+    assert meta["epss_from_previous_snapshot"] and meta["epss_date"] == "2026-10-09" and meta["epss_scored"] == 1
+    assert meta["reused_from"] == feed["updated"]  # the Sources page shows the age of the kept copy
+    assert rows[cve]["epss"] == 0.97 and rows[cve]["epss_pct"] == 0.999
+
+
 def test_threats_parse_every_source(out):
     threats, by_country = snapshot.build_threats(RAW)
     assert threats["malicious_ips"] == sum(n for _, n in threats["by_source"])
