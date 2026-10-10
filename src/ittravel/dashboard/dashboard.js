@@ -73,7 +73,7 @@ function load(tab) {
 function show(hash) {
   // "#check/travel" opens a tab and, for the sign-in check, runs that story
   let [tab, story] = hash.split("/");
-  if (!$(`#tab-${tab}`)) tab = "home";
+  if (tab === "home" || !$(`#tab-${tab}`)) tab = "globe"; // the old overview now lives on the globe
   $$(".tab").forEach((s) => (s.hidden = s.id !== `tab-${tab}`));
   $$("nav a").forEach((a) => a.classList.toggle("on", a.dataset.tab === tab));
   if (!loaded.has(tab) && loaders[tab]) load(tab);
@@ -225,31 +225,25 @@ async function railBadges() {
 // ---------- overview ----------
 const hhmm = (unix) => new Date(unix * 1000).toISOString().slice(5, 16).replace("T", " ") + "Z";
 
-loaders.home = async () => {
-  const [o, act, f, b, t] = await Promise.all([api("/v1/intel/overview"), api("/v1/intel/activity"), api("/v1/intel/flaws"),
-    api("/v1/intel/breaches"), api("/v1/intel/threats")]);
-  stamp("home", o.as_of, " · threat feeds refresh every 6 h; news is live");
-  const tk = o.takeovers_caught, rw = o.ransomware_victims;
-  $("#home-kpis").innerHTML = [
-    kpi(fmt(o.malicious_ips), "malware and botnet servers tracked"),
-    kpi(fmt(act.new_today), "new malware servers reported today (UTC)"),
-    kpi(fmt(rw.victims), `ransomware leak-site posts, ${day(rw.from)} to ${day(rw.to)}`),
-    kpi(fmt(o.exploited_flaws_last_30_days), "flaws newly confirmed exploited, 30 d"),
-    kpi(compact(o.accounts_exposed_last_12_months), `accounts exposed in ${o.breaches_last_12_months} breaches, 12 mo`),
-    kpi(fmt(o.criminal_networks), "networks run by criminals (Spamhaus)"),
-    kpi(fmt(o.countries_with_confirmed_blocking), "countries with confirmed website blocking, 30 d"),
-    tk ? kpi(`${tk.caught}/${tk.of}`, `takeovers caught at a ${pct(tk.challenge_rate)} challenge rate (2020 test data)`)
-      : kpi("rules only", "takeover model not deployed on this server"),
-  ].join("");
+// The live situation panel: today's headline numbers, drawn over the globe.
+async function situation() {
+  const [o, act] = await Promise.all([api("/v1/intel/overview"), api("/v1/intel/activity")]);
+  const rw = o.ransomware_victims;
+  $("#sit-mal").textContent = fmt(o.malicious_ips);
+  $("#sit-new").textContent = `+${fmt(act.new_today)} TODAY`;
+  $("#sit-new").hidden = !act.new_today;
+  $("#sit-sub").textContent = `${fmt(o.map_points.c2 || 0)} control servers · ${fmt(o.map_points.dl || 0)} download sites`;
+  $("#sit-meta").textContent = "abuse.ch · Spamhaus";
+  $("#sit-end").textContent = hhmm(act.window_end);
   const max = Math.max(...act.per_hour, 1);
-  $("#home-activity").innerHTML = act.per_hour.map((n, i) => `<i style="height:${(n / max) * 100}%" title="${n} reported, ${47 - i} h before snapshot"></i>`).join("");
-  $("#home-activity-meta").textContent = `${fmt(act.last_48h)} total`;
-  $("#home-flaws").innerHTML = f.latest.slice(0, 7).map((r) => `<li><span><a href="https://nvd.nist.gov/vuln/detail/${esc(r.cve)}" target="_blank" rel="noopener">${esc(r.cve)}</a>
-    ${esc(r.vendor)} ${esc(r.product)}</span><span>${r.epss == null ? "" : `EPSS ${pct(r.epss, 1)} · `}${esc(r.added.slice(5))}</span></li>`).join("");
-  $("#home-breaches").innerHTML = b.latest.slice(0, 7).map((r) => `<li><span><b>${esc(r.name)}</b> <span class="muted">${esc(r.how)}</span></span><span>${compact(r.accounts)}</span></li>`).join("");
-  bars($("#home-gangs"), t.ransomware.by_group.slice(0, 7));
-  $("#home-asof").textContent = `Snapshot ${o.as_of}. Sources and licences: Sources tab.`;
-};
+  $("#home-activity").innerHTML = act.per_hour.map((n, i) => `<i style="height:${Math.max(4, (n / max) * 100)}%" title="${n} reported, ${47 - i} h before the snapshot"></i>`).join("");
+  $("#home-kpis").innerHTML = [
+    kpi(compact(o.accounts_exposed_last_12_months), `accounts exposed in ${o.breaches_last_12_months} breaches, 12 months`),
+    kpi(fmt(o.exploited_flaws_last_30_days), "flaws newly confirmed exploited, 30 days"),
+    kpi(fmt(rw.victims), "ransomware leak-site posts, 7 days"),
+    kpi(fmt(o.threat_indicators_48h), "new threat indicators shared, 48 hours"),
+  ].join("");
+}
 
 // ---------- live globe ----------
 const METRICS = {
@@ -388,6 +382,7 @@ loaders.globe = async () => {
     }
   }
   setupTimeline(act);
+  situation().catch((err) => console.error("situation", err));
   globe ? setupGlobe(el, features, data, centers) : flatMap(features);
   globe && (globe.__features = features);
   window.__features = features;
@@ -1085,7 +1080,7 @@ function startWorld() {
   (window.requestIdleCallback || ((f) => setTimeout(f, 300)))(() => loaded.has("globe") || load("globe"));
 }
 
-show(location.hash.slice(1) || "home");
+show(location.hash.slice(1) || "globe");
 startWorld();
 headerStatus();
 railBadges();

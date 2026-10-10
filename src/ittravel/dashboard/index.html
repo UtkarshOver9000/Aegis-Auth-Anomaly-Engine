@@ -21,7 +21,7 @@
 </head>
 <body>
 <header class="topbar">
-  <a class="brand" href="#home" aria-label="Alibi home"><img class="mark" src="/static/logo.svg" alt="" width="32" height="32"><span class="word">ALIBI<small>Open threat intelligence</small></span></a>
+  <a class="brand" href="#globe" aria-label="Alibi: live globe"><img class="mark" src="/static/logo.svg" alt="" width="32" height="32"><span class="word">ALIBI<small>Open threat intelligence</small></span></a>
   <div class="hud" id="status">
     <div class="cell clock" title="Coordinated Universal Time"><span class="k">UTC</span><span class="v" id="utc">--:--:--</span></div>
     <div class="cell live" id="live"><i class="dot"></i><span class="v" id="live-label">CONNECTING</span></div>
@@ -35,7 +35,6 @@
   </form>
 </header>
 <nav class="rail" aria-label="Modules">
-  <a href="#home" data-tab="home" aria-label="Overview"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-activity"/></svg><span class="lbl">Overview</span></a>
   <a href="#globe" data-tab="globe" aria-label="Live globe"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-globe"/></svg><span class="lbl">Live globe</span></a>
   <a href="#attacks" data-tab="attacks" aria-label="Threats"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-biohazard"/></svg><span class="lbl">Threats</span><b class="count" data-badge="attacks" hidden></b></a>
   <a href="#breaches" data-tab="breaches" aria-label="Leaks"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-database-zap"/></svg><span class="lbl">Leaks</span><b class="count" data-badge="breaches" hidden></b></a>
@@ -54,37 +53,20 @@
 
 <main>
 
-  <section id="tab-home" class="tab page">
-    <div class="page-head">
-      <h1>Situation overview</h1>
-      <p class="sub">Open-source threat intelligence from public feeds. Every figure shows its source and age.</p>
-    </div>
-    <div class="kpis" id="home-kpis"></div>
-    <div class="grid3">
-      <div class="panel"><h3>Malware servers reported, last 48 h <span class="meta" id="home-activity-meta"></span></h3><div class="spark" id="home-activity"></div></div>
-      <div class="panel"><h3>Newest exploited flaws <a class="meta" href="#flaws">all</a></h3><ul class="list" id="home-flaws"></ul></div>
-      <div class="panel"><h3>Ransomware gangs, last 7 days <a class="meta" href="#attacks">all</a></h3><div class="bars" id="home-gangs"></div></div>
-    </div>
-    <div class="grid2">
-      <div class="panel"><h3>Newest published breaches <a class="meta" href="#breaches">all</a></h3><ul class="list" id="home-breaches"></ul></div>
-      <div class="panel"><h3>Modules</h3>
-        <div class="modules" id="modules">
-          <a href="#globe"><b>Globe</b><span>States coloured by threat density, live points, 48 h replay</span></a>
-          <a href="#breaches"><b>Breaches</b><span>Every published breach and how the data got out</span></a>
-          <a href="#attacks"><b>Attacks</b><span>Malware servers, criminal networks, ransomware</span></a>
-          <a href="#flaws"><b>Flaws</b><span>CISA exploited list with EPSS, patch priority</span></a>
-          <a href="#check/usual"><b>Sign-in check</b><span>Account-takeover model plus live network rules</span></a>
-          <a href="#results"><b>Sources</b><span>Feed ages, licences, model data periods</span></a>
-        </div>
-      </div>
-    </div>
-    <p class="fineprint" id="home-asof"></p>
-  </section>
-
-  <section id="tab-globe" class="tab stage-tab" hidden>
+  <section id="tab-globe" class="tab stage-tab">
     <div class="stage">
 
-      <aside class="ov ov-left panel" id="layers-panel" aria-label="Layers">
+      <aside class="ov ov-left" id="layers-panel" aria-label="Situation and layers">
+        <section class="panel situation" aria-label="Live situation">
+          <h3>Live situation <span class="meta" id="sit-meta"></span></h3>
+          <div class="hero"><b id="sit-mal">-</b><span class="delta" id="sit-new" hidden></span></div>
+          <p class="hero-l">malware and botnet servers tracked right now</p>
+          <p class="hero-s" id="sit-sub"></p>
+          <div class="spark mini" id="home-activity" aria-label="Malware servers reported per hour, last 48 hours"></div>
+          <div class="axis"><span>-48 h</span><span>-24 h</span><span id="sit-end">snapshot</span></div>
+          <div class="kgrid" id="home-kpis"></div>
+        </section>
+        <section class="panel layers">
         <h3>Layers <button class="link ov-close" data-toggle="layers-panel" aria-label="Close layers"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-x"/></svg></button></h3>
         <div class="group">
           <div class="label">Colour states by</div>
@@ -109,6 +91,7 @@
         </div>
         <div class="group legend" id="legend"></div>
         <details class="group about"><summary>About this layer</summary><p id="metric-explain"></p><p class="fineprint" id="map-sources"></p></details>
+        </section>
       </aside>
 
       <aside class="ov ov-right" id="inspector" aria-label="Inspector">

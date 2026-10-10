@@ -202,7 +202,8 @@ label.inline input { width: 80px; margin: 0; }
 #globe.flat img { max-width: 100%; max-height: 100%; }
 .ov { position: absolute; z-index: 5; }
 .ov.panel, .ov .panel { background: var(--glass); box-shadow: var(--e2); }
-.ov-left { top: 12px; left: 12px; width: 268px; max-height: calc(100% - 120px); overflow: auto; margin: 0; }
+.ov-left { top: 12px; left: 12px; width: 340px; max-height: calc(100% - 108px); overflow: auto; margin: 0; scrollbar-width: thin; }
+.ov-left > .panel { margin-bottom: 10px; }
 .ov-right { top: 12px; right: 12px; width: 320px; max-height: calc(100% - 120px); overflow: auto; }
 .ov-right .panel { margin-bottom: 10px; }
 .ov-bottom { left: 12px; right: 12px; bottom: 12px; margin: 0; display: flex; align-items: center; gap: 12px; padding: 8px 12px; }
@@ -279,8 +280,6 @@ label.inline input { width: 80px; margin: 0; }
   .kpi .v { font-size: 18px; }
 }
 body.on-globe .foot { display: none; }
-#home-kpis { grid-template-columns: repeat(4, 1fr); }
-@media (max-width: 900px) { #home-kpis { grid-template-columns: repeat(2, 1fr); } }
 /* OpenStreetMap tiles dimmed to match the dark console (display filter only; same map data) */
 .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9); }
 /* icons: Lucide, drawn with the text colour */
@@ -349,3 +348,20 @@ body.on-sheet .world { filter: brightness(0.4) saturate(0.8); pointer-events: no
 main, .foot { position: relative; z-index: 1; }
 @media (max-width: 900px) { .page { margin: 0; border-radius: 0; border-width: 0 0 1px; } }
 @media (prefers-reduced-transparency: reduce) { .page { background: var(--bg); backdrop-filter: none; -webkit-backdrop-filter: none; } }
+/* ---- live situation: the headline numbers over the globe ---- */
+.situation .hero { display: flex; align-items: flex-end; gap: 10px; }
+.situation .hero b { font: 700 52px/0.9 var(--hud); letter-spacing: 0.01em; background: linear-gradient(180deg, #fff 25%, #ffb3b5 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent; font-variant-numeric: tabular-nums; }
+.situation .delta { margin-bottom: 5px; padding: 3px 6px; font: 600 11px var(--mono); color: var(--brand-hi); background: var(--brand-soft);
+  border: 1px solid rgba(229, 56, 59, 0.35); border-radius: 2px; }
+.situation .hero-l { margin: 8px 0 0; font-size: 13px; font-weight: 500; }
+.situation .hero-s { margin: 2px 0 0; font: 12px var(--mono); color: var(--dim); }
+.spark.mini { height: 44px; margin: 12px 0 4px; gap: 2px; }
+.spark.mini i { background: linear-gradient(180deg, var(--brand-hi), rgba(229, 56, 59, 0.25)); opacity: 1; }
+.situation .axis { display: flex; justify-content: space-between; font: 10px var(--mono); color: var(--dim); }
+.kgrid { display: grid; grid-template-columns: 1fr 1fr; margin: 12px -14px -12px; border-top: 1px solid var(--line); }
+.kgrid .kpi { background: none; padding: 11px 14px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.kgrid .kpi:nth-child(2n) { border-right: 0; }
+.kgrid .kpi:nth-last-child(-n + 2) { border-bottom: 0; }
+.kgrid .kpi .v { font-size: 22px; }
+.kgrid .kpi .l { font-size: 11.5px; line-height: 1.35; }
