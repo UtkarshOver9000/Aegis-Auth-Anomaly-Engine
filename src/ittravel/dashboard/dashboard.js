@@ -10,6 +10,8 @@ const pct = (x, d = 2) => `${(x * 100).toFixed(d)}%`;
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const day = (iso) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+// Lucide icons (ISC), one self-hosted sprite
+const ico = (name, cls = "") => `<svg class="ico ${cls}" aria-hidden="true"><use href="/static/vendor/icons.svg#i-${name}"/></svg>`;
 
 function ago(iso) {
   if (!iso) return "";
@@ -459,7 +461,7 @@ function startReplay(act, seconds = 36) {
   const rgb = { c2: "213,94,0", dl: "230,159,0" };
   let k = 0;
   const t0 = performance.now();
-  $("#replay-play").textContent = "❚❚";
+  $("#replay-play").innerHTML = ico("pause");
   replay = { stop: false };
   const step = () => {
     if (!replay || replay.stop) return;
@@ -482,7 +484,7 @@ function startReplay(act, seconds = 36) {
 function stopReplay(done = false) {
   if (replay) replay.stop = true;
   replay = null;
-  $("#replay-play").textContent = "▶";
+  $("#replay-play").innerHTML = ico("play");
   if (!done) $$("#replay-hist i").forEach((b) => b.classList.remove("past"));
   setTimeout(() => globe && globe.ringsData([]), done ? 2500 : 0);
 }
@@ -500,7 +502,7 @@ function caption(label, text) {
 async function tour() {
   if (!globe || touring) return;
   touring = true;
-  $("#tour-btn").textContent = "Stop tour";
+  $("#tour-btn").innerHTML = `${ico("x")}<span>Stop tour</span>`;
   globe.controls().autoRotate = false;
   try {
     const lg = await api("/v1/intel/globe/malicious_ips/legend");
@@ -535,7 +537,7 @@ async function tour() {
 
 function stopTour() {
   touring = false;
-  $("#tour-btn").textContent = "Tour";
+  $("#tour-btn").innerHTML = `${ico("orbit")}<span>Tour</span>`;
   caption("", "");
 }
 
@@ -638,7 +640,7 @@ async function selectCountry(f, at) {
 function renderJourney() {
   const names = window.__data.countries;
   $("#journey-list").innerHTML = journey.map((cc, i) => `<li>${esc(names[cc].name)}${i === 0 ? " <span class='muted'>(usual home)</span>" : ""}
-    <button data-drop="${i}" aria-label="Remove">remove</button></li>`).join("");
+    <button data-drop="${i}" aria-label="Remove ${esc(names[cc].name)}">${ico("x")}</button></li>`).join("");
   $$("[data-drop]").forEach((b) => b.addEventListener("click", () => {
     journey.splice(+b.dataset.drop, 1);
     renderJourney();

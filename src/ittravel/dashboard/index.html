@@ -23,16 +23,17 @@
 <header class="topbar">
   <a class="brand" href="#home" aria-label="Alibi home"><img class="mark" src="/static/logo.svg" alt="" width="30" height="30">ALIBI</a>
   <nav aria-label="Modules">
-    <a href="#home" data-tab="home">Overview</a>
-    <a href="#globe" data-tab="globe">Globe</a>
-    <a href="#breaches" data-tab="breaches">Breaches</a>
-    <a href="#attacks" data-tab="attacks">Attacks</a>
-    <a href="#flaws" data-tab="flaws">Flaws</a>
-    <a href="#check" data-tab="check">Sign-in check</a>
-    <a href="#news" data-tab="news">News</a>
-    <a href="#results" data-tab="results">Sources</a>
+    <a href="#home" data-tab="home"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-activity"/></svg>Overview</a>
+    <a href="#globe" data-tab="globe"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-globe"/></svg>Globe</a>
+    <a href="#breaches" data-tab="breaches"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-database-zap"/></svg>Breaches</a>
+    <a href="#attacks" data-tab="attacks"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-biohazard"/></svg>Attacks</a>
+    <a href="#flaws" data-tab="flaws"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-bug"/></svg>Flaws</a>
+    <a href="#check" data-tab="check"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-fingerprint"/></svg>Sign-in check</a>
+    <a href="#news" data-tab="news"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-newspaper"/></svg>News</a>
+    <a href="#results" data-tab="results"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-shield-check"/></svg>Sources</a>
   </nav>
   <form class="search" id="search" role="search">
+    <svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-search"/></svg>
     <input id="search-q" type="search" placeholder="IP, CVE, domain or company" aria-label="Search" autocomplete="off">
   </form>
   <div class="status" id="status" title="Snapshot and feed health"><i class="dot"></i><span>loading</span></div>
@@ -75,7 +76,7 @@
       <div class="tour-caption" id="tour-caption" hidden></div>
 
       <aside class="ov ov-left panel" id="layers-panel" aria-label="Layers">
-        <h3>Layers <button class="link ov-close" data-toggle="layers-panel" aria-label="Close layers">close</button></h3>
+        <h3>Layers <button class="link ov-close" data-toggle="layers-panel" aria-label="Close layers"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-x"/></svg></button></h3>
         <div class="group">
           <div class="label">Colour states by</div>
           <div class="radio-list" id="metric-chips">
@@ -124,20 +125,20 @@
       </aside>
 
       <div class="ov ov-bottom panel timeline" aria-label="Timeline">
-        <button class="btn icon" id="replay-play" title="Replay the last 48 hours">▶</button>
+        <button class="btn icon" id="replay-play" title="Replay the last 48 hours" aria-label="Replay the last 48 hours"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-play"/></svg></button>
         <div class="tl-main">
           <div class="tl-head"><span class="label">Malware servers by report time, last 48 h</span><span class="mono" id="replay-time"></span></div>
           <div class="hist" id="replay-hist"></div>
         </div>
         <div class="tl-stat"><span class="label">New today</span><b class="mono" id="new-today">-</b></div>
         <div class="tl-stat"><span class="label">48 h</span><b class="mono" id="last-48h">-</b></div>
-        <button class="btn" id="tour-btn">Tour</button>
-        <button class="btn" id="reset-view">Reset</button>
+        <button class="btn" id="tour-btn"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-orbit"/></svg><span>Tour</span></button>
+        <button class="btn" id="reset-view"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-rotate-ccw"/></svg><span>Reset</span></button>
       </div>
 
       <div class="ov-toggles">
-        <button class="btn" data-toggle="layers-panel">Layers</button>
-        <button class="btn" data-toggle="inspector">Inspector</button>
+        <button class="btn" data-toggle="layers-panel"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-layers"/></svg>Layers</button>
+        <button class="btn" data-toggle="inspector"><svg class="ico" aria-hidden="true"><use href="/static/vendor/icons.svg#i-panel-right"/></svg>Inspector</button>
       </div>
     </div>
   </section>

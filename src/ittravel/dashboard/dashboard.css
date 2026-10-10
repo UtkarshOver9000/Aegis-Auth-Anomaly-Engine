@@ -288,3 +288,13 @@ body.on-globe .foot { display: none; }
 @media (max-width: 900px) { #home-kpis { grid-template-columns: repeat(2, 1fr); } }
 /* OpenStreetMap tiles dimmed to match the dark console (display filter only; same map data) */
 .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9); }
+/* icons: Lucide, drawn with the text colour */
+.ico { width: 16px; height: 16px; flex: none; display: inline-block; vertical-align: -3px; stroke: currentColor; fill: none; }
+.btn .ico { width: 15px; height: 15px; }
+.btn.icon .ico { width: 16px; height: 16px; }
+nav a .ico { width: 15px; height: 15px; margin-right: 7px; opacity: 0.85; }
+nav a.on .ico { color: var(--accent); opacity: 1; }
+.search { position: relative; }
+.search .ico { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--dim); pointer-events: none; }
+.search input { padding-left: 30px; width: 268px; }
+.ov-close .ico, .journey button .ico { width: 14px; height: 14px; }
